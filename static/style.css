@@ -1,0 +1,23 @@
+/* EinkPush extension styles */
+
+/* ── Source table layout ── */
+.einkpush-sources th.col-export,
+.einkpush-sources th.col-unread,
+.einkpush-sources th.col-mark-read { width: 80px; text-align: center; }
+.einkpush-sources th.col-fetch,
+.einkpush-sources th.col-push,
+.einkpush-sources th.col-dl { width: 70px; text-align: center; }
+.einkpush-sources th.col-days { width: 100px; }
+.einkpush-sources td.center { text-align: center; }
+
+/* ── Form control widths ── */
+.einkpush-w70 { width: 70px; }
+.einkpush-w80 { width: 80px; }
+.einkpush-w150 { width: 150px; }
+.einkpush-w350 { width: 350px; }
+.einkpush-cron-cmd {
+    width: 100%;
+    max-width: 600px;
+    font-family: monospace;
+    font-size: 0.85em;
+}

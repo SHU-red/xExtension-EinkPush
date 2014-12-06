@@ -1,0 +1,10 @@
+# Generated EPUBs
+*.epub
+
+# Temp debugging files
+*.html.bak
+gnews_*.html
+freshrss_*.html
+payload.txt
+batchexecute_response.txt
+build_payload.py

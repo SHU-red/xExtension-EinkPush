@@ -1,0 +1,1 @@
+/* EinkPush extension — no custom JS needed */

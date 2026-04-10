@@ -112,7 +112,7 @@ class EinkPushExtension extends Minz_Extension {
             'EinkPush_sources'        => [
                 'favorites' => ['enabled' => true, 'historyDays' => 0, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true],
             ],
-            'EinkPush_push_endpoint'  => '',
+            'EinkPush_push_endpoint'  => 'http://crosspoint.local/upload?path=/RSSFeeds',
             'EinkPush_push_cron'      => '0 6 * * *',
             'EinkPush_push_retries'   => 3,
             'EinkPush_push_retryDelay'=> 10,

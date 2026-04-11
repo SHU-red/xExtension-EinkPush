@@ -22,55 +22,65 @@ $cronCmd = ($cfg['push_cron'] ?? '0 6 * * *') . ' php ' . escapeshellarg($cronSc
 </style>
 
 <div class="form-group">
-    <h3><?= _t('ext.einkpush2.title') ?></h3>
-    <p class="help"><?= _t('ext.einkpush2.description') ?></p>
+    <h3><?= _t('ext.title') ?></h3>
+    <p class="help"><?= _t('ext.description') ?></p>
 </div>
 
 <form method="post" action="<?= _url('extension', 'configure', 'e', 'EinkPush2') ?>">
     <input type="hidden" name="_csrf" value="<?= FreshRSS_Auth::csrfToken() ?>">
 
     <fieldset>
-        <legend><?= _t('ext.einkpush2.section_global') ?></legend>
+        <legend><?= _t('ext.section_global') ?></legend>
         <div class="form-group">
-            <label class="group-name"><?= _t('ext.einkpush2.screen_size') ?></label>
+            <label class="group-name"><?= _t('ext.screen_size') ?></label>
             <div class="group-controls">
                 <input type="number" name="screenWidth" value="<?= (int) $cfg['screenWidth'] ?>" class="einkpush-w80"> x 
                 <input type="number" name="screenHeight" value="<?= (int) $cfg['screenHeight'] ?>" class="einkpush-w80"> px
-                <p class="help"><?= _t('ext.einkpush2.screen_help') ?></p>
+                <p class="help"><?= _t('ext.screen_help') ?></p>
             </div>
         </div>
         <div class="form-group">
-            <label class="group-name"><?= _t('ext.einkpush2.font_size') ?></label>
+            <label class="group-name"><?= _t('ext.font_size') ?></label>
             <div class="group-controls">
                 <select name="fontSize">
                     <?php foreach ([0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.5, 1.8, 2.0] as $fs): ?>
                         <option value="<?= $fs ?>" <?= abs((float)$cfg['fontSize'] - $fs) < 0.01 ? 'selected' : '' ?>><?= $fs ?> em</option>
                     <?php endforeach; ?>
                 </select>
-                <p class="help"><?= _t('ext.einkpush2.font_size_help') ?></p>
+                <p class="help"><?= _t('ext.font_size_help') ?></p>
             </div>
         </div>
         <div class="form-group">
-            <label class="group-name"><?= _t('ext.einkpush2.readability_url') ?></label>
+            <label class="group-name"><?= _t('ext.readability_url') ?></label>
             <div class="group-controls">
                 <input type="url" name="readability_url" value="<?= htmlspecialchars($cfg['readability_url'] ?? '', ENT_QUOTES) ?>" class="einkpush-w350">
-                <p class="help"><?= _t('ext.einkpush2.readability_url_help') ?></p>
+                <p class="help"><?= _t('ext.readability_url_help') ?></p>
             </div>
         </div>
     </fieldset>
 
     <fieldset>
-        <legend><?= _t('ext.einkpush2.section_sources') ?></legend>
+        <legend><?= _t('ext.section_sources') ?></legend>
         <table class="table einkpush-sources">
             <thead>
                 <tr>
-                    <th>Source</th><th>En</th><th>Days</th><th>Unread</th><th>Mark</th><th>Full</th><th>Max</th><th>TS</th><th>UnFav</th><th>Push</th><th>Actions</th>
+                    <th><?= _t('ext.col_source') ?></th>
+                    <th><?= _t('ext.col_enabled') ?></th>
+                    <th><?= _t('ext.col_days') ?></th>
+                    <th><?= _t('ext.col_unread') ?></th>
+                    <th><?= _t('ext.col_mark_read') ?></th>
+                    <th><?= _t('ext.col_fetch_content') ?></th>
+                    <th><?= _t('ext.col_max_articles') ?></th>
+                    <th><?= _t('ext.col_timestamp') ?></th>
+                    <th><?= _t('ext.col_remove_fav') ?></th>
+                    <th><?= _t('ext.col_push') ?></th>
+                    <th><?= _t('ext.col_actions') ?></th>
                 </tr>
             </thead>
             <tbody>
                 <?php $favCfg = array_merge($favDefaults, ($sources['favorites'] ?? [])); ?>
                 <tr>
-                    <td>&#11088; Favorites</td>
+                    <td>&#11088; <?= _t('ext.source_favorites') ?></td>
                     <td><input type="checkbox" name="sources[favorites][enabled]" value="1" <?= !empty($favCfg['enabled']) ? 'checked' : '' ?>></td>
                     <td><input type="number" name="sources[favorites][historyDays]" value="<?= $favCfg['historyDays'] ?>" class="einkpush-w70"></td>
                     <td><input type="checkbox" name="sources[favorites][unreadOnly]" value="1" <?= !empty($favCfg['unreadOnly']) ? 'checked' : '' ?>></td>
@@ -108,31 +118,31 @@ $cronCmd = ($cfg['push_cron'] ?? '0 6 * * *') . ' php ' . escapeshellarg($cronSc
     </fieldset>
 
     <fieldset>
-        <legend><?= _t('ext.einkpush2.section_push') ?></legend>
+        <legend><?= _t('ext.section_push') ?></legend>
         <div class="form-group">
-            <label class="group-name"><?= _t('ext.einkpush2.push_endpoint') ?></label>
+            <label class="group-name"><?= _t('ext.push_endpoint') ?></label>
             <div class="group-controls">
                 <input type="url" name="push_endpoint" value="<?= htmlspecialchars($cfg['push_endpoint'] ?? '', ENT_QUOTES) ?>" class="einkpush-w350">
             </div>
         </div>
         <div class="form-group">
-            <label class="group-name"><?= _t('ext.einkpush2.push_cron') ?></label>
+            <label class="group-name"><?= _t('ext.push_cron') ?></label>
             <div class="group-controls">
                 <input type="text" name="push_cron" value="<?= htmlspecialchars($cfg['push_cron'] ?? '0 6 * * *', ENT_QUOTES) ?>">
             </div>
         </div>
         <div class="form-group">
-            <label class="group-name"><?= _t('ext.einkpush2.push_cron_cmd') ?></label>
+            <label class="group-name"><?= _t('ext.push_cron_cmd') ?></label>
             <div class="group-controls">
                 <input type="text" readonly value="<?= htmlspecialchars($cronCmd, ENT_QUOTES) ?>" onclick="this.select()" style="width:100%">
-                <p class="help"><?= _t('ext.einkpush2.push_cron_cmd_help') ?></p>
+                <p class="help"><?= _t('ext.push_cron_cmd_help') ?></p>
             </div>
         </div>
     </fieldset>
 
     <div class="form-group form-actions">
-        <button type="submit" class="btn btn-primary"><?= _t('ext.einkpush2.save') ?></button>
-        <a class="btn" href="<?= _url('einkpush2', 'generate') ?>"><?= _t('ext.einkpush2.download_selected') ?></a>
-        <a class="btn" href="<?= _url('einkpush2', 'push') ?>"><?= _t('ext.einkpush2.push_selected') ?></a>
+        <button type="submit" class="btn btn-primary"><?= _t('ext.save') ?></button>
+        <a class="btn" href="<?= _url('einkpush2', 'generate') ?>"><?= _t('ext.download_selected') ?></a>
+        <a class="btn" href="<?= _url('einkpush2', 'push') ?>"><?= _t('ext.push_selected') ?></a>
     </div>
 </form>

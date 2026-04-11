@@ -105,8 +105,10 @@ class EinkPushHelper {
     /**
      * POST an EPUB file to a remote endpoint with retries.
      */
-    public function pushToEndpoint(string $filePath, string $endpoint, int $retries = 3, int $retryDelay = 10): bool {
+    public function pushToEndpoint(string $filePath, string $endpoint, int $retries = 3, int $retryDelay = 10, string $sourceName = 'Unknown'): bool {
+        $success = false;
         if (!file_exists($filePath) || !function_exists('curl_init')) {
+            $this->logPush($sourceName, false, 'File missing or cURL disabled');
             return false;
         }
         $parsed = parse_url($endpoint);
@@ -141,13 +143,14 @@ class EinkPushHelper {
             curl_close($ch);
 
             if ($httpCode >= 200 && $httpCode < 300) {
-                return true;
+                $success = true;
+                break;
             }
         }
 
-        return false;
+        $this->logPush($sourceName, $success, $success ? 'HTTP ' . $httpCode : 'Failed after retries (Last: ' . $httpCode . ')');
+        return $success;
     }
-
     /**
      * List currently available EPUB files with metadata.
      */
@@ -874,5 +877,34 @@ CSS;
         if ($bytes < 1024) return $bytes . ' B';
         if ($bytes < 1048576) return round($bytes / 1024, 1) . ' KB';
         return round($bytes / 1048576, 1) . ' MB';
+    }
+
+    private function logPush(string $source, bool $success, string $message): void {
+        $logFile = $this->outputDir . 'push_history.json';
+        $history = [];
+        if (file_exists($logFile)) {
+            $history = json_decode(file_get_contents($logFile), true) ?: [];
+        }
+        
+        array_unshift($history, [
+            'time'    => date('Y-m-d H:i:s'),
+            'source'  => $source,
+            'success' => $success,
+            'message' => $message
+        ]);
+        
+        $history = array_slice($history, 0, 50);
+        file_put_contents($logFile, json_encode($history));
+    }
+
+    public function getHistory(): array {
+        $logFile = $this->outputDir . 'push_history.json';
+        if (!file_exists($logFile)) return [];
+        return json_decode(file_get_contents($logFile), true) ?: [];
+    }
+
+    public function clearHistory(): void {
+        $logFile = $this->outputDir . 'push_history.json';
+        if (file_exists($logFile)) @unlink($logFile);
     }
 }

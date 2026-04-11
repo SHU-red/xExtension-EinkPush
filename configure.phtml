@@ -3,9 +3,9 @@
 $cfg = $this->getConfig();
 $categoryDAO = FreshRSS_Factory::createCategoryDao();
 $categories = $categoryDAO->listCategories() ?: [];
-$sources = $cfg['sources'];
-        $favDefaults = ['enabled' => true, 'historyDays' => 0, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 0, 'removeFromFavorites' => false];
-        $catDefaults = ['enabled' => false, 'historyDays' => 7, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 0];
+ $sources = $cfg['sources'];
+ $favDefaults = ['enabled' => true, 'historyDays' => 0, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 0, 'removeFromFavorites' => false];
+ $catDefaults = ['enabled' => false, 'historyDays' => 7, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 0];
 $pushEndpoint  = $cfg['push_endpoint'] ?? '';
 $pushCron      = $cfg['push_cron'] ?? '0 6 * * *';
 $pushRetries   = (int) ($cfg['push_retries'] ?? 3);
@@ -115,9 +115,9 @@ $cronCmd    = $pushCron . ' php ' . escapeshellarg($cronScript) . ' --user=' . e
                     <th class="col-push-btn">Push</th>
                 </tr>
             </thead>
-            <tbody>
+             <tbody>
                  <?php
-                 $favCfg = array_merge($favDefaults, $sources['favorites'] ?? []);
+                 $favCfg = array_merge($favDefaults, ($sources['favorites'] ?? []));
                  ?>
                  <tr>
                      <td>&#11088; <?= _t('ext.einkpush.source_favorites') ?></td>
@@ -179,7 +179,7 @@ $cronCmd    = $pushCron . ' php ' . escapeshellarg($cronScript) . ' --user=' . e
                 <?php foreach ($categories as $cat): ?>
                     <?php
                     $key = 'cat_' . $cat->id();
-                    $srcCfg = array_merge($catDefaults, $sources[$key] ?? []);
+                    $srcCfg = array_merge($catDefaults, ($sources[$key] ?? []));
                     ?>
                      <tr>
                         <td>

@@ -5,6 +5,7 @@ class EinkPush2Extension extends Minz_Extension {
     public function init() {
         $this->registerController('einkpush2');
         $this->registerTranslates();
+        Minz_View::appendStyle($this->getFileUrl('style.css', 'css'));
     }
 
     public function handleConfigureAction() {

@@ -52,8 +52,9 @@ class FreshRSS_einkpush2_Controller extends Minz_ActionController {
         if (empty($paths)) Minz_Request::good(_t('ext.msg_no_articles'), _url('extension', 'configure', 'e', 'EinkPush2'));
 
         $success = 0; $failed = 0;
-        foreach ($paths as $path) {
-            if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], $conf['push_retryDelay'])) $success++;
+        foreach ($paths as $sourceKey => $path) {
+            $sourceName = $sourceKey === 'favorites' ? _t('ext.source_favorites') : $sourceKey;
+            if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], $conf['push_retryDelay'], $sourceName)) $success++;
             else $failed++;
         }
 
@@ -74,11 +75,17 @@ class FreshRSS_einkpush2_Controller extends Minz_ActionController {
         $path = $this->helper->generateSingle($sourceKey, $srcCfg);
         if (!$path) Minz_Request::good(_t('ext.msg_no_articles'), _url('extension', 'configure', 'e', 'EinkPush2'));
 
-        if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], $conf['push_retryDelay'])) {
+        $sourceName = $sourceKey === 'favorites' ? _t('ext.source_favorites') : $sourceKey;
+        if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], $conf['push_retryDelay'], $sourceName)) {
             Minz_Request::good(_t('ext.msg_push_success_single'), _url('extension', 'configure', 'e', 'EinkPush2'));
         } else {
             Minz_Request::bad(_t('ext.msg_push_failed_single'), _url('extension', 'configure', 'e', 'EinkPush2'));
         }
+    }
+
+    public function clearHistoryAction() {
+        $this->helper->clearHistory();
+        Minz_Request::good(_t('ext.msg_history_cleared'), _url('extension', 'configure', 'e', 'EinkPush2'));
     }
 
     private function downloadFile(string $path) {

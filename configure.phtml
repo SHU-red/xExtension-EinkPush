@@ -11,138 +11,263 @@ $catDefaults = ['enabled' => false, 'historyDays' => 7, 'unreadOnly' => true, 'm
 $ext = Minz_ExtensionManager::findExtension('EinkPush2');
 $cronScript = $ext ? ($ext->getPath() . '/push_cron.php') : '';
 $cronCmd = ($cfg['push_cron'] ?? '0 6 * * *') . ' php ' . escapeshellarg($cronScript) . ' --user=' . escapeshellarg(Minz_User::name());
+
+// Load helper for history
+require_once $ext->getPath() . '/FreshExtension_EinkPush_Helper.php';
+$helper = new EinkPushHelper($this->getEpubDir(), 0, 0, 0, '');
+$history = $helper->getHistory();
 ?>
 
 <style>
-    .einkpush-sources th, .einkpush-sources td { padding: 8px; vertical-align: middle; text-align: center; }
-    .einkpush-sources td:first-child { text-align: left; }
-    .einkpush-w70 { width: 70px; }
-    .einkpush-w80 { width: 80px; }
-    .einkpush-w350 { width: 100%; max-width: 350px; }
+    /* Modern Dashboard Styling */
+    .ep-container { max-width: 800px; margin: 0 auto; font-family: system-ui, -apple-system, sans-serif; }
+    
+    /* Tabs */
+    .ep-tabs { display: flex; border-bottom: 2px solid #ddd; margin-bottom: 20px; gap: 10px; overflow-x: auto; }
+    .ep-tab { padding: 10px 20px; cursor: pointer; border: none; background: none; font-weight: 600; color: #666; border-bottom: 3px solid transparent; transition: all 0.2s; white-space: nowrap; }
+    .ep-tab:hover { color: #333; }
+    .ep-tab.active { color: #0062ff; border-bottom-color: #0062ff; }
+    .ep-content { display: none; }
+    .ep-content.active { display: block; }
+
+    /* Dashboard Header */
+    .ep-dashboard { background: #f8f9fa; border-radius: 12px; padding: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #e9ecef; }
+    .ep-dash-info h3 { margin: 0 0 5px 0; font-size: 1.2rem; }
+    .ep-dash-info p { margin: 0; color: #6c757d; font-size: 0.9rem; }
+    .ep-dash-actions { display: flex; gap: 10px; }
+
+    /* Source Cards */
+    .ep-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px; margin-bottom: 12px; transition: box-shadow 0.2s; }
+    .ep-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .ep-card-header { display: flex; justify-content: space-between; align-items: center; }
+    .ep-card-title { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 1.05rem; }
+    .ep-card-actions { display: flex; align-items: center; gap: 12px; }
+    
+    .ep-toggle { position: relative; display: inline-block; width: 44px; height: 24px; }
+    .ep-toggle input { opacity: 0; width: 0; height: 0; }
+    .ep-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
+    .ep-slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+    input:checked + .ep-slider { background-color: #0062ff; }
+    input:checked + .ep-slider:before { transform: translateX(20px); }
+
+    .ep-btn-icon { background: #f0f0f0; border: none; border-radius: 8px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #444; transition: background 0.2s; }
+    .ep-btn-icon:hover { background: #e0e0e0; }
+    .ep-btn-push { background: #0062ff; color: #fff; }
+    .ep-btn-push:hover { background: #0052d6; }
+
+    .ep-card-details { margin-top: 15px; padding-top: 15px; border-top: 1px solid #f0f0f0; display: none; }
+    .ep-card-details.open { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .ep-detail-item { display: flex; flex-direction: column; gap: 5px; }
+    .ep-detail-item label { font-size: 0.85rem; color: #666; }
+    .ep-detail-item input, .ep-detail-item select { padding: 6px; border: 1px solid #ddd; border-radius: 4px; }
+
+    /* History List */
+    .ep-history-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #f0f0f0; align-items: center; }
+    .ep-history-item:last-child { border-bottom: none; }
+    .ep-status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+    .ep-status-success { background: #28a745; }
+    .ep-status-error { background: #dc3545; }
+    .ep-history-meta { font-size: 0.85rem; color: #999; }
+
+    /* Global Settings */
+    .ep-form-section { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+    .ep-form-row { margin-bottom: 15px; }
+    .ep-form-row label { display: block; font-weight: 600; margin-bottom: 5px; }
+    .ep-form-row input[type="text"], .ep-form-row input[type="url"], .ep-form-row input[type="number"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
+    .ep-form-row .help { font-size: 0.85rem; color: #666; margin-top: 5px; }
+
+    .ep-save-bar { position: sticky; bottom: 0; background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); padding: 15px; border-top: 1px solid #eee; display: flex; justify-content: center; z-index: 100; }
+    .ep-btn-primary { background: #0062ff; color: #fff; border: none; padding: 12px 30px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: transform 0.1s; }
+    .ep-btn-primary:active { transform: scale(0.98); }
 </style>
 
-<div class="form-group">
-    <h3><?= _t('ext.title') ?></h3>
-    <p class="help"><?= _t('ext.description') ?></p>
+<div class="ep-container">
+    <div class="ep-dashboard">
+        <div class="ep-dash-info">
+            <h3><?= _t('ext.title') ?></h3>
+            <p><?= _t('ext.description') ?></p>
+        </div>
+        <div class="ep-dash-actions">
+            <a class="ep-btn-icon" title="<?= _t('ext.dashboard_dl_all') ?>" href="<?= _url('einkpush2', 'generate') ?>">📥</a>
+            <a class="ep-btn-icon ep-btn-push" title="<?= _t('ext.dashboard_push_all') ?>" href="<?= _url('einkpush2', 'push') ?>">🚀</a>
+        </div>
+    </div>
+
+    <div class="ep-tabs">
+        <button class="ep-tab active" onclick="openTab(event, 'sources')"><?= _t('ext.nav_sources') ?></button>
+        <button class="ep-tab" onclick="openTab(event, 'push')"><?= _t('ext.nav_push') ?></button>
+        <button class="ep-tab" onclick="openTab(event, 'global')"><?= _t('ext.nav_global') ?></button>
+        <button class="ep-tab" onclick="openTab(event, 'history')"><?= _t('ext.nav_history') ?></button>
+    </div>
+
+    <form method="post" action="<?= _url('extension', 'configure', 'e', 'EinkPush2') ?>">
+        <input type="hidden" name="_csrf" value="<?= FreshRSS_Auth::csrfToken() ?>">
+
+        <!-- Sources Tab -->
+        <div id="sources" class="ep-content active">
+            <?php 
+            $favCfg = array_merge($favDefaults, ($sources['favorites'] ?? [])); 
+            renderSourceCard('favorites', _t('ext.source_favorites'), $favCfg, true);
+
+            foreach ($categories as $cat) {
+                $key = 'cat_' . $cat->id();
+                $srcCfg = array_merge($catDefaults, ($sources[$key] ?? []));
+                renderSourceCard($key, $cat->name(), $srcCfg, false);
+            }
+            ?>
+        </div>
+
+        <!-- Push Tab -->
+        <div id="push" class="ep-content">
+            <div class="ep-form-section">
+                <div class="ep-form-row">
+                    <label><?= _t('ext.push_endpoint') ?></label>
+                    <input type="url" name="push_endpoint" value="<?= htmlspecialchars($cfg['push_endpoint'] ?? '', ENT_QUOTES) ?>" placeholder="https://...">
+                    <p class="help"><?= _t('ext.push_endpoint_help') ?></p>
+                </div>
+                <div class="ep-form-row">
+                    <label><?= _t('ext.push_cron') ?></label>
+                    <input type="text" name="push_cron" value="<?= htmlspecialchars($cfg['push_cron'] ?? '0 6 * * *', ENT_QUOTES) ?>">
+                    <p class="help"><?= _t('ext.push_cron_help') ?></p>
+                </div>
+                <div class="ep-form-row">
+                    <label><?= _t('ext.push_cron_cmd') ?></label>
+                    <input type="text" readonly value="<?= htmlspecialchars($cronCmd, ENT_QUOTES) ?>" onclick="this.select()">
+                    <p class="help"><?= _t('ext.push_cron_cmd_help') ?></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Global Tab -->
+        <div id="global" class="ep-content">
+            <div class="ep-form-section">
+                <div class="ep-form-row">
+                    <label><?= _t('ext.screen_size') ?></label>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <input type="number" name="screenWidth" value="<?= (int) $cfg['screenWidth'] ?>"> x 
+                        <input type="number" name="screenHeight" value="<?= (int) $cfg['screenHeight'] ?>">
+                    </div>
+                    <p class="help"><?= _t('ext.screen_help') ?></p>
+                </div>
+                <div class="ep-form-row">
+                    <label><?= _t('ext.font_size') ?></label>
+                    <select name="fontSize">
+                        <?php foreach ([0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.5, 1.8, 2.0] as $fs): ?>
+                            <option value="<?= $fs ?>" <?= abs((float)$cfg['fontSize'] - $fs) < 0.01 ? 'selected' : '' ?>><?= $fs ?> em</option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p class="help"><?= _t('ext.font_size_help') ?></p>
+                </div>
+                <div class="ep-form-row">
+                    <label><?= _t('ext.readability_url') ?></label>
+                    <input type="url" name="readability_url" value="<?= htmlspecialchars($cfg['readability_url'] ?? '', ENT_QUOTES) ?>">
+                    <p class="help"><?= _t('ext.readability_url_help') ?></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Tab -->
+        <div id="history" class="ep-content">
+            <div class="ep-form-section">
+                <?php if (empty($history)): ?>
+                    <p style="text-align:center; color:#999; padding:20px;"><?= _t('ext.history_empty') ?></p>
+                <?php else: ?>
+                    <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+                        <a href="<?= _url('einkpush2', 'clearHistory') ?>" class="btn btn-sm"><?= _t('ext.history_clear') ?></a>
+                    </div>
+                    <?php foreach ($history as $item): ?>
+                        <div class="ep-history-item">
+                            <div>
+                                <span class="ep-status-dot <?= $item['success'] ? 'ep-status-success' : 'ep-status-error' ?>"></span>
+                                <strong><?= htmlspecialchars($item['source']) ?></strong>
+                                <div style="font-size:0.8rem; color:#666; margin-left:18px;"><?= htmlspecialchars($item['message']) ?></div>
+                            </div>
+                            <div class="ep-history-meta"><?= $item['time'] ?></div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <div class="ep-save-bar">
+            <button type="submit" class="ep-btn-primary"><?= _t('ext.save') ?></button>
+        </div>
+    </form>
 </div>
 
-<form method="post" action="<?= _url('extension', 'configure', 'e', 'EinkPush2') ?>">
-    <input type="hidden" name="_csrf" value="<?= FreshRSS_Auth::csrfToken() ?>">
+<script>
+function openTab(evt, tabName) {
+    var i, content, tabs;
+    content = document.getElementsByClassName("ep-content");
+    for (i = 0; i < content.length; i++) { content[i].classList.remove("active"); }
+    tabs = document.getElementsByClassName("ep-tab");
+    for (i = 0; i < tabs.length; i++) { tabs[i].classList.remove("active"); }
+    document.getElementById(tabName).classList.add("active");
+    evt.currentTarget.classList.add("active");
+}
 
-    <fieldset>
-        <legend><?= _t('ext.section_global') ?></legend>
-        <div class="form-group">
-            <label class="group-name"><?= _t('ext.screen_size') ?></label>
-            <div class="group-controls">
-                <input type="number" name="screenWidth" value="<?= (int) $cfg['screenWidth'] ?>" class="einkpush-w80"> x 
-                <input type="number" name="screenHeight" value="<?= (int) $cfg['screenHeight'] ?>" class="einkpush-w80"> px
-                <p class="help"><?= _t('ext.screen_help') ?></p>
-            </div>
-        </div>
-        <div class="form-group">
-            <label class="group-name"><?= _t('ext.font_size') ?></label>
-            <div class="group-controls">
-                <select name="fontSize">
-                    <?php foreach ([0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.5, 1.8, 2.0] as $fs): ?>
-                        <option value="<?= $fs ?>" <?= abs((float)$cfg['fontSize'] - $fs) < 0.01 ? 'selected' : '' ?>><?= $fs ?> em</option>
-                    <?php endforeach; ?>
-                </select>
-                <p class="help"><?= _t('ext.font_size_help') ?></p>
-            </div>
-        </div>
-        <div class="form-group">
-            <label class="group-name"><?= _t('ext.readability_url') ?></label>
-            <div class="group-controls">
-                <input type="url" name="readability_url" value="<?= htmlspecialchars($cfg['readability_url'] ?? '', ENT_QUOTES) ?>" class="einkpush-w350">
-                <p class="help"><?= _t('ext.readability_url_help') ?></p>
-            </div>
-        </div>
-    </fieldset>
+function toggleDetails(key) {
+    var el = document.getElementById('details-' + key);
+    el.classList.toggle('open');
+}
+</script>
 
-    <fieldset>
-        <legend><?= _t('ext.section_sources') ?></legend>
-        <table class="table einkpush-sources">
-            <thead>
-                <tr>
-                    <th><?= _t('ext.col_source') ?></th>
-                    <th><?= _t('ext.col_enabled') ?></th>
-                    <th><?= _t('ext.col_days') ?></th>
-                    <th><?= _t('ext.col_unread') ?></th>
-                    <th><?= _t('ext.col_mark_read') ?></th>
-                    <th><?= _t('ext.col_fetch_content') ?></th>
-                    <th><?= _t('ext.col_max_articles') ?></th>
-                    <th><?= _t('ext.col_timestamp') ?></th>
-                    <th><?= _t('ext.col_remove_fav') ?></th>
-                    <th><?= _t('ext.col_push') ?></th>
-                    <th><?= _t('ext.col_actions') ?></th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php $favCfg = array_merge($favDefaults, ($sources['favorites'] ?? [])); ?>
-                <tr>
-                    <td>&#11088; <?= _t('ext.source_favorites') ?></td>
-                    <td><input type="checkbox" name="sources[favorites][enabled]" value="1" <?= !empty($favCfg['enabled']) ? 'checked' : '' ?>></td>
-                    <td><input type="number" name="sources[favorites][historyDays]" value="<?= $favCfg['historyDays'] ?>" class="einkpush-w70"></td>
-                    <td><input type="checkbox" name="sources[favorites][unreadOnly]" value="1" <?= !empty($favCfg['unreadOnly']) ? 'checked' : '' ?>></td>
-                    <td><input type="checkbox" name="sources[favorites][markAsRead]" value="1" <?= !empty($favCfg['markAsRead']) ? 'checked' : '' ?>></td>
-                    <td><input type="checkbox" name="sources[favorites][fetchContent]" value="1" <?= !empty($favCfg['fetchContent']) ? 'checked' : '' ?>></td>
-                    <td><input type="number" name="sources[favorites][maxArticles]" value="<?= $favCfg['maxArticles'] ?>" class="einkpush-w70"></td>
-                    <td><input type="checkbox" name="sources[favorites][addTimestamp]" value="1" <?= !empty($favCfg['addTimestamp']) ? 'checked' : '' ?>></td>
-                    <td><input type="checkbox" name="sources[favorites][removeFromFavorites]" value="1" <?= !empty($favCfg['removeFromFavorites']) ? 'checked' : '' ?>></td>
-                    <td><input type="checkbox" name="sources[favorites][autoPush]" value="1" <?= !empty($favCfg['autoPush']) ? 'checked' : '' ?>></td>
-                    <td>
-                        <a class="btn btn-sm" href="<?= _url('einkpush2', 'generate', 'source', 'favorites') ?>">DL</a>
-                        <a class="btn btn-sm" href="<?= _url('einkpush2', 'pushSingle', 'source', 'favorites') ?>">Push</a>
-                    </td>
-                </tr>
-                <?php foreach ($categories as $cat): $key = 'cat_' . $cat->id(); $srcCfg = array_merge($catDefaults, ($sources[$key] ?? [])); ?>
-                <tr>
-                    <td><?= htmlspecialchars($cat->name()) ?></td>
-                    <td><input type="checkbox" name="sources[<?= $key ?>][enabled]" value="1" <?= !empty($srcCfg['enabled']) ? 'checked' : '' ?>></td>
-                    <td><input type="number" name="sources[<?= $key ?>][historyDays]" value="<?= $srcCfg['historyDays'] ?>" class="einkpush-w70"></td>
-                    <td><input type="checkbox" name="sources[<?= $key ?>][unreadOnly]" value="1" <?= !empty($srcCfg['unreadOnly']) ? 'checked' : '' ?>></td>
-                    <td><input type="checkbox" name="sources[<?= $key ?>][markAsRead]" value="1" <?= !empty($srcCfg['markAsRead']) ? 'checked' : '' ?>></td>
-                    <td><input type="checkbox" name="sources[<?= $key ?>][fetchContent]" value="1" <?= !empty($srcCfg['fetchContent']) ? 'checked' : '' ?>></td>
-                    <td><input type="number" name="sources[<?= $key ?>][maxArticles]" value="<?= $srcCfg['maxArticles'] ?>" class="einkpush-w70"></td>
-                    <td><input type="checkbox" name="sources[<?= $key ?>][addTimestamp]" value="1" <?= !empty($srcCfg['addTimestamp']) ? 'checked' : '' ?>></td>
-                    <td>-</td>
-                    <td><input type="checkbox" name="sources[<?= $key ?>][autoPush]" value="1" <?= !empty($srcCfg['autoPush']) ? 'checked' : '' ?>></td>
-                    <td>
-                        <a class="btn btn-sm" href="<?= _url('einkpush2', 'generate', 'source', $key) ?>">DL</a>
-                        <a class="btn btn-sm" href="<?= _url('einkpush2', 'pushSingle', 'source', $key) ?>">Push</a>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    </fieldset>
-
-    <fieldset>
-        <legend><?= _t('ext.section_push') ?></legend>
-        <div class="form-group">
-            <label class="group-name"><?= _t('ext.push_endpoint') ?></label>
-            <div class="group-controls">
-                <input type="url" name="push_endpoint" value="<?= htmlspecialchars($cfg['push_endpoint'] ?? '', ENT_QUOTES) ?>" class="einkpush-w350">
+<?php
+function renderSourceCard($key, $name, $cfg, $isFav) {
+    ?>
+    <div class="ep-card">
+        <div class="ep-card-header">
+            <div class="ep-card-title">
+                <label class="ep-toggle">
+                    <input type="checkbox" name="sources[<?= $key ?>][enabled]" value="1" <?= !empty($cfg['enabled']) ? 'checked' : '' ?>>
+                    <span class="ep-slider"></span>
+                </label>
+                <?= htmlspecialchars($name) ?>
+            </div>
+            <div class="ep-card-actions">
+                <button type="button" class="ep-btn-icon" onclick="toggleDetails('<?= $key ?>')" title="<?= _t('ext.card_settings') ?>">⚙️</button>
+                <a class="ep-btn-icon" href="<?= _url('einkpush2', 'generate', 'source', $key) ?>" title="<?= _t('ext.card_download') ?>">📥</a>
+                <a class="ep-btn-icon ep-btn-push" href="<?= _url('einkpush2', 'pushSingle', 'source', $key) ?>" title="<?= _t('ext.card_push_now') ?>">🚀</a>
             </div>
         </div>
-        <div class="form-group">
-            <label class="group-name"><?= _t('ext.push_cron') ?></label>
-            <div class="group-controls">
-                <input type="text" name="push_cron" value="<?= htmlspecialchars($cfg['push_cron'] ?? '0 6 * * *', ENT_QUOTES) ?>">
+        
+        <div id="details-<?= $key ?>" class="ep-card-details">
+            <div class="ep-detail-item">
+                <label><?= _t('ext.col_days') ?></label>
+                <input type="number" name="sources[<?= $key ?>][historyDays]" value="<?= $cfg['historyDays'] ?>">
+            </div>
+            <div class="ep-detail-item">
+                <label><?= _t('ext.col_max_articles') ?></label>
+                <input type="number" name="sources[<?= $key ?>][maxArticles]" value="<?= $cfg['maxArticles'] ?>">
+            </div>
+            <div class="ep-detail-item">
+                <label><?= _t('ext.col_unread') ?></label>
+                <input type="checkbox" name="sources[<?= $key ?>][unreadOnly]" value="1" <?= !empty($cfg['unreadOnly']) ? 'checked' : '' ?>>
+            </div>
+            <div class="ep-detail-item">
+                <label><?= _t('ext.col_mark_read') ?></label>
+                <input type="checkbox" name="sources[<?= $key ?>][markAsRead]" value="1" <?= !empty($cfg['markAsRead']) ? 'checked' : '' ?>>
+            </div>
+            <div class="ep-detail-item">
+                <label><?= _t('ext.col_fetch_content') ?></label>
+                <input type="checkbox" name="sources[<?= $key ?>][fetchContent]" value="1" <?= !empty($cfg['fetchContent']) ? 'checked' : '' ?>>
+            </div>
+            <div class="ep-detail-item">
+                <label><?= _t('ext.col_timestamp') ?></label>
+                <input type="checkbox" name="sources[<?= $key ?>][addTimestamp]" value="1" <?= !empty($cfg['addTimestamp']) ? 'checked' : '' ?>>
+            </div>
+            <?php if ($isFav): ?>
+            <div class="ep-detail-item">
+                <label><?= _t('ext.col_remove_fav') ?></label>
+                <input type="checkbox" name="sources[<?= $key ?>][removeFromFavorites]" value="1" <?= !empty($cfg['removeFromFavorites']) ? 'checked' : '' ?>>
+            </div>
+            <?php endif; ?>
+            <div class="ep-detail-item">
+                <label><?= _t('ext.col_push') ?></label>
+                <input type="checkbox" name="sources[<?= $key ?>][autoPush]" value="1" <?= !empty($cfg['autoPush']) ? 'checked' : '' ?>>
             </div>
         </div>
-        <div class="form-group">
-            <label class="group-name"><?= _t('ext.push_cron_cmd') ?></label>
-            <div class="group-controls">
-                <input type="text" readonly value="<?= htmlspecialchars($cronCmd, ENT_QUOTES) ?>" onclick="this.select()" style="width:100%">
-                <p class="help"><?= _t('ext.push_cron_cmd_help') ?></p>
-            </div>
-        </div>
-    </fieldset>
-
-    <div class="form-group form-actions">
-        <button type="submit" class="btn btn-primary"><?= _t('ext.save') ?></button>
-        <a class="btn" href="<?= _url('einkpush2', 'generate') ?>"><?= _t('ext.download_selected') ?></a>
-        <a class="btn" href="<?= _url('einkpush2', 'push') ?>"><?= _t('ext.push_selected') ?></a>
     </div>
-</form>
+    <?php
+}
+?>

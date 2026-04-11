@@ -43,12 +43,21 @@ class EinkPushHelper {
             $unreadOnly = !empty($srcCfg['unreadOnly']);
             $markAsRead = !empty($srcCfg['markAsRead']);
             $fetchContent = !empty($srcCfg['fetchContent']);
-            $entries = $this->collectForSource($key, $historyDays, $unreadOnly);
+            $maxArticles = (int) ($srcCfg['maxArticles'] ?? 0);
+            $addTimestamp = !empty($srcCfg['addTimestamp']);
+            $entries = $this->collectForSource($key, $historyDays, $unreadOnly, $maxArticles);
             if (empty($entries)) {
                 continue;
             }
             $label = $this->sourceLabel($key);
-            $path = $this->buildEpub($key, $label, $entries, $markAsRead, $fetchContent);
+            $entryIds = array_map(function($entry) { return $entry->id(); }, $entries);
+            $path = $this->buildEpub($key, $label, $entries, $markAsRead, $fetchContent, $addTimestamp);
+            
+            // Handle remove from favorites if enabled and this is the favorites source
+            if ($key === 'favorites' && !empty($srcCfg['removeFromFavorites'])) {
+                $this->removeFromFavorites($entryIds);
+            }
+            
             if ($path !== null) {
                 $results[$key] = $path;
             }
@@ -63,19 +72,34 @@ class EinkPushHelper {
     public function generateSingle(string $key, array $srcCfg): ?string {
         $label = $this->sourceLabel($key);
         $safeName = $this->sanitizeFilename($label);
-        foreach (glob($this->outputDir . $safeName . '_*.epub') as $old) {
-            @unlink($old);
+        
+        // Only clean old EPUBs if timestamp is enabled
+        $addTimestamp = !empty($srcCfg['addTimestamp']);
+        if ($addTimestamp) {
+            foreach (glob($this->outputDir . $safeName . '_*.epub') as $old) {
+                @unlink($old);
+            }
         }
 
         $historyDays = (int) ($srcCfg['historyDays'] ?? 7);
         $unreadOnly = !empty($srcCfg['unreadOnly']);
         $markAsRead = !empty($srcCfg['markAsRead']);
         $fetchContent = !empty($srcCfg['fetchContent']);
-        $entries = $this->collectForSource($key, $historyDays, $unreadOnly);
+        $maxArticles = (int) ($srcCfg['maxArticles'] ?? 0);
+        $entries = $this->collectForSource($key, $historyDays, $unreadOnly, $maxArticles);
         if (empty($entries)) {
             return null;
         }
-        return $this->buildEpub($key, $label, $entries, $markAsRead, $fetchContent);
+        
+        $entryIds = array_map(function($entry) { return $entry->id(); }, $entries);
+        $path = $this->buildEpub($key, $label, $entries, $markAsRead, $fetchContent, $addTimestamp);
+        
+        // Handle remove from favorites if enabled and this is the favorites source
+        if ($key === 'favorites' && !empty($srcCfg['removeFromFavorites'])) {
+            $this->removeFromFavorites($entryIds);
+        }
+        
+        return $path;
     }
 
     /**
@@ -127,42 +151,6 @@ class EinkPushHelper {
     /**
      * List currently available EPUB files with metadata.
      */
-    public function listEpubs(): array {
-        $files = glob($this->outputDir . '*.epub');
-        if (empty($files)) {
-            return [];
-        }
-        $result = [];
-        foreach ($files as $f) {
-            $basename = basename($f, '.epub');
-            if (preg_match('/^(.+?)_(\d{8}_\d{6})$/', $basename, $m)) {
-                $key = $m[1];
-                $dateStr = $m[2];
-            } else {
-                $key = $basename;
-                $dateStr = date('Ymd_His', filemtime($f));
-            }
-            $result[$key] = [
-                'path'  => $f,
-                'label' => $this->sourceLabel($key),
-                'date'  => substr($dateStr, 0, 4) . '-' . substr($dateStr, 4, 2) . '-' . substr($dateStr, 6, 2),
-                'size'  => $this->formatSize(filesize($f)),
-            ];
-        }
-        return $result;
-    }
-
-    public function getEpubBySource(string $sourceKey): ?string {
-        $label = $this->sourceLabel($sourceKey);
-        $safe = $this->sanitizeFilename($label);
-        $files = glob($this->outputDir . $safe . '_*.epub');
-        if (empty($files)) {
-            return null;
-        }
-        usort($files, function ($a, $b) { return filemtime($b) - filemtime($a); });
-        return $files[0];
-    }
-
     public function getLatestEpub(): ?string {
         $files = glob($this->outputDir . '*.epub');
         if (empty($files)) {
@@ -171,10 +159,28 @@ class EinkPushHelper {
         usort($files, function ($a, $b) { return filemtime($b) - filemtime($a); });
         return $files[0];
     }
+    
+    /**
+     * Remove articles from favorites after successful export.
+     */
+    public function removeFromFavorites(array $entryIds): void {
+        if (empty($entryIds)) {
+            return;
+        }
+        
+        try {
+            $entryDAO = FreshRSS_Factory::createEntryDao();
+            foreach ($entryIds as $entryId) {
+                $entryDAO->toggleFavorite($entryId, false);
+            }
+        } catch (Exception $e) {
+            error_log('[EinkPush] Failed to remove articles from favorites: ' . $e->getMessage());
+        }
+    }
 
     // ── private helpers ─────────────────────────────────────────────
 
-    private function collectForSource(string $sourceKey, int $historyDays, bool $unreadOnly): array {
+    private function collectForSource(string $sourceKey, int $historyDays, bool $unreadOnly, int $maxArticles = 0): array {
         $entryDAO = FreshRSS_Factory::createEntryDao();
         $limit = 500;
         $idMin = '';
@@ -217,12 +223,18 @@ class EinkPushHelper {
         }
 
         usort($entries, function ($a, $b) { return (int)$b->date() <=> (int)$a->date(); });
+        
+        // Apply max articles limit if set
+        if ($maxArticles > 0 && count($entries) > $maxArticles) {
+            $entries = array_slice($entries, 0, $maxArticles);
+        }
+        
         return $entries;
     }
 
-    private function buildEpub(string $sourceKey, string $label, array $entries, bool $markAsRead, bool $fetchContent = false): ?string {
+    private function buildEpub(string $sourceKey, string $label, array $entries, bool $markAsRead, bool $fetchContent = false, bool $addTimestamp = true): ?string {
         $safeName = $this->sanitizeFilename($label);
-        $filename = $safeName . '_' . date('Ymd_His') . '.epub';
+        $filename = $addTimestamp ? $safeName . '_' . date('Ymd_His') . '.epub' : $safeName . '.epub';
         $fullPath = $this->outputDir . $filename;
 
         $lang = 'en';

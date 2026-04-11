@@ -27,6 +27,7 @@ class FreshExtension_einkpush_Controller extends Minz_ActionController {
             $srcCfg = $cfg['sources'][$sourceKey] ?? [
                 'enabled' => false, 'historyDays' => 7, 'unreadOnly' => false,
                 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true,
+                'addTimestamp' => false, 'maxArticles' => 0,
             ];
             $path = $helper->generateSingle($sourceKey, $srcCfg);
             if ($path === null) {
@@ -85,6 +86,58 @@ class FreshExtension_einkpush_Controller extends Minz_ActionController {
         exit;
     }
 
+    public function pushSingleAction() {
+        $ext = Minz_ExtensionManager::findExtension('EinkPush');
+        if (!$ext) {
+            Minz_Error::error(404);
+            return;
+        }
+
+        $cfg = $ext->getConfig();
+        $endpoint = $cfg['push_endpoint'] ?? '';
+        if ($endpoint === '') {
+            Minz_Request::bad(_t('ext.einkpush.push_no_endpoint'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+            return;
+        }
+
+        require_once $ext->getPath() . '/FreshExtension_EinkPush_Helper.php';
+
+        $helper = new EinkPushHelper(
+            $ext->getEpubDir(),
+            $cfg['screenWidth'],
+            $cfg['screenHeight'],
+            $cfg['fontSize'],
+            $cfg['readability_url'] ?? ''
+        );
+
+        $retries    = (int) ($cfg['push_retries'] ?? 3);
+        $retryDelay = (int) ($cfg['push_retryDelay'] ?? 10);
+
+        $sourceKey = Minz_Request::param('source', '');
+        if ($sourceKey === '') {
+            Minz_Request::bad(_t('ext.einkpush.no_articles'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+            return;
+        }
+
+        $srcCfg = $cfg['sources'][$sourceKey] ?? [
+            'enabled' => false, 'historyDays' => 7, 'unreadOnly' => false,
+            'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true,
+            'addTimestamp' => false, 'maxArticles' => 0,
+        ];
+
+        $path = $helper->generateSingle($sourceKey, $srcCfg);
+        if ($path === null) {
+            Minz_Request::bad(_t('ext.einkpush.no_articles'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+            return;
+        }
+
+        if ($helper->pushToEndpoint($path, $endpoint, $retries, $retryDelay)) {
+            Minz_Request::good(_t('ext.einkpush.push_result', 1, 0), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+        } else {
+            Minz_Request::bad(_t('ext.einkpush.push_result', 0, 1), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+        }
+    }
+
     public function pushAction() {
         $ext = Minz_ExtensionManager::findExtension('EinkPush');
         if (!$ext) {
@@ -128,6 +181,17 @@ class FreshExtension_einkpush_Controller extends Minz_ActionController {
         $failed  = 0;
 
         foreach ($pushSources as $key => $srcCfg) {
+            // Ensure we have the new parameters set
+            if (!isset($srcCfg['addTimestamp'])) {
+                $srcCfg['addTimestamp'] = false;
+            }
+            if (!isset($srcCfg['maxArticles'])) {
+                $srcCfg['maxArticles'] = 0;
+            }
+            if (!isset($srcCfg['removeFromFavorites'])) {
+                $srcCfg['removeFromFavorites'] = false;
+            }
+            
             $path = $helper->generateSingle($key, $srcCfg);
             if ($path === null) {
                 continue;

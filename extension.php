@@ -49,6 +49,9 @@ class EinkPushExtension extends Minz_Extension {
                 'markAsRead'   => !empty($fav['markAsRead']),
                 'autoPush'     => !empty($fav['autoPush']),
                 'fetchContent' => !empty($fav['fetchContent']),
+                'addTimestamp' => !empty($fav['addTimestamp']),
+                'maxArticles'  => max(0, (int) ($fav['maxArticles'] ?? 0)),
+                'removeFromFavorites' => !empty($fav['removeFromFavorites']),
             ];
 
             // Categories
@@ -63,8 +66,10 @@ class EinkPushExtension extends Minz_Extension {
                     'unreadOnly'   => !empty($src['unreadOnly']),
                     'markAsRead'   => !empty($src['markAsRead']),
                     'autoPush'     => !empty($src['autoPush']),
-                    'fetchContent' => !empty($src['fetchContent']),
-                ];
+                'fetchContent' => !empty($src['fetchContent']),
+                'addTimestamp' => !empty($src['addTimestamp']),
+                'maxArticles'  => max(0, (int) ($src['maxArticles'] ?? 0)),
+            ];
             }
 
             $conf->EinkPush_sources = $sources;
@@ -74,7 +79,8 @@ class EinkPushExtension extends Minz_Extension {
             foreach ($sources as $k => $v) {
                 $sourcesSummary[$k] = 'en=' . (int)$v['enabled'] . ' unread=' . (int)$v['unreadOnly']
                     . ' mark=' . (int)$v['markAsRead'] . ' fetch=' . (int)$v['fetchContent']
-                    . ' push=' . (int)$v['autoPush'] . ' days=' . $v['historyDays'];
+                    . ' push=' . (int)$v['autoPush'] . ' days=' . $v['historyDays']
+                    . ' max=' . $v['maxArticles'] . ' ts=' . (int)$v['addTimestamp'];
             }
             error_log('[EinkPush] Saving sources: ' . json_encode($sourcesSummary));
 
@@ -110,7 +116,7 @@ class EinkPushExtension extends Minz_Extension {
             'EinkPush_screenHeight'   => 800,
             'EinkPush_fontSize'       => 1.0,
             'EinkPush_sources'        => [
-                'favorites' => ['enabled' => true, 'historyDays' => 0, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true],
+                'favorites' => ['enabled' => true, 'historyDays' => 0, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 0, 'removeFromFavorites' => false],
             ],
             'EinkPush_push_endpoint'  => 'http://crosspoint.local/upload?path=/RSSFeeds',
             'EinkPush_push_cron'      => '0 6 * * *',

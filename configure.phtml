@@ -4,16 +4,25 @@ $cfg = $this->getConfig();
 $categoryDAO = FreshRSS_Factory::createCategoryDao();
 $categories = $categoryDAO->listCategories() ?: [];
 $sources = $cfg['sources'];
-$favDefaults = ['enabled' => true, 'historyDays' => 0, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true];
-$catDefaults = ['enabled' => false, 'historyDays' => 7, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true];
+        $favDefaults = ['enabled' => true, 'historyDays' => 0, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 0, 'removeFromFavorites' => false];
+        $catDefaults = ['enabled' => false, 'historyDays' => 7, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 0];
 $pushEndpoint  = $cfg['push_endpoint'] ?? '';
 $pushCron      = $cfg['push_cron'] ?? '0 6 * * *';
 $pushRetries   = (int) ($cfg['push_retries'] ?? 3);
 $pushRetryDelay = (int) ($cfg['push_retryDelay'] ?? 10);
-$pushToken     = $cfg['push_token'] ?? '';
-$readabilityUrl = $cfg['readability_url'] ?? '';
+        $pushToken     = $cfg['push_token'] ?? '';
+        $readabilityUrl = $cfg['readability_url'] ?? '';
 
-$ext = Minz_ExtensionManager::findExtension('EinkPush');
+        $ext = Minz_ExtensionManager::findExtension('EinkPush');
+        
+        // Add some CSS for the new columns
+        echo '<style>
+            .einkpush-sources th, .einkpush-sources td { padding: 4px 8px; }
+            .einkpush-sources .col-max { width: 80px; }
+            .einkpush-sources .col-timestamp { width: 60px; }
+            .einkpush-sources .col-dl { width: 80px; }
+            .einkpush-sources .col-push-btn { width: 60px; }
+        </style>';
 $cronScript = $ext ? ($ext->getPath() . '/push_cron.php') : '/path/to/push_cron.php';
 $cronUser   = Minz_User::name();
 $cronCmd    = $pushCron . ' php ' . escapeshellarg($cronScript) . ' --user=' . escapeshellarg($cronUser);
@@ -74,10 +83,16 @@ $cronCmd    = $pushCron . ' php ' . escapeshellarg($cronScript) . ' --user=' . e
         </div>
     </fieldset>
 
-    <!-- ═══ Per-Source Settings ═══ -->
+     <!-- ═══ Per-Source Settings ═══ -->
     <fieldset>
         <legend><?= _t('ext.einkpush.section_sources') ?></legend>
-        <p class="help"><?= _t('ext.einkpush.sources_help') ?></p>
+        <p class="help"><?= _t('ext.einkpush.sources_help_line1') ?></p>
+        <p class="help"><?= _t('ext.einkpush.sources_help_line2') ?></p>
+        <p class="help"><?= _t('ext.einkpush.sources_help_line3') ?></p>
+        <p class="help"><?= _t('ext.einkpush.sources_help_line4') ?></p>
+        <p class="help"><?= _t('ext.einkpush.sources_help_line5') ?></p>
+        <p class="help"><?= _t('ext.einkpush.sources_help_line6') ?></p>
+        <p class="help"><?= _t('ext.einkpush.sources_help_line7') ?></p>
 
         <table class="table einkpush-sources">
             <thead>
@@ -88,15 +103,18 @@ $cronCmd    = $pushCron . ' php ' . escapeshellarg($cronScript) . ' --user=' . e
                     <th class="col-unread"><?= _t('ext.einkpush.col_unread') ?></th>
                     <th class="col-mark-read"><?= _t('ext.einkpush.col_mark_read') ?></th>
                     <th class="col-fetch"><?= _t('ext.einkpush.col_fetch') ?></th>
+                    <th class="col-max"><?= _t('ext.einkpush.col_max_articles') ?></th>
+                    <th class="col-timestamp"><?= _t('ext.einkpush.col_timestamp') ?></th>
                     <th class="col-push"><?= _t('ext.einkpush.col_push') ?></th>
                     <th class="col-dl">&#8595;</th>
+                    <th class="col-push-btn">Push</th>
                 </tr>
             </thead>
             <tbody>
                 <?php
                 $favCfg = array_merge($favDefaults, $sources['favorites'] ?? []);
                 ?>
-                <tr>
+                 <tr>
                     <td>&#11088; <?= _t('ext.einkpush.source_favorites') ?></td>
                     <td class="center">
                         <input type="hidden" name="sources[favorites][enabled]" value="0">
@@ -123,6 +141,26 @@ $cronCmd    = $pushCron . ' php ' . escapeshellarg($cronScript) . ' --user=' . e
                         <input type="checkbox" name="sources[favorites][fetchContent]" value="1"
                                <?= !empty($favCfg['fetchContent']) ? 'checked' : '' ?>>
                     </td>
+                    <td>
+                        <input type="number" name="sources[favorites][maxArticles]"
+                               value="<?= (int) ($favCfg['maxArticles'] ?? 0) ?>"
+                               min="0" max="1000" class="einkpush-w70">
+                    </td>
+                    <td class="center">
+                        <input type="hidden" name="sources[favorites][addTimestamp]" value="0">
+                        <input type="checkbox" name="sources[favorites][addTimestamp]" value="1"
+                               <?= !empty($favCfg['addTimestamp']) ? 'checked' : '' ?>>
+                    </td>
+                    <td class="center">
+                        <input type="hidden" name="sources[favorites][removeFromFavorites]" value="0">
+                        <input type="checkbox" name="sources[favorites][removeFromFavorites]" value="1"
+                               <?= !empty($favCfg['removeFromFavorites']) ? 'checked' : '' ?>>
+                    </td>
+                    <td class="center">
+                        <input type="hidden" name="sources[favorites][addTimestamp]" value="0">
+                        <input type="checkbox" name="sources[favorites][addTimestamp]" value="1"
+                               <?= !empty($favCfg['addTimestamp']) ? 'checked' : '' ?>>
+                    </td>
                     <td class="center">
                         <input type="hidden" name="sources[favorites][autoPush]" value="0">
                         <input type="checkbox" name="sources[favorites][autoPush]" value="1"
@@ -130,7 +168,11 @@ $cronCmd    = $pushCron . ' php ' . escapeshellarg($cronScript) . ' --user=' . e
                     </td>
                     <td class="center">
                         <a class="btn btn-sm" title="<?= _t('ext.einkpush.download_source') ?>"
-                           href="<?= Minz_Url::display(['c' => 'einkpush', 'a' => 'generate', 'params' => ['source' => 'favorites']]) ?>">&#8595;</a>
+                           href="<?= Minz_Url::display(['c' => 'einkpush', 'a' => 'generate', 'params' => ['source' => 'favorites']]) ?>">Download</a>
+                    </td>
+                    <td class="center">
+                        <a class="btn btn-sm" title="Push this source"
+                           href="<?= Minz_Url::display(['c' => 'einkpush', 'a' => 'pushSingle', 'params' => ['source' => 'favorites']]) ?>">Push</a>
                     </td>
                 </tr>
 
@@ -139,7 +181,7 @@ $cronCmd    = $pushCron . ' php ' . escapeshellarg($cronScript) . ' --user=' . e
                     $key = 'cat_' . $cat->id();
                     $srcCfg = array_merge($catDefaults, $sources[$key] ?? []);
                     ?>
-                    <tr>
+                     <tr>
                         <td>
                             <?= htmlspecialchars($cat->name(), ENT_QUOTES, 'UTF-8') ?>
                             <small>(<?= count($cat->feeds()) ?> feeds)</small>
@@ -169,6 +211,16 @@ $cronCmd    = $pushCron . ' php ' . escapeshellarg($cronScript) . ' --user=' . e
                             <input type="checkbox" name="sources[<?= $key ?>][fetchContent]" value="1"
                                    <?= !empty($srcCfg['fetchContent']) ? 'checked' : '' ?>>
                         </td>
+                        <td>
+                            <input type="number" name="sources[<?= $key ?>][maxArticles]"
+                                   value="<?= (int) ($srcCfg['maxArticles'] ?? 0) ?>"
+                                   min="0" max="1000" class="einkpush-w70">
+                        </td>
+                        <td class="center">
+                            <input type="hidden" name="sources[<?= $key ?>][addTimestamp]" value="0">
+                            <input type="checkbox" name="sources[<?= $key ?>][addTimestamp]" value="1"
+                                   <?= !empty($srcCfg['addTimestamp']) ? 'checked' : '' ?>>
+                        </td>
                         <td class="center">
                             <input type="hidden" name="sources[<?= $key ?>][autoPush]" value="0">
                             <input type="checkbox" name="sources[<?= $key ?>][autoPush]" value="1"
@@ -176,7 +228,11 @@ $cronCmd    = $pushCron . ' php ' . escapeshellarg($cronScript) . ' --user=' . e
                         </td>
                         <td class="center">
                             <a class="btn btn-sm" title="<?= _t('ext.einkpush.download_source') ?>"
-                               href="<?= Minz_Url::display(['c' => 'einkpush', 'a' => 'generate', 'params' => ['source' => $key]]) ?>">&#8595;</a>
+                               href="<?= Minz_Url::display(['c' => 'einkpush', 'a' => 'generate', 'params' => ['source' => $key]]) ?>">Download</a>
+                        </td>
+                        <td class="center">
+                        <a class="btn btn-sm" title="Push this source"
+                           href="<?= Minz_Url::display(['c' => 'einkpush', 'a' => 'pushSingle', 'params' => ['source' => $key]]) ?>">Push</a>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -242,11 +298,11 @@ $cronCmd    = $pushCron . ' php ' . escapeshellarg($cronScript) . ' --user=' . e
         <button type="submit" class="btn btn-primary"><?= _t('ext.einkpush.save') ?></button>
         &nbsp;
         <a class="btn" href="<?= Minz_Url::display(['c' => 'einkpush', 'a' => 'generate']) ?>">
-            <?= _t('ext.einkpush.export_all') ?>
+            <?= _t('ext.einkpush.download_selected') ?>
         </a>
         &nbsp;
         <a class="btn" href="<?= Minz_Url::display(['c' => 'einkpush', 'a' => 'push']) ?>">
-            <?= _t('ext.einkpush.push_now') ?>
+            <?= _t('ext.einkpush.push_selected') ?>
         </a>
     </div>
 </form>

@@ -1,0 +1,92 @@
+<?php
+
+class FreshRSS_einkpush2_Controller extends Minz_ActionController {
+
+    private ?EinkPush2Extension $extension;
+    private ?EinkPushHelper $helper;
+
+    public function firstAction() {
+        $this->extension = Minz_ExtensionManager::findExtension('EinkPush2');
+        if (!$this->extension) {
+            Minz_Error::error(404);
+        }
+
+        require_once $this->extension->getPath() . '/FreshExtension_EinkPush_Helper.php';
+
+        $conf = $this->extension->getConfig();
+        $this->helper = new EinkPushHelper(
+            $this->extension->getEpubDir(),
+            (int) $conf['screenWidth'],
+            (int) $conf['screenHeight'],
+            (float) $conf['fontSize'],
+            (string) $conf['readability_url']
+        );
+    }
+
+    public function generateAction() {
+        $sourceKey = Minz_Request::param('source');
+        $conf = $this->extension->getConfig();
+
+        if ($sourceKey) {
+            $srcCfg = $conf['sources'][$sourceKey] ?? null;
+            if (!$srcCfg) Minz_Request::bad(_t('ext.einkpush2.error_invalid_source'), _url('extension', 'configure', 'e', 'EinkPush2'));
+            
+            $path = $this->helper->generateSingle($sourceKey, $srcCfg);
+            if ($path) $this->downloadFile($path);
+            else Minz_Request::good(_t('ext.einkpush2.msg_no_articles'), _url('extension', 'configure', 'e', 'EinkPush2'));
+        } else {
+            $paths = $this->helper->generateAll($conf['sources']);
+            if (empty($paths)) Minz_Request::good(_t('ext.einkpush2.msg_no_articles'), _url('extension', 'configure', 'e', 'EinkPush2'));
+            
+            $latest = $this->helper->getLatestEpub();
+            if ($latest) $this->downloadFile($latest);
+        }
+    }
+
+    public function pushAction() {
+        $conf = $this->extension->getConfig();
+        $endpoint = $conf['push_endpoint'];
+        if (empty($endpoint)) Minz_Request::bad(_t('ext.einkpush2.error_no_endpoint'), _url('extension', 'configure', 'e', 'EinkPush2'));
+
+        $paths = $this->helper->generateAll($conf['sources']);
+        if (empty($paths)) Minz_Request::good(_t('ext.einkpush2.msg_no_articles'), _url('extension', 'configure', 'e', 'EinkPush2'));
+
+        $success = 0; $failed = 0;
+        foreach ($paths as $path) {
+            if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], $conf['push_retryDelay'])) $success++;
+            else $failed++;
+        }
+
+        if ($failed === 0) Minz_Request::good(_t('ext.einkpush2.msg_push_success', $success), _url('extension', 'configure', 'e', 'EinkPush2'));
+        else Minz_Request::bad(_t('ext.einkpush2.msg_push_failed', $success, $failed), _url('extension', 'configure', 'e', 'EinkPush2'));
+    }
+
+    public function pushSingleAction() {
+        $sourceKey = Minz_Request::param('source');
+        $conf = $this->extension->getConfig();
+        $endpoint = $conf['push_endpoint'];
+
+        if (empty($endpoint)) Minz_Request::bad(_t('ext.einkpush2.error_no_endpoint'), _url('extension', 'configure', 'e', 'EinkPush2'));
+
+        $srcCfg = $conf['sources'][$sourceKey] ?? null;
+        if (!$srcCfg) Minz_Request::bad(_t('ext.einkpush2.error_invalid_source'), _url('extension', 'configure', 'e', 'EinkPush2'));
+
+        $path = $this->helper->generateSingle($sourceKey, $srcCfg);
+        if (!$path) Minz_Request::good(_t('ext.einkpush2.msg_no_articles'), _url('extension', 'configure', 'e', 'EinkPush2'));
+
+        if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], $conf['push_retryDelay'])) {
+            Minz_Request::good(_t('ext.einkpush2.msg_push_success_single'), _url('extension', 'configure', 'e', 'EinkPush2'));
+        } else {
+            Minz_Request::bad(_t('ext.einkpush2.msg_push_failed_single'), _url('extension', 'configure', 'e', 'EinkPush2'));
+        }
+    }
+
+    private function downloadFile(string $path) {
+        $filename = basename($path);
+        header('Content-Type: application/epub+zip');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Length: ' . filesize($path));
+        readfile($path);
+        exit;
+    }
+}

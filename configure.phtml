@@ -1,0 +1,138 @@
+<?php
+/** @var EinkPush2Extension $this */
+$cfg = $this->getConfig();
+$categoryDAO = FreshRSS_Factory::createCategoryDao();
+$categories = $categoryDAO->listCategories() ?: [];
+$sources = $cfg['sources'] ?? [];
+
+$favDefaults = ['enabled' => true, 'historyDays' => 0, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 0, 'removeFromFavorites' => false];
+$catDefaults = ['enabled' => false, 'historyDays' => 7, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 0];
+
+$ext = Minz_ExtensionManager::findExtension('EinkPush2');
+$cronScript = $ext ? ($ext->getPath() . '/push_cron.php') : '';
+$cronCmd = ($cfg['push_cron'] ?? '0 6 * * *') . ' php ' . escapeshellarg($cronScript) . ' --user=' . escapeshellarg(Minz_User::name());
+?>
+
+<style>
+    .einkpush-sources th, .einkpush-sources td { padding: 8px; vertical-align: middle; text-align: center; }
+    .einkpush-sources td:first-child { text-align: left; }
+    .einkpush-w70 { width: 70px; }
+    .einkpush-w80 { width: 80px; }
+    .einkpush-w350 { width: 100%; max-width: 350px; }
+</style>
+
+<div class="form-group">
+    <h3><?= _t('ext.einkpush2.title') ?></h3>
+    <p class="help"><?= _t('ext.einkpush2.description') ?></p>
+</div>
+
+<form method="post" action="<?= _url('extension', 'configure', 'e', 'EinkPush2') ?>">
+    <input type="hidden" name="_csrf" value="<?= FreshRSS_Auth::csrfToken() ?>">
+
+    <fieldset>
+        <legend><?= _t('ext.einkpush2.section_global') ?></legend>
+        <div class="form-group">
+            <label class="group-name"><?= _t('ext.einkpush2.screen_size') ?></label>
+            <div class="group-controls">
+                <input type="number" name="screenWidth" value="<?= (int) $cfg['screenWidth'] ?>" class="einkpush-w80"> x 
+                <input type="number" name="screenHeight" value="<?= (int) $cfg['screenHeight'] ?>" class="einkpush-w80"> px
+                <p class="help"><?= _t('ext.einkpush2.screen_help') ?></p>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="group-name"><?= _t('ext.einkpush2.font_size') ?></label>
+            <div class="group-controls">
+                <select name="fontSize">
+                    <?php foreach ([0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.5, 1.8, 2.0] as $fs): ?>
+                        <option value="<?= $fs ?>" <?= abs((float)$cfg['fontSize'] - $fs) < 0.01 ? 'selected' : '' ?>><?= $fs ?> em</option>
+                    <?php endforeach; ?>
+                </select>
+                <p class="help"><?= _t('ext.einkpush2.font_size_help') ?></p>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="group-name"><?= _t('ext.einkpush2.readability_url') ?></label>
+            <div class="group-controls">
+                <input type="url" name="readability_url" value="<?= htmlspecialchars($cfg['readability_url'] ?? '', ENT_QUOTES) ?>" class="einkpush-w350">
+                <p class="help"><?= _t('ext.einkpush2.readability_url_help') ?></p>
+            </div>
+        </div>
+    </fieldset>
+
+    <fieldset>
+        <legend><?= _t('ext.einkpush2.section_sources') ?></legend>
+        <table class="table einkpush-sources">
+            <thead>
+                <tr>
+                    <th>Source</th><th>En</th><th>Days</th><th>Unread</th><th>Mark</th><th>Full</th><th>Max</th><th>TS</th><th>UnFav</th><th>Push</th><th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php $favCfg = array_merge($favDefaults, ($sources['favorites'] ?? [])); ?>
+                <tr>
+                    <td>&#11088; Favorites</td>
+                    <td><input type="checkbox" name="sources[favorites][enabled]" value="1" <?= !empty($favCfg['enabled']) ? 'checked' : '' ?>></td>
+                    <td><input type="number" name="sources[favorites][historyDays]" value="<?= $favCfg['historyDays'] ?>" class="einkpush-w70"></td>
+                    <td><input type="checkbox" name="sources[favorites][unreadOnly]" value="1" <?= !empty($favCfg['unreadOnly']) ? 'checked' : '' ?>></td>
+                    <td><input type="checkbox" name="sources[favorites][markAsRead]" value="1" <?= !empty($favCfg['markAsRead']) ? 'checked' : '' ?>></td>
+                    <td><input type="checkbox" name="sources[favorites][fetchContent]" value="1" <?= !empty($favCfg['fetchContent']) ? 'checked' : '' ?>></td>
+                    <td><input type="number" name="sources[favorites][maxArticles]" value="<?= $favCfg['maxArticles'] ?>" class="einkpush-w70"></td>
+                    <td><input type="checkbox" name="sources[favorites][addTimestamp]" value="1" <?= !empty($favCfg['addTimestamp']) ? 'checked' : '' ?>></td>
+                    <td><input type="checkbox" name="sources[favorites][removeFromFavorites]" value="1" <?= !empty($favCfg['removeFromFavorites']) ? 'checked' : '' ?>></td>
+                    <td><input type="checkbox" name="sources[favorites][autoPush]" value="1" <?= !empty($favCfg['autoPush']) ? 'checked' : '' ?>></td>
+                    <td>
+                        <a class="btn btn-sm" href="<?= _url('einkpush2', 'generate', 'source', 'favorites') ?>">DL</a>
+                        <a class="btn btn-sm" href="<?= _url('einkpush2', 'pushSingle', 'source', 'favorites') ?>">Push</a>
+                    </td>
+                </tr>
+                <?php foreach ($categories as $cat): $key = 'cat_' . $cat->id(); $srcCfg = array_merge($catDefaults, ($sources[$key] ?? [])); ?>
+                <tr>
+                    <td><?= htmlspecialchars($cat->name()) ?></td>
+                    <td><input type="checkbox" name="sources[<?= $key ?>][enabled]" value="1" <?= !empty($srcCfg['enabled']) ? 'checked' : '' ?>></td>
+                    <td><input type="number" name="sources[<?= $key ?>][historyDays]" value="<?= $srcCfg['historyDays'] ?>" class="einkpush-w70"></td>
+                    <td><input type="checkbox" name="sources[<?= $key ?>][unreadOnly]" value="1" <?= !empty($srcCfg['unreadOnly']) ? 'checked' : '' ?>></td>
+                    <td><input type="checkbox" name="sources[<?= $key ?>][markAsRead]" value="1" <?= !empty($srcCfg['markAsRead']) ? 'checked' : '' ?>></td>
+                    <td><input type="checkbox" name="sources[<?= $key ?>][fetchContent]" value="1" <?= !empty($srcCfg['fetchContent']) ? 'checked' : '' ?>></td>
+                    <td><input type="number" name="sources[<?= $key ?>][maxArticles]" value="<?= $srcCfg['maxArticles'] ?>" class="einkpush-w70"></td>
+                    <td><input type="checkbox" name="sources[<?= $key ?>][addTimestamp]" value="1" <?= !empty($srcCfg['addTimestamp']) ? 'checked' : '' ?>></td>
+                    <td>-</td>
+                    <td><input type="checkbox" name="sources[<?= $key ?>][autoPush]" value="1" <?= !empty($srcCfg['autoPush']) ? 'checked' : '' ?>></td>
+                    <td>
+                        <a class="btn btn-sm" href="<?= _url('einkpush2', 'generate', 'source', $key) ?>">DL</a>
+                        <a class="btn btn-sm" href="<?= _url('einkpush2', 'pushSingle', 'source', $key) ?>">Push</a>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </fieldset>
+
+    <fieldset>
+        <legend><?= _t('ext.einkpush2.section_push') ?></legend>
+        <div class="form-group">
+            <label class="group-name"><?= _t('ext.einkpush2.push_endpoint') ?></label>
+            <div class="group-controls">
+                <input type="url" name="push_endpoint" value="<?= htmlspecialchars($cfg['push_endpoint'] ?? '', ENT_QUOTES) ?>" class="einkpush-w350">
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="group-name"><?= _t('ext.einkpush2.push_cron') ?></label>
+            <div class="group-controls">
+                <input type="text" name="push_cron" value="<?= htmlspecialchars($cfg['push_cron'] ?? '0 6 * * *', ENT_QUOTES) ?>">
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="group-name"><?= _t('ext.einkpush2.push_cron_cmd') ?></label>
+            <div class="group-controls">
+                <input type="text" readonly value="<?= htmlspecialchars($cronCmd, ENT_QUOTES) ?>" onclick="this.select()" style="width:100%">
+                <p class="help"><?= _t('ext.einkpush2.push_cron_cmd_help') ?></p>
+            </div>
+        </div>
+    </fieldset>
+
+    <div class="form-group form-actions">
+        <button type="submit" class="btn btn-primary"><?= _t('ext.einkpush2.save') ?></button>
+        <a class="btn" href="<?= _url('einkpush2', 'generate') ?>"><?= _t('ext.einkpush2.download_selected') ?></a>
+        <a class="btn" href="<?= _url('einkpush2', 'push') ?>"><?= _t('ext.einkpush2.push_selected') ?></a>
+    </div>
+</form>

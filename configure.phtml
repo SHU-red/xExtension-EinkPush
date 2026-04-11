@@ -18,6 +18,7 @@ $helper = new EinkPushHelper($this->getEpubDir(), 0, 0, 0, '');
 $history = $helper->getHistory();
 
 $cssUrl = $ext ? $ext->getFileUrl('style.css', 'css') : '';
+$jsUrl = $ext ? $ext->getFileUrl('script.js', 'js') : '';
 ?>
 
 <?php if ($cssUrl): ?>
@@ -30,6 +31,13 @@ $cssUrl = $ext ? $ext->getFileUrl('style.css', 'css') : '';
         link.type = 'text/css';
         link.href = cssUrl;
         document.head.appendChild(link);
+    }
+    
+    var jsUrl = '<?= $jsUrl ?>';
+    if (jsUrl && !document.querySelector('script[src^="' + jsUrl.split('?')[0] + '"]')) {
+        var script = document.createElement('script');
+        script.src = jsUrl;
+        document.head.appendChild(script);
     }
 })();
 </script>
@@ -164,52 +172,13 @@ $cssUrl = $ext ? $ext->getFileUrl('style.css', 'css') : '';
     </form>
 </div>
 
-<script>
-(function() {
-    // Tab Switching
-    const navItems = document.querySelectorAll('.ep-nav-item');
-    const sections = document.querySelectorAll('.ep-section');
-
-    navItems.forEach(item => {
-        item.addEventListener('click', () => {
-            const target = item.getAttribute('data-target');
-            
-            navItems.forEach(n => n.classList.remove('active'));
-            sections.forEach(s => s.classList.remove('active'));
-            
-            item.classList.add('active');
-            document.getElementById(target).classList.add('active');
-            
-            // Save active tab to localStorage
-            localStorage.setItem('ep_active_tab', target);
-        });
-    });
-
-    // Restore active tab
-    const savedTab = localStorage.getItem('ep_active_tab');
-    if (savedTab && document.getElementById(savedTab)) {
-        const tabBtn = document.querySelector(`.ep-nav-item[data-target="${savedTab}"]`);
-        if (tabBtn) tabBtn.click();
-    }
-
-    // Accordion for Source Details
-    window.toggleEpDetails = function(key, event) {
-        // Prevent toggle when clicking actions or switch
-        if (event.target.closest('.ep-source-actions') || event.target.closest('.ep-switch')) return;
-        
-        const details = document.getElementById('details-' + key);
-        details.classList.toggle('open');
-    };
-})();
-</script>
-
 <?php
 function renderSourceItem($key, $name, $cfg, $isFav) {
     ?>
     <div class="ep-source-item">
-        <div class="ep-source-main" onclick="toggleEpDetails('<?= $key ?>', event)">
+        <div class="ep-source-main">
             <div class="ep-source-info">
-                <label class="ep-switch" onclick="event.stopPropagation()">
+                <label class="ep-switch">
                     <input type="checkbox" name="sources[<?= $key ?>][enabled]" value="1" <?= !empty($cfg['enabled']) ? 'checked' : '' ?>>
                     <span class="ep-slider"></span>
                 </label>

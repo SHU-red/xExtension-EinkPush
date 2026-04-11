@@ -40,6 +40,7 @@ return [
         'sources_help_line5' => 'Max articles = limiter le nombre d\'articles par source (0 = pas de limite).',
         'sources_help_line6' => 'Horodatage = pr\u00e9fixer la date au nom de fichier (d\u00e9sactiver pour des noms de fichier statiques).',
         'sources_help_line7' => 'Retirer fav = retirer les articles des favoris apr\u00e8s export (favoris uniquement).',
+        'sources_help_line8' => 'Utilisez les boutons Download/Push pour les sources individuelles ou les boutons principaux pour toutes les sources activées.',
         'push_help' => 'Génère et envoie automatiquement les EPUB vers un point de terminaison distant. Cochez la colonne Push pour chaque source à inclure.',
         'push_endpoint' => 'URL du point de terminaison',
         'push_endpoint_help' => 'URL HTTP(S) où envoyer chaque EPUB (upload multipart).',

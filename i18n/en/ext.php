@@ -40,6 +40,7 @@ return [
         'sources_help_line5' => 'Max articles = limit number of articles per source (0 = no limit).',
         'sources_help_line6' => 'Timestamp = prepend date to filename (uncheck for static filenames).',
         'sources_help_line7' => 'Remove fav = remove articles from favorites after export (favorites only).',
+        'sources_help_line8' => 'Use Download/Push buttons for individual sources or main buttons for all enabled sources.',
         'push_help' => 'Automatically generate and POST EPUBs to a remote endpoint on a schedule. Check the Push column above for each source to include.',
         'push_endpoint' => 'Endpoint URL',
         'push_endpoint_help' => 'HTTP(S) URL to POST each EPUB file to (multipart form upload).',

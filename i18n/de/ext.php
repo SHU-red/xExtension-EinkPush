@@ -40,6 +40,7 @@ return [
         'sources_help_line5' => 'Max. Artikel = Anzahl der Artikel pro Quelle begrenzen (0 = kein Limit).',
         'sources_help_line6' => 'Zeitstempel = Datum dem Dateinamen voranstellen (deaktivieren fr statische Dateinamen).',
         'sources_help_line7' => 'Fav entfernen = Artikel nach Export aus Favoriten entfernen (nur Favoriten).',
+        'sources_help_line8' => 'Download/Push-Buttons für einzelne Quellen oder Hauptbuttons für alle aktivierten Quellen verwenden.',
         'push_help' => 'EPUBs automatisch erzeugen und per HTTP POST an einen Endpunkt senden. Push-Spalte oben für jede Quelle aktivieren.',
         'push_endpoint' => 'Endpunkt-URL',
         'push_endpoint_help' => 'HTTP(S)-URL, an die jede EPUB-Datei gesendet wird (Multipart-Upload).',

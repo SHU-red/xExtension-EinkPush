@@ -116,78 +116,65 @@ $cronCmd    = $pushCron . ' php ' . escapeshellarg($cronScript) . ' --user=' . e
                 </tr>
             </thead>
             <tbody>
-                <?php
-                $favCfg = array_merge($favDefaults, $sources['favorites'] ?? []);
-                ?>
+                 <?php
+                 $favCfg = array_merge($favDefaults, $sources['favorites'] ?? []);
+                 ?>
                  <tr>
-                    <td>&#11088; <?= _t('ext.einkpush.source_favorites') ?></td>
-                    <td class="center">
-                        <input type="hidden" name="sources[favorites][enabled]" value="0">
-                        <input type="checkbox" name="sources[favorites][enabled]" value="1"
-                               <?= !empty($favCfg['enabled']) ? 'checked' : '' ?>>
-                    </td>
-                    <td>
-                        <input type="number" name="sources[favorites][historyDays]"
-                               value="<?= (int) ($favCfg['historyDays'] ?? 0) ?>"
-                               min="0" max="9999" class="einkpush-w70">
-                    </td>
-                    <td class="center">
-                        <input type="hidden" name="sources[favorites][unreadOnly]" value="0">
-                        <input type="checkbox" name="sources[favorites][unreadOnly]" value="1"
-                               <?= !empty($favCfg['unreadOnly']) ? 'checked' : '' ?>>
-                    </td>
-                    <td class="center">
-                        <input type="hidden" name="sources[favorites][markAsRead]" value="0">
-                        <input type="checkbox" name="sources[favorites][markAsRead]" value="1"
-                               <?= !empty($favCfg['markAsRead']) ? 'checked' : '' ?>>
-                    </td>
-                    <td class="center">
-                        <input type="hidden" name="sources[favorites][fetchContent]" value="0">
-                        <input type="checkbox" name="sources[favorites][fetchContent]" value="1"
-                               <?= !empty($favCfg['fetchContent']) ? 'checked' : '' ?>>
-                    </td>
-                    <td>
-                        <input type="number" name="sources[favorites][maxArticles]"
-                               value="<?= (int) ($favCfg['maxArticles'] ?? 0) ?>"
-                               min="0" max="1000" class="einkpush-w70">
-                    </td>
-                    <td class="center">
-                        <input type="hidden" name="sources[favorites][addTimestamp]" value="0">
-                        <input type="checkbox" name="sources[favorites][addTimestamp]" value="1"
-                               <?= !empty($favCfg['addTimestamp']) ? 'checked' : '' ?>>
-                    </td>
-                    <td class="center">
-                        <input type="hidden" name="sources[favorites][removeFromFavorites]" value="0">
-                        <input type="checkbox" name="sources[favorites][removeFromFavorites]" value="1"
-                               <?= !empty($favCfg['removeFromFavorites']) ? 'checked' : '' ?>>
-                    </td>
-                    <td class="center">
-                        <input type="hidden" name="sources[favorites][autoPush]" value="0">
-                        <input type="checkbox" name="sources[favorites][autoPush]" value="1"
-                               <?= !empty($favCfg['autoPush']) ? 'checked' : '' ?>>
-                    </td>
+                     <td>&#11088; <?= _t('ext.einkpush.source_favorites') ?></td>
+                     <td class="center">
+                         <input type="hidden" name="sources[favorites][enabled]" value="0">
+                         <input type="checkbox" name="sources[favorites][enabled]" value="1"
+                                <?= !empty($favCfg['enabled']) ? 'checked' : '' ?>>
+                     </td>
+                     <td>
+                         <input type="number" name="sources[favorites][historyDays]"
+                                value="<?= (int) ($favCfg['historyDays'] ?? 0) ?>"
+                                min="0" max="9999" class="einkpush-w70">
+                     </td>
+                     <td class="center">
+                         <input type="hidden" name="sources[favorites][unreadOnly]" value="0">
+                         <input type="checkbox" name="sources[favorites][unreadOnly]" value="1"
+                                <?= !empty($favCfg['unreadOnly']) ? 'checked' : '' ?>>
+                     </td>
+                     <td class="center">
+                         <input type="hidden" name="sources[favorites][markAsRead]" value="0">
+                         <input type="checkbox" name="sources[favorites][markAsRead]" value="1"
+                                <?= !empty($favCfg['markAsRead']) ? 'checked' : '' ?>>
+                     </td>
+                     <td class="center">
+                         <input type="hidden" name="sources[favorites][fetchContent]" value="0">
+                         <input type="checkbox" name="sources[favorites][fetchContent]" value="1"
+                                <?= !empty($favCfg['fetchContent']) ? 'checked' : '' ?>>
+                     </td>
+                     <td>
+                         <input type="number" name="sources[favorites][maxArticles]"
+                                value="<?= (int) ($favCfg['maxArticles'] ?? 0) ?>"
+                                min="0" max="1000" class="einkpush-w70">
+                     </td>
+                     <td class="center">
+                         <input type="hidden" name="sources[favorites][addTimestamp]" value="0">
+                         <input type="checkbox" name="sources[favorites][addTimestamp]" value="1"
+                                <?= !empty($favCfg['addTimestamp']) ? 'checked' : '' ?>>
+                     </td>
+                     <td class="center">
+                         <input type="hidden" name="sources[favorites][removeFromFavorites]" value="0">
+                         <input type="checkbox" name="sources[favorites][removeFromFavorites]" value="1"
+                                <?= !empty($favCfg['removeFromFavorites']) ? 'checked' : '' ?>>
+                     </td>
+                     <td class="center">
+                         <input type="hidden" name="sources[favorites][autoPush]" value="0">
+                         <input type="checkbox" name="sources[favorites][autoPush]" value="1"
+                                <?= !empty($favCfg['autoPush']) ? 'checked' : '' ?>>
+                     </td>
                      <td class="center">
                          <a class="btn btn-sm" title="<?= _t('ext.einkpush.download_source') ?>"
-                            href="<?= Minz_Url::display(['c' => 'einkpush', 'a' => 'generate', 'params' => ['source' => 'favorites']]) ?>">Download</a>
+                            href="<?= Minz_Url::display(['c' => 'einkpush', 'a' => 'generate', 'params' => ['source' => 'favorites']) ?>">Download</a>
                      </td>
                      <td class="center">
                          <a class="btn btn-sm" title="Push this source"
-                            href="<?= Minz_Url::display(['c' => 'einkpush', 'a' => 'pushSingle', 'params' => ['source' => 'favorites']]) ?>">Push</a>
+                            href="<?= Minz_Url::display(['c' => 'einkpush', 'a' => 'pushSingle', 'params' => ['source' => 'favorites']) ?>">Push</a>
                      </td>
-                    <td class="center">
-                        <input type="hidden" name="sources[favorites][autoPush]" value="0">
-                        <input type="checkbox" name="sources[favorites][autoPush]" value="1"
-                               <?= !empty($favCfg['autoPush']) ? 'checked' : '' ?>>
-                    </td>
-                    <td class="center">
-                        <a class="btn btn-sm" title="<?= _t('ext.einkpush.download_source') ?>"
-                           href="<?= Minz_Url::display(['c' => 'einkpush', 'a' => 'generate', 'params' => ['source' => 'favorites']]) ?>">Download</a>
-                    </td>
-                    <td class="center">
-                        <a class="btn btn-sm" title="Push this source"
-                           href="<?= Minz_Url::display(['c' => 'einkpush', 'a' => 'pushSingle', 'params' => ['source' => 'favorites']]) ?>">Push</a>
-                    </td>
-                </tr>
+                  </tr>
 
                 <?php foreach ($categories as $cat): ?>
                     <?php
@@ -236,16 +223,8 @@ $cronCmd    = $pushCron . ' php ' . escapeshellarg($cronScript) . ' --user=' . e
                         </td>
                          <td class="center">
                              <input type="checkbox" disabled title="<?= _t('ext.einkpush.remove_fav_only_favorites') ?>">
-                         </td>
-                         <td class="center">
-                             <input type="hidden" name="sources[<?= $key ?>][autoPush]" value="0">
-                             <input type="checkbox" name="sources[<?= $key ?>][autoPush]" value="1"
-                                    <?= !empty($srcCfg['autoPush']) ? 'checked' : '' ?>>
-                         </td>
-                         <td class="center">
-                             <a class="btn btn-sm" title="<?= _t('ext.einkpush.download_source') ?>"
-                                href="<?= Minz_Url::display(['c' => 'einkpush', 'a' => 'generate', 'params' => ['source' => $key]) ?>">Download</a>
-                         </td>
+
+
                          <td class="center">
                          <a class="btn btn-sm" title="Push this source"
                             href="<?= Minz_Url::display(['c' => 'einkpush', 'a' => 'pushSingle', 'params' => ['source' => $key]) ?>">Push</a>
@@ -258,11 +237,7 @@ $cronCmd    = $pushCron . ' php ' . escapeshellarg($cronScript) . ' --user=' . e
                         <td class="center">
                             <a class="btn btn-sm" title="<?= _t('ext.einkpush.download_source') ?>"
                                href="<?= Minz_Url::display(['c' => 'einkpush', 'a' => 'generate', 'params' => ['source' => $key]]) ?>">Download</a>
-                        </td>
-                        <td class="center">
-                            <a class="btn btn-sm" title="Push this source"
-                               href="<?= Minz_Url::display(['c' => 'einkpush', 'a' => 'pushSingle', 'params' => ['source' => $key]]) ?>">Push</a>
-                        </td>
+
                         <td>
                             <input type="number" name="sources[<?= $key ?>][maxArticles]"
                                    value="<?= (int) ($srcCfg['maxArticles'] ?? 0) ?>"
@@ -278,10 +253,7 @@ $cronCmd    = $pushCron . ' php ' . escapeshellarg($cronScript) . ' --user=' . e
                             <input type="checkbox" name="sources[<?= $key ?>][autoPush]" value="1"
                                    <?= !empty($srcCfg['autoPush']) ? 'checked' : '' ?>>
                         </td>
-                        <td class="center">
-                            <a class="btn btn-sm" title="<?= _t('ext.einkpush.download_source') ?>"
-                               href="<?= Minz_Url::display(['c' => 'einkpush', 'a' => 'generate', 'params' => ['source' => $key]]) ?>">Download</a>
-                        </td>
+
                         <td class="center">
                         <a class="btn btn-sm" title="Push this source"
                            href="<?= Minz_Url::display(['c' => 'einkpush', 'a' => 'pushSingle', 'params' => ['source' => $key]]) ?>">Push</a>

@@ -48,6 +48,22 @@ $history = $helper->getHistory();
 
         <!-- Sources Section -->
         <div id="sources" class="ep-section active">
+            <?php
+            $hasEnabledSources = false;
+            if (!empty($sources['favorites']['enabled'])) $hasEnabledSources = true;
+            foreach ($categories as $cat) {
+                if (!empty($sources['cat_' . $cat->id()]['enabled'])) {
+                    $hasEnabledSources = true;
+                    break;
+                }
+            }
+            if (!$hasEnabledSources):
+            ?>
+            <div class="ep-welcome-banner">
+                <?= _t('ext.welcome_banner') ?>
+            </div>
+            <?php endif; ?>
+
             <div class="ep-source-list">
                 <?php 
                 $favCfg = array_merge($favDefaults, ($sources['favorites'] ?? [])); 

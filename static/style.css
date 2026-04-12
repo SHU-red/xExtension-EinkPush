@@ -83,6 +83,19 @@
 .ep-section { display: none; }
 .ep-section.active { display: block; }
 
+.ep-welcome-banner {
+    background: rgba(242, 125, 38, 0.1);
+    border: 1px solid #f27d26;
+    color: var(--ep-text);
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    border-radius: 4px;
+}
+.ep-welcome-banner b {
+    color: #f27d26;
+}
+
 /* Source Cards - List View */
 .ep-source-list { display: flex; flex-direction: column; gap: 2px; }
 .ep-source-item {

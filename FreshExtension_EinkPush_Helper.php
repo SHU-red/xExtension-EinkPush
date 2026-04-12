@@ -105,8 +105,10 @@ class EinkPushHelper {
     /**
      * POST an EPUB file to a remote endpoint with retries.
      */
-    public function pushToEndpoint(string $filePath, string $endpoint, int $retries = 3, int $retryDelay = 10): bool {
+    public function pushToEndpoint(string $filePath, string $endpoint, int $retries = 3, int $retryDelay = 10, string $sourceName = 'Unknown'): bool {
+        $success = false;
         if (!file_exists($filePath) || !function_exists('curl_init')) {
+            $this->logPush($sourceName, false, 'File missing or cURL disabled');
             return false;
         }
         $parsed = parse_url($endpoint);
@@ -141,13 +143,14 @@ class EinkPushHelper {
             curl_close($ch);
 
             if ($httpCode >= 200 && $httpCode < 300) {
-                return true;
+                $success = true;
+                break;
             }
         }
 
-        return false;
+        $this->logPush($sourceName, $success, $success ? 'HTTP ' . $httpCode : 'Failed after retries (Last: ' . $httpCode . ')');
+        return $success;
     }
-
     /**
      * List currently available EPUB files with metadata.
      */
@@ -174,7 +177,7 @@ class EinkPushHelper {
                 $entryDAO->toggleFavorite($entryId, false);
             }
         } catch (Exception $e) {
-            error_log('[EinkPush] Failed to remove articles from favorites: ' . $e->getMessage());
+            error_log('[EinkPush2] Failed to remove articles from favorites: ' . $e->getMessage());
         }
     }
 
@@ -207,7 +210,7 @@ class EinkPushHelper {
                     $entries[] = $entry;
                 }
             }
-        } elseif (str_starts_with($sourceKey, 'cat_')) {
+        } elseif (strpos($sourceKey, 'cat_') === 0) {
             $catId = (int) substr($sourceKey, 4);
             if ($catId > 0) {
                 $result = $entryDAO->listWhere(
@@ -276,10 +279,10 @@ class EinkPushHelper {
                             // Google News encrypted URL — readability can't fetch it either
                             $this->fetchFailCount++;
                             $fetchError = 'Google News uses encrypted article links that cannot be resolved server-side. The RSS summary is shown instead.';
-                            error_log('[EinkPush] Skipping readability for unresolvable Google News URL: ' . $url);
+                            error_log('[EinkPush2] Skipping readability for unresolvable Google News URL: ' . $url);
                         } else {
                             if ($wasResolved) {
-                                error_log('[EinkPush] Resolved redirect: ' . $url . ' → ' . $resolvedUrl);
+                                error_log('[EinkPush2] Resolved redirect: ' . $url . ' → ' . $resolvedUrl);
                             }
                             $result = $this->fetchViaReadability($resolvedUrl);
                             if ($result['ok']) {
@@ -289,14 +292,14 @@ class EinkPushHelper {
                                 $this->fetchFailCount++;
                                 $fetchError = $result['error'];
                                 $fetchDebug = $result['debug'] ?? '';
-                                error_log('[EinkPush] Readability failed for: ' . $resolvedUrl . ' — ' . $fetchError);
+                                error_log('[EinkPush2] Readability failed for: ' . $resolvedUrl . ' — ' . $fetchError);
                             }
                         }
                     }
                 }
             } elseif ($fetchContent && $this->readabilityUrl === '') {
                 if ($chapterIndex === 1) {
-                    error_log('[EinkPush] Fetch content is enabled but no Readability API URL configured');
+                    error_log('[EinkPush2] Fetch content is enabled but no Readability API URL configured');
                 }
                 $fetchError = 'No Readability API URL configured in extension settings.';
             }
@@ -436,12 +439,12 @@ class EinkPushHelper {
         if (preg_match('#^https?://news\.google\.com/rss/articles/([A-Za-z0-9_-]+)#', $url, $m)) {
             $decoded = $this->decodeGoogleNewsUrl($m[1]);
             if ($decoded !== null) {
-                error_log('[EinkPush] Decoded Google News URL: ' . $url . ' → ' . $decoded);
+                error_log('[EinkPush2] Decoded Google News URL: ' . $url . ' → ' . $decoded);
                 return $decoded;
             }
             // New-format (encrypted) Google News URLs cannot be resolved server-side.
             // The page is a JS SPA with no extractable redirect — skip the heavy HTTP fetch.
-            error_log('[EinkPush] Google News article uses encrypted format, cannot resolve: ' . $url);
+            error_log('[EinkPush2] Google News article uses encrypted format, cannot resolve: ' . $url);
             return $url;
         }
 
@@ -491,7 +494,7 @@ class EinkPushHelper {
         curl_close($ch);
 
         if ($body === false) {
-            error_log('[EinkPush] resolveRedirects curl error for ' . $url . ': ' . $curlError);
+            error_log('[EinkPush2] resolveRedirects curl error for ' . $url . ': ' . $curlError);
             return $url;
         }
 
@@ -533,7 +536,7 @@ class EinkPushHelper {
 
         // Strip protobuf prefix: field 1 varint + field 4 header
         $prefix = "\x08\x13\x22";
-        if (str_starts_with($decoded, $prefix)) {
+        if (strpos($decoded, $prefix) === 0) {
             $decoded = substr($decoded, 3);
         }
 
@@ -559,15 +562,15 @@ class EinkPushHelper {
         }
 
         // New format (since July 2024): encrypted — cannot decode server-side
-        if (str_starts_with($inner, 'AU_')) {
-            error_log('[EinkPush] Google News article uses new encrypted format (AU_ prefix)');
+        if (strpos($inner, 'AU_') === 0) {
+            error_log('[EinkPush2] Google News article uses new encrypted format (AU_ prefix)');
             return null;
         }
 
         // Fallback: look for any URL in the raw decoded bytes
         if (preg_match('#(https?://[^\x00-\x1f\x7f-\x9f]{10,})#', $decoded, $m)) {
             $url = preg_replace('/[\x00-\x1f\x7f-\x9f].*$/', '', $m[1]);
-            if (filter_var($url, FILTER_VALIDATE_URL) && !str_contains($url, 'news.google.com')) {
+            if (filter_var($url, FILTER_VALIDATE_URL) && strpos($url, 'news.google.com') === false) {
                 return $url;
             }
         }
@@ -606,7 +609,7 @@ class EinkPushHelper {
             // 'ok' = got content → lock in and return
             if ($r['ok']) {
                 $this->detectedApiPattern = $pattern;
-                error_log('[EinkPush] Readability API pattern detected (with content): ' . $desc);
+                error_log('[EinkPush2] Readability API pattern detected (with content): ' . $desc);
                 return $r;
             }
 
@@ -614,7 +617,7 @@ class EinkPushHelper {
             // Lock in this pattern — it works, just this article has no content
             if (!empty($r['reachable'])) {
                 $this->detectedApiPattern = $pattern;
-                error_log('[EinkPush] Readability API pattern detected (reachable): ' . $desc);
+                error_log('[EinkPush2] Readability API pattern detected (reachable): ' . $desc);
                 return $r;
             }
 
@@ -626,7 +629,7 @@ class EinkPushHelper {
         $msg = 'None of the API patterns returned HTTP 200 on ' . $this->readabilityUrl
             . '. Tried: ' . implode(', ', array_values($patterns))
             . '. Last error: ' . ($lastResult['error'] ?? 'unknown');
-        error_log('[EinkPush] ' . $msg);
+        error_log('[EinkPush2] ' . $msg);
         return ['ok' => false, 'error' => $msg, 'debug' => $lastResult['debug'] ?? ''];
     }
 
@@ -847,7 +850,7 @@ CSS;
         if ($key === 'favorites') {
             return _t('ext.einkpush.source_favorites');
         }
-        if (str_starts_with($key, 'cat_')) {
+        if (strpos($key, 'cat_') === 0) {
             $catId = (int) substr($key, 4);
             try {
                 $categoryDAO = FreshRSS_Factory::createCategoryDao();
@@ -874,5 +877,34 @@ CSS;
         if ($bytes < 1024) return $bytes . ' B';
         if ($bytes < 1048576) return round($bytes / 1024, 1) . ' KB';
         return round($bytes / 1048576, 1) . ' MB';
+    }
+
+    private function logPush(string $source, bool $success, string $message): void {
+        $logFile = $this->outputDir . 'push_history.json';
+        $history = [];
+        if (file_exists($logFile)) {
+            $history = json_decode(file_get_contents($logFile), true) ?: [];
+        }
+        
+        array_unshift($history, [
+            'time'    => date('Y-m-d H:i:s'),
+            'source'  => $source,
+            'success' => $success,
+            'message' => $message
+        ]);
+        
+        $history = array_slice($history, 0, 50);
+        file_put_contents($logFile, json_encode($history));
+    }
+
+    public function getHistory(): array {
+        $logFile = $this->outputDir . 'push_history.json';
+        if (!file_exists($logFile)) return [];
+        return json_decode(file_get_contents($logFile), true) ?: [];
+    }
+
+    public function clearHistory(): void {
+        $logFile = $this->outputDir . 'push_history.json';
+        if (file_exists($logFile)) @unlink($logFile);
     }
 }

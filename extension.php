@@ -1,10 +1,12 @@
 <?php
 
-class EinkPushExtension extends Minz_Extension {
+class EinkPush2Extension extends Minz_Extension {
 
     public function init() {
-        $this->registerController('einkpush');
+        $this->registerController('EinkPush2');
         $this->registerTranslates();
+        Minz_View::appendStyle($this->getFileUrl('style.css', 'css') . '?v=' . time());
+        Minz_View::appendScript($this->getFileUrl('script.js', 'js') . '?v=' . time());
     }
 
     public function handleConfigureAction() {
@@ -20,9 +22,11 @@ class EinkPushExtension extends Minz_Extension {
             $conf->EinkPush_fontSize = max(0.5, min(3.0, (float) Minz_Request::param('fontSize', 1.0, true)));
 
             // Push settings
-            $endpoint = trim((string) Minz_Request::param('push_endpoint', '', true));
-            if ($endpoint !== '' && !preg_match('#^https?://#i', $endpoint)) {
-                $endpoint = '';
+            $endpoint = trim((string) Minz_Request::param('push_endpoint', 'http://crosspoint.local/upload?path=/RSSFeeds', true));
+            if ($endpoint === '') {
+                $endpoint = 'http://crosspoint.local/upload?path=/RSSFeeds';
+            } elseif (!preg_match('#^https?://#i', $endpoint)) {
+                $endpoint = 'http://crosspoint.local/upload?path=/RSSFeeds';
             }
             $conf->EinkPush_push_endpoint = $endpoint;
             $conf->EinkPush_push_cron = trim((string) Minz_Request::param('push_cron', '0 6 * * *', true));
@@ -82,10 +86,10 @@ class EinkPushExtension extends Minz_Extension {
                     . ' push=' . (int)$v['autoPush'] . ' days=' . $v['historyDays']
                     . ' max=' . $v['maxArticles'] . ' ts=' . (int)$v['addTimestamp'];
             }
-            error_log('[EinkPush] Saving sources: ' . json_encode($sourcesSummary));
+            error_log('[EinkPush2] Saving sources: ' . json_encode($sourcesSummary));
 
             $saveResult = $conf->save();
-            error_log('[EinkPush] Config save result: ' . var_export($saveResult, true));
+            error_log('[EinkPush2] Config save result: ' . var_export($saveResult, true));
         }
     }
 
@@ -143,7 +147,7 @@ class EinkPushExtension extends Minz_Extension {
     }
 
     public function getEpubDir() {
-        $dir = USERS_PATH . '/' . Minz_User::name() . '/EinkPush/';
+        $dir = USERS_PATH . '/' . Minz_User::name() . '/EinkPush2/';
         if (!is_dir($dir)) {
             @mkdir($dir, 0770, true);
         }

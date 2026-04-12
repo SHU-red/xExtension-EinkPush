@@ -1,6 +1,6 @@
 > **Vibe-coded with AI.** This extension was built entirely with AI assistance. No manual PHP was written. It exists solely to solve a daily personal workflow — nothing more, nothing less.
 
-# xExtension-EinkPush
+# xExtension-EinkPush2
 
 > ⚠️ **Work in Progress** — This extension is under active development. Settings consistency and push functionality are not yet implemented.
 
@@ -18,7 +18,7 @@ A [FreshRSS](https://github.com/FreshRSS/FreshRSS) extension that exports select
 
 ## Install
 
-1. Download or clone this repository into the `extensions/` directory of your FreshRSS installation so the folder is named `xExtension-EinkPush`.
+1. Download or clone this repository into the `extensions/` directory of your FreshRSS installation so the folder is named `xExtension-EinkPush2`.
 2. Enable the extension in FreshRSS under *Settings > Extensions*.
 3. Open the extension configuration, select categories, set screen size, and save.
 

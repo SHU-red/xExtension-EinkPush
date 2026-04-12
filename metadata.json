@@ -1,8 +1,8 @@
 {
-	"name": "EinkPush",
+	"name": "EinkPush2",
 	"author": "EinkPush Contributors",
 	"description": "Export FreshRSS articles as a simple EPUB for e-ink readers.",
 	"version": "1.0.0",
-	"entrypoint": "EinkPush",
+	"entrypoint": "EinkPush2",
 	"type": "user"
 }

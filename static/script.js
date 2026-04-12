@@ -4,6 +4,35 @@
 
     // We use event delegation because the DOM might be replaced via AJAX
     document.addEventListener('click', function(e) {
+        // Intercept "Download all enabled"
+        const dlAllBtn = e.target.closest('a[href*="a=generate"]:not([href*="source="])');
+        if (dlAllBtn) {
+            e.preventDefault();
+            const enabledSources = document.querySelectorAll('input[name^="sources["][name$="][enabled]"]:checked');
+            if (enabledSources.length === 0) {
+                alert('No sources are currently enabled.');
+                return;
+            }
+            
+            let delay = 0;
+            enabledSources.forEach(input => {
+                const match = input.name.match(/sources\[(.*?)\]/);
+                if (match && match[1]) {
+                    const sourceKey = match[1];
+                    const url = dlAllBtn.href + '&source=' + encodeURIComponent(sourceKey);
+                    setTimeout(() => {
+                        const iframe = document.createElement('iframe');
+                        iframe.style.display = 'none';
+                        iframe.src = url;
+                        document.body.appendChild(iframe);
+                        setTimeout(() => iframe.remove(), 15000);
+                    }, delay);
+                    delay += 1500; // 1.5 second delay between downloads
+                }
+            });
+            return;
+        }
+
         // Tab Switching
         const navItem = e.target.closest('.ep-nav-item');
         if (navItem) {

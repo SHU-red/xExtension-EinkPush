@@ -5,8 +5,8 @@ $categoryDAO = FreshRSS_Factory::createCategoryDao();
 $categories = $categoryDAO->listCategories() ?: [];
 $sources = $cfg['sources'] ?? [];
 
-$favDefaults = ['enabled' => true, 'historyDays' => 0, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 0, 'removeFromFavorites' => false];
-$catDefaults = ['enabled' => false, 'historyDays' => 7, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 0];
+$favDefaults = ['enabled' => false, 'historyDays' => 7, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 50, 'removeFromFavorites' => false];
+$catDefaults = ['enabled' => false, 'historyDays' => 7, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 50];
 
 $ext = Minz_ExtensionManager::findExtension('EinkPush');
 $cronScript = $ext ? ($ext->getPath() . '/push_cron.php') : '';

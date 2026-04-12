@@ -60,13 +60,13 @@ class EinkPushExtension extends Minz_Extension {
             $fav = $posted['favorites'] ?? [];
             $sources['favorites'] = [
                 'enabled'      => !empty($fav['enabled']),
-                'historyDays'  => max(0, (int) ($fav['historyDays'] ?? 0)),
+                'historyDays'  => max(0, (int) ($fav['historyDays'] ?? 7)),
                 'unreadOnly'   => !empty($fav['unreadOnly']),
                 'markAsRead'   => !empty($fav['markAsRead']),
                 'autoPush'     => !empty($fav['autoPush']),
                 'fetchContent' => !empty($fav['fetchContent']),
                 'addTimestamp' => !empty($fav['addTimestamp']),
-                'maxArticles'  => max(0, (int) ($fav['maxArticles'] ?? 0)),
+                'maxArticles'  => max(0, (int) ($fav['maxArticles'] ?? 50)),
                 'removeFromFavorites' => !empty($fav['removeFromFavorites']),
             ];
 
@@ -84,7 +84,7 @@ class EinkPushExtension extends Minz_Extension {
                     'autoPush'     => !empty($src['autoPush']),
                 'fetchContent' => !empty($src['fetchContent']),
                 'addTimestamp' => !empty($src['addTimestamp']),
-                'maxArticles'  => max(0, (int) ($src['maxArticles'] ?? 0)),
+                'maxArticles'  => max(0, (int) ($src['maxArticles'] ?? 50)),
             ];
             }
 
@@ -132,7 +132,7 @@ class EinkPushExtension extends Minz_Extension {
             'EinkPush_screenHeight'   => 800,
             'EinkPush_fontSize'       => 1.0,
             'EinkPush_sources'        => [
-                'favorites' => ['enabled' => true, 'historyDays' => 0, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 0, 'removeFromFavorites' => false],
+                'favorites' => ['enabled' => false, 'historyDays' => 7, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 50, 'removeFromFavorites' => false],
             ],
             'EinkPush_push_endpoint'  => 'http://crosspoint.local/upload?path=/RSSFeeds',
             'EinkPush_push_cron'      => '0 6 * * *',

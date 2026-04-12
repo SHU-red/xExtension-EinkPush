@@ -21,11 +21,14 @@
                     const sourceKey = match[1];
                     const url = dlAllBtn.href + '&source=' + encodeURIComponent(sourceKey);
                     setTimeout(() => {
-                        const iframe = document.createElement('iframe');
-                        iframe.style.display = 'none';
-                        iframe.src = url;
-                        document.body.appendChild(iframe);
-                        setTimeout(() => iframe.remove(), 15000);
+                        // Using <a> with download attribute instead of <iframe> to bypass CSP frame-ancestors 'none'
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.style.display = 'none';
+                        a.setAttribute('download', '');
+                        document.body.appendChild(a);
+                        a.click();
+                        setTimeout(() => a.remove(), 1000);
                     }, delay);
                     delay += 1500; // 1.5 second delay between downloads
                 }
@@ -92,11 +95,11 @@
 
     // Inject sidebar button in Main UI
     function injectSidebarButton() {
-        const configEl = document.getElementById('einkpush-config');
-        if (!configEl) return; // Wait for config div
+        const configMeta = document.querySelector('meta[name="einkpush-config"]');
+        if (!configMeta) return; // Wait for config meta
 
-        const showSidebar = configEl.getAttribute('data-show-sidebar') === '1';
-        const label = configEl.getAttribute('data-label') || '📖 EinkPush';
+        const showSidebar = configMeta.getAttribute('data-show-sidebar') === '1';
+        const label = configMeta.getAttribute('data-label') || '📖 EinkPush';
         
         // Robust check: if explicitly false, remove and stop
         if (!showSidebar) {

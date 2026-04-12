@@ -186,7 +186,6 @@ function renderSourceItem($key, $name, $cfg, $isFav) {
                 </div>
                 
                 <div class="ep-field ep-field-full">
-                    <label class="ep-settings-label"><?= _t('ext.card_settings') ?></label>
                     <div class="ep-checkbox-grid">
                         <label class="ep-checkbox-group">
                             <input type="checkbox" name="sources[<?= $key ?>][unreadOnly]" value="1" <?= !empty($cfg['unreadOnly']) ? 'checked' : '' ?>>

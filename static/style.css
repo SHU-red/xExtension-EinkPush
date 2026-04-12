@@ -110,7 +110,7 @@
     position: relative;
     display: inline-block;
     width: 32px;
-    height: 12px;
+    height: 14px;
     margin: 0 !important;
     vertical-align: middle;
 }
@@ -119,24 +119,28 @@
     position: absolute;
     cursor: pointer;
     top: 0; left: 0; right: 0; bottom: 0;
-    background-color: #f0f0f0;
-    transition: none;
-    border-radius: 0;
-    border: 1px solid #ccc;
+    background-color: #f3f4f6;
+    border: 1px solid #9ca3af;
     box-sizing: border-box;
+    transition: none;
 }
 .ep-slider:before {
     position: absolute;
     content: "";
-    height: 10px; width: 10px;
+    height: 12px; width: 12px;
     left: 0; top: 0;
-    background-color: #0062be;
+    background-color: #6b7280;
     transition: none;
-    border-radius: 0;
-    border: 0;
 }
-input:checked + .ep-slider { background-color: #e0e0e0; }
-input:checked + .ep-slider:before { transform: translateX(20px); }
+input:checked + .ep-slider { 
+    background-color: #dbeafe;
+    border-color: #3b82f6;
+}
+input:checked + .ep-slider:before { 
+    transform: translateX(18px);
+    background-color: #2563eb;
+}
+
 
 
 
@@ -284,9 +288,9 @@ input:checked + .ep-slider:before { transform: translateX(20px); }
     .ep-nav-item { flex: 1 1 45%; }
     .ep-grid { grid-template-columns: 1fr; }
 }
-.ep-btn-amber-flat {
-    background-color: #f59e0b !important;
-    border: 1px solid #d97706 !important;
+.ep-btn-settings-orange {
+    background-color: #ff8c00 !important;
+    border: 1px solid #e67e00 !important;
     color: #fff !important;
     text-align: center !important;
     font-weight: bold !important;
@@ -295,15 +299,21 @@ input:checked + .ep-slider:before { transform: translateX(20px); }
     padding: 8px 5px !important;
     border-radius: 0 !important;
     text-decoration: none !important;
+    font-size: 13.5px !important;
 }
-.ep-btn-amber-flat:hover {
-    background-color: #d97706 !important;
+.ep-btn-settings-orange:hover {
+    background-color: #e67e00 !important;
+    text-decoration: none !important;
 }
 
 .ep-sidebar-item {
     list-style: none !important;
     padding: 0 !important;
-    margin: 0 !important;
+    margin: 6px 0 !important;
+    display: block !important;
+    width: 100% !important;
+    clear: both !important;
 }
+
 
 

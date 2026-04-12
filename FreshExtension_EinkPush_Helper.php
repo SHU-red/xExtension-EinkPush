@@ -210,7 +210,7 @@ class EinkPushHelper {
                     $entries[] = $entry;
                 }
             }
-        } elseif (str_starts_with($sourceKey, 'cat_')) {
+        } elseif (strpos($sourceKey, 'cat_') === 0) {
             $catId = (int) substr($sourceKey, 4);
             if ($catId > 0) {
                 $result = $entryDAO->listWhere(
@@ -536,7 +536,7 @@ class EinkPushHelper {
 
         // Strip protobuf prefix: field 1 varint + field 4 header
         $prefix = "\x08\x13\x22";
-        if (str_starts_with($decoded, $prefix)) {
+        if (strpos($decoded, $prefix) === 0) {
             $decoded = substr($decoded, 3);
         }
 
@@ -562,7 +562,7 @@ class EinkPushHelper {
         }
 
         // New format (since July 2024): encrypted — cannot decode server-side
-        if (str_starts_with($inner, 'AU_')) {
+        if (strpos($inner, 'AU_') === 0) {
             error_log('[EinkPush2] Google News article uses new encrypted format (AU_ prefix)');
             return null;
         }
@@ -570,7 +570,7 @@ class EinkPushHelper {
         // Fallback: look for any URL in the raw decoded bytes
         if (preg_match('#(https?://[^\x00-\x1f\x7f-\x9f]{10,})#', $decoded, $m)) {
             $url = preg_replace('/[\x00-\x1f\x7f-\x9f].*$/', '', $m[1]);
-            if (filter_var($url, FILTER_VALIDATE_URL) && !str_contains($url, 'news.google.com')) {
+            if (filter_var($url, FILTER_VALIDATE_URL) && strpos($url, 'news.google.com') === false) {
                 return $url;
             }
         }
@@ -850,7 +850,7 @@ CSS;
         if ($key === 'favorites') {
             return _t('ext.einkpush.source_favorites');
         }
-        if (str_starts_with($key, 'cat_')) {
+        if (strpos($key, 'cat_') === 0) {
             $catId = (int) substr($key, 4);
             try {
                 $categoryDAO = FreshRSS_Factory::createCategoryDao();

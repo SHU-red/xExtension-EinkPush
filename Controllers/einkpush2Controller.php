@@ -1,12 +1,11 @@
 <?php
 
-class FreshRSS_EinkPush2_Controller extends Minz_ActionController {
+class FreshRSS_einkpush2_Controller extends Minz_ActionController {
 
     private ?EinkPush2Extension $extension;
     private ?EinkPushHelper $helper;
 
     public function firstAction(): void {
-        error_log('[EinkPush2] firstAction() called');
         $this->extension = Minz_ExtensionManager::findExtension('EinkPush2');
         if (!$this->extension) {
             $this->extension = Minz_ExtensionManager::findExtension('einkpush2');
@@ -22,7 +21,6 @@ class FreshRSS_EinkPush2_Controller extends Minz_ActionController {
         }
         
         if (!$this->extension) {
-            error_log('[EinkPush2] Extension not found in controller after exhaustive search');
             Minz_Error::error(404);
         }
 

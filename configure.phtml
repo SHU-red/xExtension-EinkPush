@@ -26,10 +26,10 @@ $history = $helper->getHistory();
             <p><?= _t('ext.description') ?></p>
         </div>
         <div class="ep-quick-actions">
-            <a class="ep-btn" href="<?= _url('einkpush2', 'generate') ?>">
+            <a class="ep-btn" href="<?= _url('EinkPush2', 'generate') ?>">
                 <span>📥</span> <?= _t('ext.dashboard_dl_all') ?>
             </a>
-            <a class="ep-btn ep-btn-primary" href="<?= _url('einkpush2', 'push') ?>">
+            <a class="ep-btn ep-btn-primary" href="<?= _url('EinkPush2', 'push') ?>">
                 <span>🚀</span> <?= _t('ext.dashboard_push_all') ?>
             </a>
         </div>
@@ -124,7 +124,7 @@ $history = $helper->getHistory();
                     </div>
                 <?php else: ?>
                     <div class="ep-history-actions">
-                        <a href="<?= _url('einkpush2', 'clearHistory') ?>" class="ep-btn ep-btn-danger"><?= _t('ext.history_clear') ?></a>
+                        <a href="<?= _url('EinkPush2', 'clearHistory') ?>" class="ep-btn ep-btn-danger"><?= _t('ext.history_clear') ?></a>
                     </div>
                     <div class="ep-history-list">
                         <?php foreach ($history as $item): ?>
@@ -154,8 +154,8 @@ $history = $helper->getHistory();
     <div class="ep-section" style="margin-top: 2rem; border-top: 1px solid #ddd; padding-top: 1rem; font-family: monospace; font-size: 0.8rem; color: #666;">
         <h3>🔍 Diagnostics</h3>
         <p>Extension Path: <?= htmlspecialchars($ext->getPath()) ?></p>
-        <p>Controller File: <?= file_exists($ext->getPath() . '/Controllers/einkpush2Controller.php') ? '✅ Found' : '❌ NOT FOUND' ?></p>
-        <p>Controller Path: <?= htmlspecialchars($ext->getPath() . '/Controllers/einkpush2Controller.php') ?></p>
+        <p>Controller File: <?= file_exists($ext->getPath() . '/Controllers/EinkPush2Controller.php') ? '✅ Found' : '❌ NOT FOUND' ?></p>
+        <p>Controller Path: <?= htmlspecialchars($ext->getPath() . '/Controllers/EinkPush2Controller.php') ?></p>
         <p>Current URL: <?= htmlspecialchars($_SERVER['REQUEST_URI']) ?></p>
     </div>
 </div>
@@ -173,10 +173,10 @@ function renderSourceItem($key, $name, $cfg, $isFav) {
                 <span class="ep-source-name"><?= htmlspecialchars($name) ?></span>
             </div>
             <div class="ep-source-actions">
-                <a class="ep-btn" href="<?= _url('einkpush2', 'generate', 'source', $key) ?>">
+                <a class="ep-btn" href="<?= _url('EinkPush2', 'generate', 'source', $key) ?>">
                     <span>📥</span> <?= _t('ext.card_download') ?>
                 </a>
-                <a class="ep-btn ep-btn-primary" href="<?= _url('einkpush2', 'pushSingle', 'source', $key) ?>">
+                <a class="ep-btn ep-btn-primary" href="<?= _url('EinkPush2', 'pushSingle', 'source', $key) ?>">
                     <span>🚀</span> <?= _t('ext.card_push_now') ?>
                 </a>
                 <span class="ep-source-chevron">▾</span>

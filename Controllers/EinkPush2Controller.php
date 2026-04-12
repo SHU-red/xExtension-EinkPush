@@ -1,11 +1,6 @@
 <?php
 
-class FreshRSS_einkpush2_Controller extends Minz_ActionController {
-
-    public function __construct() {
-        parent::__construct();
-        error_log('[EinkPush2] Controller __construct called');
-    }
+class FreshRSS_EinkPush2_Controller extends Minz_ActionController {
 
     private ?EinkPush2Extension $extension;
     private ?EinkPushHelper $helper;

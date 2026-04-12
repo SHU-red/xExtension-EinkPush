@@ -848,7 +848,7 @@ CSS;
 
     private function sourceLabel(string $key): string {
         if ($key === 'favorites') {
-            return _t('ext.einkpush.source_favorites');
+            return _t('ext.source_favorites');
         }
         if (strpos($key, 'cat_') === 0) {
             $catId = (int) substr($key, 4);

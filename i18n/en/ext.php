@@ -32,7 +32,7 @@ $trans = [
     'col_max_articles' => 'Max articles (0 = unlimited)',
     'col_timestamp' => 'Append timestamp to epub-filename',
     'col_remove_fav' => 'Un-favorite after push',
-    'source_favorites' => 'Starred articles',
+    'source_favorites' => 'Favorites',
     'section_push' => 'Automatic Delivery',
     'push_help' => 'Configure how EPUBs are sent to your e-reader.',
     'push_endpoint' => 'Push Endpoint URL',
@@ -59,4 +59,4 @@ $trans = [
     'msg_history_cleared' => 'History cleared.'
 ];
 
-return array_merge($trans, ['einkpush2' => $trans]);
+return $trans;

@@ -300,25 +300,26 @@ input:checked + .ep-slider:before {
     text-align: center !important;
     font-weight: bold !important;
     display: block !important;
-    margin: 4px 0 !important;
     padding: 8px 5px !important;
     border-radius: 0 !important;
     text-decoration: none !important;
     font-size: 13.5px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
 }
 .ep-btn-settings-orange:hover {
     background-color: #e67e00 !important;
     text-decoration: none !important;
 }
 
-.ep-sidebar-item {
-    list-style: none !important;
-    padding: 0 !important;
-    margin: 6px 0 !important;
+.ep-sidebar-container {
     display: block !important;
-    width: 100% !important;
     clear: both !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 10px 0 5px 0 !important;
 }
+
 
 
 

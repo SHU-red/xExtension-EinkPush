@@ -69,20 +69,17 @@
         const targetDiv = document.querySelector('.configure-feeds');
         if (targetDiv) {
             const container = document.createElement('div');
-            container.className = 'stick ep-sidebar-container';
+            // Remove 'stick' to avoid flex-horizontal behavior
+            container.className = 'ep-sidebar-container';
             container.id = 'ep-sidebar-btn-main';
-            container.style.marginTop = '10px'; // Spacing
             
             const a = document.createElement('a');
             a.href = './?c=extension&a=configure&e=EinkPush';
             a.className = 'btn ep-btn-settings-orange';
-            a.style.width = '100%';
-            a.style.display = 'block';
             a.innerHTML = 'EinkPush'; 
             
             container.appendChild(a);
             targetDiv.parentNode.insertBefore(container, targetDiv.nextSibling);
-            console.log('[EinkPush] Sidebar button injected below .configure-feeds.');
             return;
         }
 
@@ -96,12 +93,12 @@
             const parent = subManage.closest('li') || subManage.parentNode;
             if (parent && parent.parentNode) {
                 const li = document.createElement('li');
-                li.className = 'item ep-sidebar-item';
+                li.className = 'item ep-sidebar-container';
                 li.id = 'ep-sidebar-btn-main';
                 
                 const a = document.createElement('a');
                 a.href = './?c=extension&a=configure&e=EinkPush';
-                a.className = subManage.className + ' ep-btn-settings-orange';
+                a.className = 'btn ep-btn-settings-orange';
                 a.innerHTML = 'EinkPush'; 
                 
                 li.appendChild(a);
@@ -109,6 +106,7 @@
             }
         }
     }
+
     
     // Survival in AJAX environment
     const epObserver = new MutationObserver(() => injectSidebarButton());

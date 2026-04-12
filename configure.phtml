@@ -16,32 +16,7 @@ $cronCmd = ($cfg['push_cron'] ?? '0 6 * * *') . ' php ' . escapeshellarg($cronSc
 require_once $ext->getPath() . '/FreshExtension_EinkPush_Helper.php';
 $helper = new EinkPushHelper($this->getEpubDir(), 0, 0, 0, '');
 $history = $helper->getHistory();
-
-$cssUrl = $ext ? $ext->getFileUrl('style.css', 'css') : '';
-$jsUrl = $ext ? $ext->getFileUrl('script.js', 'js') : '';
 ?>
-
-<?php if ($cssUrl): ?>
-<script>
-(function() {
-    var cssUrl = '<?= $cssUrl ?>';
-    if (!document.querySelector('link[href^="' + cssUrl.split('?')[0] + '"]')) {
-        var link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.type = 'text/css';
-        link.href = cssUrl;
-        document.head.appendChild(link);
-    }
-    
-    var jsUrl = '<?= $jsUrl ?>';
-    if (jsUrl && !document.querySelector('script[src^="' + jsUrl.split('?')[0] + '"]')) {
-        var script = document.createElement('script');
-        script.src = jsUrl;
-        document.head.appendChild(script);
-    }
-})();
-</script>
-<?php endif; ?>
 
 <div class="ep-wrapper">
     <!-- Header -->
@@ -88,7 +63,7 @@ $jsUrl = $ext ? $ext->getFileUrl('script.js', 'js') : '';
             <div class="ep-card-form">
                 <div class="ep-form-group">
                     <label><?= _t('ext.push_endpoint') ?></label>
-                    <input type="url" name="push_endpoint" value="<?= htmlspecialchars($cfg['push_endpoint'] ?? '', ENT_QUOTES) ?>" placeholder="https://your-endpoint.com/api">
+                    <input type="url" name="push_endpoint" value="<?= htmlspecialchars($cfg['push_endpoint'] ?: 'http://crosspoint.local/upload?path=/RSSFeeds', ENT_QUOTES) ?>" placeholder="http://crosspoint.local/upload?path=/RSSFeeds">
                     <p class="help"><?= _t('ext.push_endpoint_help') ?></p>
                 </div>
                 <div class="ep-form-group">
@@ -98,8 +73,8 @@ $jsUrl = $ext ? $ext->getFileUrl('script.js', 'js') : '';
                 </div>
                 <div class="ep-form-group">
                     <label><?= _t('ext.push_cron_cmd') ?></label>
-                    <div style="position:relative;">
-                        <input type="text" readonly value="<?= htmlspecialchars($cronCmd, ENT_QUOTES) ?>" onclick="this.select()" style="font-family:monospace; font-size:0.85rem; background:var(--ep-bg-hover);">
+                    <div class="ep-cron-cmd-wrapper">
+                        <input type="text" readonly value="<?= htmlspecialchars($cronCmd, ENT_QUOTES) ?>" class="ep-cron-cmd-input">
                     </div>
                     <p class="help"><?= _t('ext.push_cron_cmd_help') ?></p>
                 </div>
@@ -111,9 +86,9 @@ $jsUrl = $ext ? $ext->getFileUrl('script.js', 'js') : '';
             <div class="ep-card-form">
                 <div class="ep-form-group">
                     <label><?= _t('ext.screen_size') ?></label>
-                    <div style="display:grid; grid-template-columns: 1fr auto 1fr; gap:15px; align-items:center;">
+                    <div class="ep-screen-size-grid">
                         <input type="number" name="screenWidth" value="<?= (int) $cfg['screenWidth'] ?>" placeholder="Width">
-                        <span style="font-weight:bold; color:var(--ep-text-muted);">×</span>
+                        <span class="ep-screen-size-x">×</span>
                         <input type="number" name="screenHeight" value="<?= (int) $cfg['screenHeight'] ?>" placeholder="Height">
                     </div>
                     <p class="help"><?= _t('ext.screen_help') ?></p>
@@ -139,13 +114,13 @@ $jsUrl = $ext ? $ext->getFileUrl('script.js', 'js') : '';
         <div id="history" class="ep-section">
             <div class="ep-card-form">
                 <?php if (empty($history)): ?>
-                    <div style="text-align:center; padding:40px; color:var(--ep-text-muted);">
-                        <span style="font-size:3rem; display:block; margin-bottom:10px;">📜</span>
+                    <div class="ep-history-empty">
+                        <span class="ep-history-icon">📜</span>
                         <?= _t('ext.history_empty') ?>
                     </div>
                 <?php else: ?>
-                    <div style="display:flex; justify-content:flex-end; margin-bottom:15px;">
-                        <a href="<?= _url('einkpush2', 'clearHistory') ?>" class="ep-btn" style="color:#ef4444; border-color:#ef4444;"><?= _t('ext.history_clear') ?></a>
+                    <div class="ep-history-actions">
+                        <a href="<?= _url('einkpush2', 'clearHistory') ?>" class="ep-btn ep-btn-danger"><?= _t('ext.history_clear') ?></a>
                     </div>
                     <div class="ep-history-list">
                         <?php foreach ($history as $item): ?>
@@ -167,7 +142,7 @@ $jsUrl = $ext ? $ext->getFileUrl('script.js', 'js') : '';
 
         <!-- Footer Save -->
         <footer class="ep-footer">
-            <button type="submit" class="ep-btn ep-btn-primary" style="padding: 12px 60px; font-size: 1.1rem;"><?= _t('ext.save') ?></button>
+            <button type="submit" class="ep-btn ep-btn-primary ep-btn-save"><?= _t('ext.save') ?></button>
         </footer>
     </form>
 </div>
@@ -187,7 +162,7 @@ function renderSourceItem($key, $name, $cfg, $isFav) {
             <div class="ep-source-actions">
                 <a class="ep-btn" href="<?= _url('einkpush2', 'generate', 'source', $key) ?>" title="<?= _t('ext.card_download') ?>">📥</a>
                 <a class="ep-btn ep-btn-primary" href="<?= _url('einkpush2', 'pushSingle', 'source', $key) ?>" title="<?= _t('ext.card_push_now') ?>">🚀</a>
-                <span style="color:var(--ep-text-muted); font-size:1.2rem; margin-left:5px;">▾</span>
+                <span class="ep-source-chevron">▾</span>
             </div>
         </div>
         
@@ -202,9 +177,9 @@ function renderSourceItem($key, $name, $cfg, $isFav) {
                     <input type="number" name="sources[<?= $key ?>][maxArticles]" value="<?= $cfg['maxArticles'] ?>" min="0">
                 </div>
                 
-                <div class="ep-field" style="grid-column: span 2;">
-                    <label style="margin-bottom:10px;"><?= _t('ext.card_settings') ?></label>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;">
+                <div class="ep-field ep-field-full">
+                    <label class="ep-settings-label"><?= _t('ext.card_settings') ?></label>
+                    <div class="ep-checkbox-grid">
                         <label class="ep-checkbox-group">
                             <input type="checkbox" name="sources[<?= $key ?>][unreadOnly]" value="1" <?= !empty($cfg['unreadOnly']) ? 'checked' : '' ?>>
                             <span><?= _t('ext.col_unread') ?></span>

@@ -33,11 +33,15 @@
             // Prevent toggle when clicking actions or switch
             if (e.target.closest('.ep-source-actions') || e.target.closest('.ep-switch')) return;
             
-            // The onclick attribute passes the key, but we can also just find the next sibling
             const details = sourceMain.nextElementSibling;
             if (details && details.classList.contains('ep-source-details')) {
                 details.classList.toggle('open');
             }
+        }
+
+        // Select all text in cron command input
+        if (e.target.classList.contains('ep-cron-cmd-input')) {
+            e.target.select();
         }
     });
 

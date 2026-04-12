@@ -23,12 +23,25 @@ class FreshRSS_einkpush2_Controller extends Minz_ActionController {
         );
     }
 
+    private function getSourceConfig($sourceKey, $conf) {
+        if (isset($conf['sources'][$sourceKey])) {
+            return $conf['sources'][$sourceKey];
+        }
+        if ($sourceKey === 'favorites') {
+            return ['enabled' => true, 'historyDays' => 0, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 0, 'removeFromFavorites' => false];
+        }
+        if (strpos($sourceKey, 'cat_') === 0) {
+            return ['enabled' => false, 'historyDays' => 7, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 0];
+        }
+        return null;
+    }
+
     public function generateAction() {
         $sourceKey = Minz_Request::param('source');
         $conf = $this->extension->getConfig();
 
         if ($sourceKey) {
-            $srcCfg = $conf['sources'][$sourceKey] ?? null;
+            $srcCfg = $this->getSourceConfig($sourceKey, $conf);
             if (!$srcCfg) Minz_Request::bad(_t('ext.error_invalid_source'), _url('extension', 'configure', 'e', 'EinkPush2'));
             
             $path = $this->helper->generateSingle($sourceKey, $srcCfg);
@@ -69,7 +82,7 @@ class FreshRSS_einkpush2_Controller extends Minz_ActionController {
 
         if (empty($endpoint)) Minz_Request::bad(_t('ext.error_no_endpoint'), _url('extension', 'configure', 'e', 'EinkPush2'));
 
-        $srcCfg = $conf['sources'][$sourceKey] ?? null;
+        $srcCfg = $this->getSourceConfig($sourceKey, $conf);
         if (!$srcCfg) Minz_Request::bad(_t('ext.error_invalid_source'), _url('extension', 'configure', 'e', 'EinkPush2'));
 
         $path = $this->helper->generateSingle($sourceKey, $srcCfg);

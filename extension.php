@@ -22,9 +22,11 @@ class EinkPush2Extension extends Minz_Extension {
             $conf->EinkPush_fontSize = max(0.5, min(3.0, (float) Minz_Request::param('fontSize', 1.0, true)));
 
             // Push settings
-            $endpoint = trim((string) Minz_Request::param('push_endpoint', '', true));
-            if ($endpoint !== '' && !preg_match('#^https?://#i', $endpoint)) {
-                $endpoint = '';
+            $endpoint = trim((string) Minz_Request::param('push_endpoint', 'http://crosspoint.local/upload?path=/RSSFeeds', true));
+            if ($endpoint === '') {
+                $endpoint = 'http://crosspoint.local/upload?path=/RSSFeeds';
+            } elseif (!preg_match('#^https?://#i', $endpoint)) {
+                $endpoint = 'http://crosspoint.local/upload?path=/RSSFeeds';
             }
             $conf->EinkPush_push_endpoint = $endpoint;
             $conf->EinkPush_push_cron = trim((string) Minz_Request::param('push_cron', '0 6 * * *', true));

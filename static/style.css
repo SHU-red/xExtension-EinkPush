@@ -105,41 +105,47 @@
 
 .ep-source-actions { display: flex; align-items: center; gap: 4px; }
 
-/* Toggle Switch */
+/* Native-like Toggle Switch */
 .ep-switch {
-    position: relative;
     display: inline-block;
-    width: 32px;
-    height: 14px;
-    margin: 0 !important;
+    position: relative;
+    width: 3.5em;
+    height: 1.75em;
+    background-color: #ddd; /* Fallback for var */
+    background-color: var(--frss-background-color-dark, #ddd);
+    border-radius: 1em;
+    cursor: pointer;
     vertical-align: middle;
+    margin: 0 0.5em !important;
+    box-sizing: content-box;
 }
 .ep-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
 .ep-slider {
     position: absolute;
-    cursor: pointer;
     top: 0; left: 0; right: 0; bottom: 0;
-    background-color: #f3f4f6;
-    border: 1px solid #9ca3af;
-    box-sizing: border-box;
-    transition: none;
+    border-radius: 1em;
+    transition: background-color 0.3s;
 }
 .ep-slider:before {
-    position: absolute;
     content: "";
-    height: 12px; width: 12px;
-    left: 0; top: 0;
-    background-color: #6b7280;
-    transition: none;
+    position: absolute;
+    left: 2px;
+    top: 2px;
+    width: 1.45em;
+    height: 1.45em;
+    background-color: #fff;
+    background-color: var(--frss-background-color, #fff);
+    border-radius: 50%;
+    transition: transform 0.3s;
 }
 input:checked + .ep-slider { 
-    background-color: #dbeafe;
-    border-color: #3b82f6;
+    background-color: #0062be;
+    background-color: var(--frss-switch-accent-color, #0062be);
 }
 input:checked + .ep-slider:before { 
-    transform: translateX(18px);
-    background-color: #2563eb;
+    transform: translateX(1.85em);
 }
+
 
 
 

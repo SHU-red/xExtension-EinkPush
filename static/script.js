@@ -63,9 +63,15 @@
 
     // Inject sidebar button in Main UI
     function injectSidebarButton() {
-        if (document.getElementById('ep-sidebar-btn-main')) return;
+        // ONLY on Main UI (normal view)
+        if (!document.body.classList.contains('normal')) {
+            // If already exists (maybe from previous page), remove it
+            const existing = document.getElementById('ep-sidebar-btn-main');
+            if (existing) existing.remove();
+            return;
+        }
         
-        console.log('[EinkPush] Searching for sidebar button insertion point...');
+        if (document.getElementById('ep-sidebar-btn-main')) return;
         
         const allLinks = document.querySelectorAll('a');
         let subManage = null;
@@ -74,17 +80,13 @@
             const href = a.getAttribute('href') || '';
             const txt = a.textContent.trim().toLowerCase();
             
-            // Patterns for Subscription Management (EN/DE/FR...)
             if (href.includes('a=subscription') || 
                 txt === 'subscription management' || 
                 txt === 'abonnements verwalten' ||
-                txt === 'abonnement-verwaltung' ||
-                txt === 'gestion des abonnements') {
+                txt === 'abonnement-verwaltung') {
                 
-                // Ensure it is in the sidebar area
                 if (a.closest('.aside') || a.closest('#nav_menu') || a.closest('.nav-list')) {
                     subManage = a;
-                    console.log('[EinkPush] Found subscription button:', a);
                     break;
                 }
             }
@@ -98,44 +100,33 @@
                 li.id = 'ep-sidebar-btn-main';
                 
                 const a = document.createElement('a');
-                a.href = './?a=extension&e=EinkPush';
-                // Copy classes from the original button if possible, then add our own
+                // Correct URL for extension config
+                a.href = './?c=extension&a=configure&e=EinkPush';
+                // Button naming: just "EinkPush"
                 a.className = subManage.className + ' ep-btn-settings-orange';
-                a.innerHTML = window.EinkSettingsLabel || 'EinkPush Settings';
+                a.innerHTML = 'EinkPush'; 
                 
                 li.appendChild(a);
                 parentLi.parentNode.insertBefore(li, parentLi.nextSibling);
-                console.log('[EinkPush] Sidebar button injected successfully.');
-            }
-        } else {
-            // Very final fallback: if we can't find it, append to the first ul in aside
-            const asideUl = document.querySelector('.aside ul, #nav_menu ul');
-            if (asideUl) {
-                const li = document.createElement('li');
-                li.className = 'item ep-sidebar-item';
-                li.id = 'ep-sidebar-btn-main';
-                const a = document.createElement('a');
-                a.href = './?a=extension&e=EinkPush';
-                a.className = 'btn ep-btn-settings-orange';
-                a.innerHTML = window.EinkSettingsLabel || 'EinkPush Settings';
-                li.appendChild(a);
-                asideUl.appendChild(li);
-                console.log('[EinkPush] Sidebar button injected via fallback.');
             }
         }
     }
-
-    // Use MutationObserver for AJAX-intensive themes
-    const epObserver = new MutationObserver(() => {
-        injectSidebarButton();
-    });
     
-    window.addEventListener('load', () => {
-        console.log('[EinkPush] Extension script initialized.');
+    // Survival in AJAX environment
+    const epObserver = new MutationObserver(() => injectSidebarButton());
+    
+    // Initial load and periodic check
+    function startInjection() {
         injectSidebarButton();
         epObserver.observe(document.body, { childList: true, subtree: true });
-    });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', startInjection);
+    } else {
+        startInjection();
+    }
     
-    // Safety interval
-    setInterval(injectSidebarButton, 2500);
+    // Safety fallback for very slow themes
+    setInterval(injectSidebarButton, 3000);
 })();

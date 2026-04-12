@@ -109,34 +109,41 @@
 .ep-switch {
     position: relative;
     display: inline-block;
-    width: 28px;
-    height: 10px;
+    width: 32px;
+    height: 12px;
     margin: 0 !important;
     vertical-align: middle;
+    box-sizing: border-box;
 }
 .ep-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
 .ep-slider {
     position: absolute;
     cursor: pointer;
     top: 0; left: 0; right: 0; bottom: 0;
-    background-color: #eee;
+    background-color: #eeeeee;
     transition: all 0.1s ease;
     border-radius: 0;
-    border: 1px solid #ccc;
+    border: 1px solid #999999;
+    box-sizing: border-box;
 }
 .ep-slider:before {
     position: absolute;
     content: "";
     height: 10px; width: 10px;
-    left: -1px; top: -1px;
-    background-color: #0062be;
+    left: 0; top: 0;
+    background-color: #004a91;
     transition: all 0.1s ease;
     border-radius: 0;
-    border: 1px solid #004a91;
+    border: 0;
     box-shadow: none;
 }
 input:checked + .ep-slider { background-color: #d0e3f7; }
-input:checked + .ep-slider:before { transform: translateX(18px); }
+input:checked + .ep-slider:before { 
+    transform: translateX(20px);
+    background-color: #0062be;
+}
+
+
 
 
 

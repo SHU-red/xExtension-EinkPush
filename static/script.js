@@ -65,8 +65,20 @@
     function injectSidebarButton() {
         if (document.getElementById('ep-sidebar-btn-main')) return;
         
-        // Find subscription management link (trying multiple ways)
-        const subManage = document.querySelector('a[href*="a=subscription"]');
+        // Strategy 1: Find by href
+        let subManage = document.querySelector('a[href*="a=subscription"]');
+        
+        // Strategy 2: Find by text (English/German)
+        if (!subManage) {
+            const anchors = document.querySelectorAll('.aside a, #nav_menu a');
+            for (const a of anchors) {
+                const text = a.textContent.toLowerCase();
+                if (text.includes('subscription') || text.includes('abonnement')) {
+                    subManage = a;
+                    break;
+                }
+            }
+        }
         
         if (subManage) {
             const li = document.createElement('li');
@@ -92,10 +104,10 @@
     // Survives AJAX with MutationObserver
     try {
         const observer = new MutationObserver(injectSidebarButton);
-        observer.observe(document, { childList: true, subtree: true });
+        observer.observe(document.documentElement, { childList: true, subtree: true });
     } catch (e) { console.error('EP Observer failed', e); }
     
     // Initial and periodic checks
     injectSidebarButton();
-    setInterval(injectSidebarButton, 1000);
+    setInterval(injectSidebarButton, 1500);
 })();

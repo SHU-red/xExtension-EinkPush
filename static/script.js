@@ -63,48 +63,58 @@
 
     // Inject sidebar button
     function injectSidebarButton() {
-        if (document.getElementById('ep-sidebar-btn')) return;
+        if (document.getElementById('ep-sidebar-group')) return;
         
-        // Target specifically the subscription management link in the sidebar
-        // Try multiple selectors as themes might vary
-        const subManage = document.querySelector('.aside li.item a[href*="a=subscription"]') 
-                      || document.querySelector('#nav_menu .item a[href*="a=subscription"]');
+        // Find the main sidebar navigation list
+        const navList = document.querySelector('#nav_menu .nav-list') 
+                     || document.querySelector('.aside .nav-list')
+                     || document.querySelector('#nav_menu ul')
+                     || document.querySelector('.aside ul');
                       
-        if (subManage) {
-            const container = subManage.closest('li');
-            
+        if (navList) {
+            const epGroup = document.createElement('div');
+            epGroup.id = 'ep-sidebar-group';
+            epGroup.style.marginTop = '10px';
+            epGroup.style.borderTop = '1px solid rgba(0,0,0,0.1)';
+            epGroup.style.paddingTop = '10px';
+
             // 1. Settings Button
             const settingsLi = document.createElement('li');
             settingsLi.className = 'item ep-sidebar-item';
-            settingsLi.id = 'ep-settings-btn';
             const settingsA = document.createElement('a');
             settingsA.href = './?a=extension&e=EinkPush';
             settingsA.innerHTML = '⚙️ EinkPush Settings';
             settingsA.className = 'ep-btn-sidebar ep-btn-blue';
             settingsLi.appendChild(settingsA);
-            container.after(settingsLi);
+            epGroup.appendChild(settingsLi);
 
             // 2. Push All Button
             const pushLi = document.createElement('li');
             pushLi.className = 'item ep-sidebar-item';
-            pushLi.id = 'ep-sidebar-btn';
             const pushA = document.createElement('a');
             pushA.href = './?a=extension&e=EinkPush&get=push';
             pushA.className = 'ep-btn-sidebar ep-btn-amber';
             pushA.innerHTML = '🚀 ' + (window.EinkPushLabel || 'Push All to E-Ink');
             pushLi.appendChild(pushA);
-            settingsLi.after(pushLi);
+            epGroup.appendChild(pushLi);
             
             // 3. Download Favorites Button
             const dlLi = document.createElement('li');
             dlLi.className = 'item ep-sidebar-item';
-            dlLi.id = 'ep-dl-fav-btn';
             const dlA = document.createElement('a');
             dlA.href = './?a=extension&e=EinkPush&get=generate&source=favorites';
             dlA.className = 'ep-btn-sidebar ep-btn-green';
             dlA.innerHTML = '📂 Download Favorites';
             dlLi.appendChild(dlA);
-            pushLi.after(dlLi);
+            epGroup.appendChild(dlLi);
+
+            // Insert after subscription management or at the end
+            const subManage = navList.querySelector('a[href*="a=subscription"]');
+            if (subManage) {
+                subManage.closest('li').after(epGroup);
+            } else {
+                navList.appendChild(epGroup);
+            }
         }
     }
     

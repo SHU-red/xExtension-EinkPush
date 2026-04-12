@@ -66,20 +66,8 @@
         if (document.getElementById('ep-sidebar-btn-main')) return;
         
         // Find subscription management link (trying multiple ways)
-        const subLinks = document.querySelectorAll('a[href*="a=subscription"]');
-        let subManage = null;
+        const subManage = document.querySelector('a[href*="a=subscription"]');
         
-        for (const link of subLinks) {
-            // Favor the one in the sidebar/aside
-            if (link.closest('.aside') || link.closest('#nav_menu') || link.closest('.nav-list')) {
-                subManage = link;
-                break;
-            }
-        }
-        
-        // Fallback to first one found
-        if (!subManage && subLinks.length > 0) subManage = subLinks[0];
-
         if (subManage) {
             const li = document.createElement('li');
             li.className = 'item ep-sidebar-item';
@@ -93,19 +81,21 @@
             li.appendChild(a);
             
             const parentLi = subManage.closest('li');
-            if (parentLi) {
-                parentLi.after(li);
+            if (parentLi && parentLi.parentNode) {
+                parentLi.parentNode.insertBefore(li, parentLi.nextSibling);
+            } else if (subManage.parentNode) {
+                subManage.parentNode.insertBefore(li, subManage.nextSibling);
             }
         }
     }
 
-    // Use MutationObserver to survive AJAX updates
-    const observer = new MutationObserver((mutations) => {
-        injectSidebarButton();
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
+    // Survives AJAX with MutationObserver
+    try {
+        const observer = new MutationObserver(injectSidebarButton);
+        observer.observe(document, { childList: true, subtree: true });
+    } catch (e) { console.error('EP Observer failed', e); }
     
-    // Initial calls
+    // Initial and periodic checks
     injectSidebarButton();
-    setInterval(injectSidebarButton, 2000); // Fail-safe periodic check
+    setInterval(injectSidebarButton, 1000);
 })();

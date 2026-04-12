@@ -11,7 +11,7 @@ class EinkPush2Extension extends Minz_Extension {
         Minz_View::appendScript($this->getFileUrl('script.js', 'js'));
         
         error_log('[EinkPush2] Extension path: ' . $this->getPath());
-        error_log('[EinkPush2] Controller file exists: ' . (file_exists($this->getPath() . '/controllers/einkpush2Controller.php') ? 'YES' : 'NO'));
+        error_log('[EinkPush2] Controller file exists: ' . (file_exists($this->getPath() . '/Controllers/einkpush2Controller.php') ? 'YES' : 'NO'));
     }
 
     public function handleConfigureAction() {

@@ -61,59 +61,33 @@
     // Run periodically in case of AJAX load (FreshRSS doesn't always fire a clean event)
     setInterval(restoreTab, 500);
 
-    // Inject sidebar button
+    // Inject sidebar button in Main UI
     function injectSidebarButton() {
-        if (document.getElementById('ep-sidebar-group')) return;
+        // Prevent double injection
+        if (document.getElementById('ep-sidebar-btn-main')) return;
         
+        // Only inject in MAIN UI, not in extension settings
+        if (window.location.search.includes('c=extension')) return;
+
         // Find the main sidebar navigation list
         const navList = document.querySelector('#nav_menu .nav-list') 
-                     || document.querySelector('.aside .nav-list')
-                     || document.querySelector('#nav_menu ul')
-                     || document.querySelector('.aside ul');
+                     || document.querySelector('.aside .nav-list');
                       
         if (navList) {
-            const epGroup = document.createElement('div');
-            epGroup.id = 'ep-sidebar-group';
-            epGroup.style.marginTop = '10px';
-            epGroup.style.borderTop = '1px solid rgba(0,0,0,0.1)';
-            epGroup.style.paddingTop = '10px';
-
-            // 1. Settings Button
-            const settingsLi = document.createElement('li');
-            settingsLi.className = 'item ep-sidebar-item';
-            const settingsA = document.createElement('a');
-            settingsA.href = './?a=extension&e=EinkPush';
-            settingsA.innerHTML = '⚙️ EinkPush Settings';
-            settingsA.className = 'ep-btn-sidebar ep-btn-blue';
-            settingsLi.appendChild(settingsA);
-            epGroup.appendChild(settingsLi);
-
-            // 2. Push All Button
-            const pushLi = document.createElement('li');
-            pushLi.className = 'item ep-sidebar-item';
-            const pushA = document.createElement('a');
-            pushA.href = './?a=extension&e=EinkPush&get=push';
-            pushA.className = 'ep-btn-sidebar ep-btn-amber';
-            pushA.innerHTML = '🚀 ' + (window.EinkPushLabel || 'Push All to E-Ink');
-            pushLi.appendChild(pushA);
-            epGroup.appendChild(pushLi);
-            
-            // 3. Download Favorites Button
-            const dlLi = document.createElement('li');
-            dlLi.className = 'item ep-sidebar-item';
-            const dlA = document.createElement('a');
-            dlA.href = './?a=extension&e=EinkPush&get=generate&source=favorites';
-            dlA.className = 'ep-btn-sidebar ep-btn-green';
-            dlA.innerHTML = '📂 Download Favorites';
-            dlLi.appendChild(dlA);
-            epGroup.appendChild(dlLi);
-
-            // Insert after subscription management or at the end
+            // Find subscription management
             const subManage = navList.querySelector('a[href*="a=subscription"]');
             if (subManage) {
-                subManage.closest('li').after(epGroup);
-            } else {
-                navList.appendChild(epGroup);
+                const li = document.createElement('li');
+                li.className = 'item ep-sidebar-item';
+                li.id = 'ep-sidebar-btn-main';
+                
+                const a = document.createElement('a');
+                a.href = './?a=extension&e=EinkPush';
+                a.className = 'ep-btn-sidebar ep-btn-amber';
+                a.innerHTML = '⚙️ EinkPush Settings';
+                
+                li.appendChild(a);
+                subManage.closest('li').after(li);
             }
         }
     }

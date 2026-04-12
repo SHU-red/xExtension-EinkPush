@@ -1,4 +1,5 @@
 /* EinkPush 2 - Modern Dashboard Styling */
+.ep-hidden { display: none !important; }
 :root {
     --ep-primary: #0062ff;
     --ep-primary-hover: #0052d6;

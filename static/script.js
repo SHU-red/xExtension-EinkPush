@@ -92,8 +92,14 @@
 
     // Inject sidebar button in Main UI
     function injectSidebarButton() {
+        const configEl = document.getElementById('einkpush-config');
+        if (!configEl) return; // Wait for config div
+
+        const showSidebar = configEl.getAttribute('data-show-sidebar') === '1';
+        const label = configEl.getAttribute('data-label') || '📖 EinkPush';
+        
         // Robust check: if explicitly false, remove and stop
-        if (window.EinkPushShowSidebar === false) {
+        if (!showSidebar) {
             const existingBtn = document.getElementById('ep-sidebar-btn-main');
             if (existingBtn) {
                 console.log('[EinkPush] Removing sidebar button per settings');
@@ -102,9 +108,8 @@
             return;
         }
         
-        // If already exists or not yet decided, wait
+        // If already exists, stop
         if (document.getElementById('ep-sidebar-btn-main')) return;
-        if (typeof window.EinkPushShowSidebar === 'undefined') return; 
 
         // Target the specific FreshRSS 1.28.1 sidebar structure
         const targetDiv = document.querySelector('.configure-feeds');
@@ -117,7 +122,7 @@
             const a = document.createElement('a');
             a.href = './?c=extension&a=configure&e=EinkPush';
             a.className = 'btn ep-btn-settings-orange';
-            a.innerHTML = '📖 EinkPush'; 
+            a.innerHTML = label; 
             
             container.appendChild(a);
             targetDiv.parentNode.insertBefore(container, targetDiv.nextSibling);
@@ -140,7 +145,7 @@
                 const a = document.createElement('a');
                 a.href = './?c=extension&a=configure&e=EinkPush';
                 a.className = 'btn ep-btn-settings-orange';
-                a.innerHTML = '📖 EinkPush'; 
+                a.innerHTML = label; 
                 
                 li.appendChild(a);
                 parent.parentNode.insertBefore(li, parent.nextSibling);

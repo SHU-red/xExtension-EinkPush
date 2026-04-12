@@ -12,22 +12,19 @@ class EinkPushExtension extends Minz_Extension {
         Minz_View::appendStyle($styleUrl . '&v=' . time());
         Minz_View::appendScript($scriptUrl . '&v=' . time());
         
-        $this->registerHook('render_head', [$this, 'injectJsHead']);
+        $this->registerHook('display_before_content', [$this, 'injectConfigDiv']);
     }
 
-    public function injectJsHead() {
+    public function injectConfigDiv() {
         $conf = FreshRSS_Context::$user_conf;
         $showSidebarVal = ($conf && $conf->EinkPush_showSidebarButton !== null) ? (int)$conf->EinkPush_showSidebarButton : 1;
-        $showSidebar = ($showSidebarVal !== 0) ? 'true' : 'false';
+        $showSidebar = ($showSidebarVal !== 0) ? '1' : '0';
         
-        // Debug log to verify what's being injected during page render
-        error_log('[EinkPush] injectJsHead: showSidebarButton=' . $showSidebarVal . ' -> JS=' . $showSidebar);
-        
-        echo '<script>
-            window.EinkPushShowSidebar = ' . $showSidebar . ';
-            window.EinkPushLabel = "' . addslashes(_t('ext.sidebar_push_all')) . '"; 
-            window.EinkSettingsLabel = "' . addslashes(_t('ext.nav_push')) . '"; 
-        </script>';
+        // Using a hidden div instead of an inline script to comply with strict CSP (Content Security Policy)
+        echo '<div id="einkpush-config" class="ep-hidden" 
+              data-show-sidebar="' . $showSidebar . '"
+              data-label="' . htmlspecialchars(_t('ext.sidebar_push_all'), ENT_QUOTES) . '"
+              data-settings-label="' . htmlspecialchars(_t('ext.nav_push'), ENT_QUOTES) . '"></div>';
     }
 
     public function handleConfigureAction() {

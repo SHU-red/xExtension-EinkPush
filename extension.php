@@ -13,7 +13,8 @@ class EinkPushExtension extends Minz_Extension {
 
     public function injectJsLabel() {
         $label = _t('ext.sidebar_push_all');
-        echo '<script>window.EinkPushLabel = "' . addslashes($label) . '";</script>';
+        $settingsLabel = _t('ext.nav_push');
+        echo '<script>window.EinkPushLabel = "' . addslashes($label) . '"; window.EinkSettingsLabel = "' . addslashes($settingsLabel) . '";</script>';
     }
 
     public function handleConfigureAction() {

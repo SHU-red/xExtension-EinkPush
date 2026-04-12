@@ -66,28 +66,28 @@
         // Prevent double injection
         if (document.getElementById('ep-sidebar-btn-main')) return;
         
-        // Only inject in MAIN UI, not in extension settings
-        if (window.location.search.includes('c=extension')) return;
+        // Find subscription management link anywhere in the sidebar/aside
+        const subManage = document.querySelector('.aside a[href*="a=subscription"]') 
+                       || document.querySelector('#nav_menu a[href*="a=subscription"]')
+                       || document.querySelector('a[href*="a=subscription"]');
 
-        // Find the main sidebar navigation list
-        const navList = document.querySelector('#nav_menu .nav-list') 
-                     || document.querySelector('.aside .nav-list');
-                      
-        if (navList) {
-            // Find subscription management
-            const subManage = navList.querySelector('a[href*="a=subscription"]');
-            if (subManage) {
-                const li = document.createElement('li');
-                li.className = 'item ep-sidebar-item';
-                li.id = 'ep-sidebar-btn-main';
-                
-                const a = document.createElement('a');
-                a.href = './?a=extension&e=EinkPush';
-                a.className = 'ep-btn-sidebar ep-btn-amber';
-                a.innerHTML = '⚙️ EinkPush Settings';
-                
-                li.appendChild(a);
-                subManage.closest('li').after(li);
+        if (subManage) {
+            const li = document.createElement('li');
+            li.className = 'item ep-sidebar-item';
+            li.id = 'ep-sidebar-btn-main';
+            
+            const a = document.createElement('a');
+            a.href = './?a=extension&e=EinkPush';
+            a.className = 'ep-btn-sidebar ep-btn-amber';
+            // Use translation if available, or fallback
+            a.innerHTML = '⚙️ ' + (window.EinkSettingsLabel || 'EinkPush Settings');
+            
+            li.appendChild(a);
+            
+            // Insert after the LI containing the link
+            const parentLi = subManage.closest('li');
+            if (parentLi) {
+                parentLi.after(li);
             }
         }
     }

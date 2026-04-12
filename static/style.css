@@ -145,8 +145,25 @@ input:checked + .ep-slider:before { transform: translateX(14px); }
 }
 .ep-source-details.open {
     max-height: 1000px;
-    padding: 8px;
+    padding: 12px;
     border-top-width: 1px;
+}
+
+.ep-settings-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+    width: 100%;
+}
+
+.ep-checkbox-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-top: 1px solid var(--ep-border);
+    padding-top: 12px;
+    width: 100%;
 }
 
 .ep-grid {
@@ -158,19 +175,20 @@ input:checked + .ep-slider:before { transform: translateX(14px); }
 .ep-field { display: flex; flex-direction: column; gap: 2px; }
 .ep-field label { font-size: 0.7rem; font-weight: 600; color: var(--ep-text-muted); display: block; margin-bottom: 0; }
 .ep-field input[type="number"], .ep-field select {
-    padding: 3px 6px;
+    padding: 5px 8px;
     border: 1px solid var(--ep-border);
     border-radius: 0;
     background: var(--ep-bg-card);
     color: var(--ep-text);
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     width: 100%;
+    box-sizing: border-box;
 }
 
-.ep-checkbox-group { display: flex; align-items: center; gap: 4px; cursor: pointer; padding: 1px; border-radius: 0; }
+.ep-checkbox-group { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 4px; border-radius: 0; }
 .ep-checkbox-group:hover { background: rgba(128,128,128,0.1); }
-.ep-checkbox-group input { width: 12px !important; height: 12px !important; cursor: pointer; margin: 0 !important; position: static !important; opacity: 1 !important; }
-.ep-checkbox-group span { font-size: 0.75rem; font-weight: 500; }
+.ep-checkbox-group input { width: 14px !important; height: 14px !important; cursor: pointer; margin: 0 !important; position: static !important; opacity: 1 !important; }
+.ep-checkbox-group span { font-size: 0.8rem; font-weight: 500; }
 
 /* Global & Push Forms */
 .ep-card-form {

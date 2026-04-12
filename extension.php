@@ -18,7 +18,7 @@ class EinkPushExtension extends Minz_Extension {
     public function injectJsLabel() {
         $label = _t('ext.sidebar_push_all');
         $settingsLabel = _t('ext.nav_push');
-        $conf = $this->getUserConfiguration();
+        $conf = FreshRSS_Context::$user_conf;
         $showSidebar = ($conf && $conf->EinkPush_showSidebarButton) ? 'true' : 'false';
         echo '<script>
             window.EinkPushLabel = "' . addslashes($label) . '"; 
@@ -32,7 +32,10 @@ class EinkPushExtension extends Minz_Extension {
         $this->ensureDefaults();
 
         if (Minz_Request::isPost()) {
-            $conf = $this->getUserConfiguration();
+            $conf = FreshRSS_Context::$user_conf;
+            if ($conf === null) {
+                return;
+            }
 
             // Global settings — 3rd param = true to get raw values (param() HTML-encodes by default)
             $conf->EinkPush_screenWidth = max(100, (int) Minz_Request::param('screenWidth', 480, true));

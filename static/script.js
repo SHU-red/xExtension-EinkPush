@@ -64,8 +64,11 @@
     // Inject sidebar button in Main UI
     function injectSidebarButton() {
         // ONLY on Main UI (normal view)
-        if (!document.body.classList.contains('normal')) {
-            // If already exists (maybe from previous page), remove it
+        const isMain = document.body.classList.contains('normal') || 
+                       document.getElementById('stream') || 
+                       document.querySelector('.aside .nav-list');
+        
+        if (!isMain) {
             const existing = document.getElementById('ep-sidebar-btn-main');
             if (existing) existing.remove();
             return;
@@ -73,22 +76,21 @@
         
         if (document.getElementById('ep-sidebar-btn-main')) return;
         
-        const allLinks = document.querySelectorAll('a');
+        const allLinks = document.querySelectorAll('.aside a, #nav_menu a, .nav-list a');
         let subManage = null;
         
         for (const a of allLinks) {
-            const href = a.getAttribute('href') || '';
             const txt = a.textContent.trim().toLowerCase();
+            const href = a.getAttribute('href') || '';
             
+            // Flexible matching for Subscription Management
             if (href.includes('a=subscription') || 
-                txt === 'subscription management' || 
-                txt === 'abonnements verwalten' ||
-                txt === 'abonnement-verwaltung') {
+                txt.includes('subscription management') || 
+                txt.includes('abonnements verwalten') ||
+                txt.includes('abonnement-verwaltung')) {
                 
-                if (a.closest('.aside') || a.closest('#nav_menu') || a.closest('.nav-list')) {
-                    subManage = a;
-                    break;
-                }
+                subManage = a;
+                break;
             }
         }
         
@@ -100,9 +102,8 @@
                 li.id = 'ep-sidebar-btn-main';
                 
                 const a = document.createElement('a');
-                // Correct URL for extension config
                 a.href = './?c=extension&a=configure&e=EinkPush';
-                // Button naming: just "EinkPush"
+                // Button name: just "EinkPush"
                 a.className = subManage.className + ' ep-btn-settings-orange';
                 a.innerHTML = 'EinkPush'; 
                 
@@ -118,7 +119,9 @@
     // Initial load and periodic check
     function startInjection() {
         injectSidebarButton();
-        epObserver.observe(document.body, { childList: true, subtree: true });
+        if (document.body) {
+            epObserver.observe(document.body, { childList: true, subtree: true });
+        }
     }
 
     if (document.readyState === 'loading') {
@@ -127,6 +130,6 @@
         startInjection();
     }
     
-    // Safety fallback for very slow themes
-    setInterval(injectSidebarButton, 3000);
+    // Safety fallback
+    setInterval(injectSidebarButton, 2000);
 })();

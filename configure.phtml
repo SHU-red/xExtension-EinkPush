@@ -19,6 +19,16 @@ $history = $helper->getHistory();
 ?>
 
 <div class="ep-wrapper">
+    <!-- Diagnostics (Always Visible at Top) -->
+    <div style="margin-bottom: 1rem; border: 1px solid #ddd; padding: 10px; font-family: monospace; font-size: 0.75rem; color: #444; background: #fffbe6; border-left: 4px solid #ffe58f;">
+        <h3 style="margin: 0 0 5px 0; font-size: 0.85rem;">🔍 Debug Info</h3>
+        <div style="display: grid; grid-template-columns: auto 1fr; gap: 5px 15px;">
+            <span>Path:</span> <b><?= htmlspecialchars($ext->getPath()) ?></b>
+            <span>File:</span> <b><?= file_exists($ext->getPath() . '/Controllers/EinkPush2Controller.php') ? '✅ Found' : '❌ NOT FOUND' ?></b>
+            <span>URL:</span> <b><?= htmlspecialchars($_SERVER['REQUEST_URI']) ?></b>
+        </div>
+    </div>
+
     <!-- Header -->
     <header class="ep-header">
         <div class="ep-header-info">
@@ -149,15 +159,6 @@ $history = $helper->getHistory();
             <button type="submit" class="ep-btn ep-btn-primary ep-btn-save"><?= _t('ext.save') ?></button>
         </footer>
     </form>
-
-    <!-- Diagnostics -->
-    <div class="ep-section" style="margin-top: 2rem; border-top: 1px solid #ddd; padding-top: 1rem; font-family: monospace; font-size: 0.8rem; color: #666;">
-        <h3>🔍 Diagnostics</h3>
-        <p>Extension Path: <?= htmlspecialchars($ext->getPath()) ?></p>
-        <p>Controller File: <?= file_exists($ext->getPath() . '/Controllers/EinkPush2Controller.php') ? '✅ Found' : '❌ NOT FOUND' ?></p>
-        <p>Controller Path: <?= htmlspecialchars($ext->getPath() . '/Controllers/EinkPush2Controller.php') ?></p>
-        <p>Current URL: <?= htmlspecialchars($_SERVER['REQUEST_URI']) ?></p>
-    </div>
 </div>
 
 <?php
@@ -184,18 +185,18 @@ function renderSourceItem($key, $name, $cfg, $isFav) {
         </div>
         
         <div id="details-<?= $key ?>" class="ep-source-details">
-            <div class="ep-grid">
-                <div class="ep-field">
+            <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 15px;">
+                <div class="ep-field" style="flex: 0 0 120px;">
                     <label><?= _t('ext.col_days') ?></label>
                     <input type="number" name="sources[<?= $key ?>][historyDays]" value="<?= $cfg['historyDays'] ?>" min="0">
                 </div>
-                <div class="ep-field">
+                <div class="ep-field" style="flex: 0 0 120px;">
                     <label><?= _t('ext.col_max_articles') ?></label>
                     <input type="number" name="sources[<?= $key ?>][maxArticles]" value="<?= $cfg['maxArticles'] ?>" min="0">
                 </div>
-                
-                <div class="ep-field ep-field-full">
-                    <div class="ep-checkbox-grid">
+            </div>
+
+            <div class="ep-checkbox-grid" style="border-top: 1px solid var(--ep-border); padding-top: 12px;">
                         <label class="ep-checkbox-group">
                             <input type="checkbox" name="sources[<?= $key ?>][unreadOnly]" value="1" <?= !empty($cfg['unreadOnly']) ? 'checked' : '' ?>>
                             <span><?= _t('ext.col_unread') ?></span>
@@ -225,7 +226,6 @@ function renderSourceItem($key, $name, $cfg, $isFav) {
                     </div>
                 </div>
             </div>
-        </div>
     </div>
     <?php
 }

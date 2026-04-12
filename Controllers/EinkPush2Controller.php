@@ -1,5 +1,7 @@
 <?php
 
+die('DEBUG: EinkPush2Controller.php LOADED');
+
 class FreshRSS_EinkPush2_Controller extends Minz_ActionController {
 
     private ?EinkPush2Extension $extension;

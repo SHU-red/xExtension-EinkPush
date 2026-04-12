@@ -5,7 +5,7 @@ class FreshRSS_einkpush2_Controller extends Minz_ActionController {
     private ?EinkPush2Extension $extension;
     private ?EinkPushHelper $helper;
 
-    public function firstAction() {
+    public function firstAction(): void {
         $this->extension = Minz_ExtensionManager::findExtension('EinkPush2');
         if (!$this->extension) {
             Minz_Error::error(404);
@@ -36,7 +36,7 @@ class FreshRSS_einkpush2_Controller extends Minz_ActionController {
         return null;
     }
 
-    public function generateAction() {
+    public function generateAction(): void {
         $sourceKey = Minz_Request::param('source');
         $conf = $this->extension->getConfig();
 
@@ -56,7 +56,7 @@ class FreshRSS_einkpush2_Controller extends Minz_ActionController {
         }
     }
 
-    public function pushAction() {
+    public function pushAction(): void {
         $conf = $this->extension->getConfig();
         $endpoint = $conf['push_endpoint'];
         if (empty($endpoint)) Minz_Request::bad(_t('ext.error_no_endpoint'), _url('extension', 'configure', 'e', 'EinkPush2'));
@@ -75,7 +75,7 @@ class FreshRSS_einkpush2_Controller extends Minz_ActionController {
         else Minz_Request::bad(_t('ext.msg_push_failed', $success, $failed), _url('extension', 'configure', 'e', 'EinkPush2'));
     }
 
-    public function pushSingleAction() {
+    public function pushSingleAction(): void {
         $sourceKey = Minz_Request::param('source');
         $conf = $this->extension->getConfig();
         $endpoint = $conf['push_endpoint'];
@@ -96,7 +96,7 @@ class FreshRSS_einkpush2_Controller extends Minz_ActionController {
         }
     }
 
-    public function clearHistoryAction() {
+    public function clearHistoryAction(): void {
         $this->helper->clearHistory();
         Minz_Request::good(_t('ext.msg_history_cleared'), _url('extension', 'configure', 'e', 'EinkPush2'));
     }

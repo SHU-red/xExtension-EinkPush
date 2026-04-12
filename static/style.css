@@ -109,8 +109,8 @@
 .ep-switch {
     position: relative;
     display: inline-block;
-    width: 28px;
-    height: 14px;
+    width: 44px;
+    height: 24px;
     margin: 0 !important;
 }
 .ep-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
@@ -120,19 +120,19 @@
     top: 0; left: 0; right: 0; bottom: 0;
     background-color: #d1d5db;
     transition: .1s;
-    border-radius: 34px;
+    border-radius: 4px;
 }
 .ep-slider:before {
     position: absolute;
     content: "";
-    height: 10px; width: 10px;
-    left: 2px; bottom: 2px;
+    height: 16px; width: 16px;
+    left: 4px; bottom: 4px;
     background-color: white;
     transition: .1s;
-    border-radius: 50%;
+    border-radius: 2px;
 }
 input:checked + .ep-slider { background-color: var(--ep-primary); }
-input:checked + .ep-slider:before { transform: translateX(14px); }
+input:checked + .ep-slider:before { transform: translateX(20px); }
 
 /* Advanced Settings Panel */
 .ep-source-details {

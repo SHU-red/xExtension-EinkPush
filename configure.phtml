@@ -26,10 +26,10 @@ $history = $helper->getHistory();
             <p><?= _t('ext.description') ?></p>
         </div>
         <div class="ep-quick-actions">
-            <a class="ep-btn" href="<?= _url('einkpush2', 'generate') ?>">
+            <a class="ep-btn" href="<?= _url('EinkPush2', 'generate') ?>">
                 <span>📥</span> <?= _t('ext.dashboard_dl_all') ?>
             </a>
-            <a class="ep-btn ep-btn-primary" href="<?= _url('einkpush2', 'push') ?>">
+            <a class="ep-btn ep-btn-primary" href="<?= _url('EinkPush2', 'push') ?>">
                 <span>🚀</span> <?= _t('ext.dashboard_push_all') ?>
             </a>
         </div>
@@ -124,7 +124,7 @@ $history = $helper->getHistory();
                     </div>
                 <?php else: ?>
                     <div class="ep-history-actions">
-                        <a href="<?= _url('einkpush2', 'clearHistory') ?>" class="ep-btn ep-btn-danger"><?= _t('ext.history_clear') ?></a>
+                        <a href="<?= _url('EinkPush2', 'clearHistory') ?>" class="ep-btn ep-btn-danger"><?= _t('ext.history_clear') ?></a>
                     </div>
                     <div class="ep-history-list">
                         <?php foreach ($history as $item): ?>
@@ -164,10 +164,10 @@ function renderSourceItem($key, $name, $cfg, $isFav) {
                 <span class="ep-source-name"><?= htmlspecialchars($name) ?></span>
             </div>
             <div class="ep-source-actions">
-                <a class="ep-btn" href="<?= _url('einkpush2', 'generate', 'source', $key) ?>">
+                <a class="ep-btn" href="<?= _url('EinkPush2', 'generate', 'source', $key) ?>">
                     <span>📥</span> <?= _t('ext.card_download') ?>
                 </a>
-                <a class="ep-btn ep-btn-primary" href="<?= _url('einkpush2', 'pushSingle', 'source', $key) ?>">
+                <a class="ep-btn ep-btn-primary" href="<?= _url('EinkPush2', 'pushSingle', 'source', $key) ?>">
                     <span>🚀</span> <?= _t('ext.card_push_now') ?>
                 </a>
                 <span class="ep-source-chevron">▾</span>

@@ -3,7 +3,7 @@
 class EinkPush2Extension extends Minz_Extension {
 
     public function init() {
-        $this->registerController('einkpush2');
+        $this->registerController('EinkPush2');
         $this->registerTranslates();
         Minz_View::appendStyle($this->getFileUrl('style.css', 'css') . '?v=' . time());
         Minz_View::appendScript($this->getFileUrl('script.js', 'js') . '?v=' . time());

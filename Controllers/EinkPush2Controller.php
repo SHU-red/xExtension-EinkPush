@@ -1,6 +1,7 @@
 <?php
+error_log('[EinkPush2] einkpush2Controller.php is INCLUDED by PHP!');
 
-class FreshRSS_einkpush2_Controller extends Minz_ActionController {
+class FreshRSS_EinkPush2_Controller extends Minz_ActionController {
 
     private ?EinkPush2Extension $extension;
     private ?EinkPushHelper $helper;

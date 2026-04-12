@@ -96,6 +96,20 @@
     color: #f27d26;
 }
 
+.ep-experimental-section {
+    background: rgba(128, 128, 128, 0.03);
+    border: 1px dashed var(--ep-border);
+    padding: 12px;
+    border-radius: 4px;
+    margin-top: 15px;
+}
+.ep-experimental-title {
+    font-size: 0.9rem;
+    color: #f27d26;
+    margin: 0 0 5px 0;
+    font-weight: 600;
+}
+
 /* Source Cards - List View */
 .ep-source-list { display: flex; flex-direction: column; gap: 2px; }
 .ep-source-item {

@@ -86,17 +86,24 @@ $history = $helper->getHistory();
                     <input type="url" name="push_endpoint" value="<?= htmlspecialchars($cfg['push_endpoint'] ?: 'http://crosspoint.local/upload?path=/RSSFeeds', ENT_QUOTES) ?>" placeholder="http://crosspoint.local/upload?path=/RSSFeeds">
                     <p class="help"><?= _t('ext.push_endpoint_help') ?></p>
                 </div>
-                <div class="ep-form-group">
-                    <label><?= _t('ext.push_cron') ?></label>
-                    <input type="text" name="push_cron" value="<?= htmlspecialchars($cfg['push_cron'] ?? '0 6 * * *', ENT_QUOTES) ?>">
-                    <p class="help"><?= _t('ext.push_cron_help') ?></p>
-                </div>
-                <div class="ep-form-group">
-                    <label><?= _t('ext.push_cron_cmd') ?></label>
-                    <div class="ep-cron-cmd-wrapper">
-                        <input type="text" readonly value="<?= htmlspecialchars($cronCmd, ENT_QUOTES) ?>" class="ep-cron-cmd-input">
+                
+                <div class="ep-experimental-section">
+                    <h3 class="ep-experimental-title">🧪 <?= _t('ext.push_experimental_title') ?></h3>
+                    <p class="help" style="margin-bottom: 15px;"><?= _t('ext.push_experimental_desc') ?></p>
+                    
+                    <div class="ep-form-group">
+                        <label><?= _t('ext.push_cron_cmd') ?></label>
+                        <div class="ep-cron-cmd-wrapper">
+                            <input type="text" readonly value="<?= htmlspecialchars($cronCmd, ENT_QUOTES) ?>" class="ep-cron-cmd-input">
+                        </div>
+                        <p class="help"><?= _t('ext.push_cron_cmd_help') ?></p>
                     </div>
-                    <p class="help"><?= _t('ext.push_cron_cmd_help') ?></p>
+
+                    <div class="ep-form-group">
+                        <label><?= _t('ext.push_cron') ?></label>
+                        <input type="text" name="push_cron" value="<?= htmlspecialchars($cfg['push_cron'] ?? '0 6 * * *', ENT_QUOTES) ?>">
+                        <p class="help"><?= _t('ext.push_cron_help') ?></p>
+                    </div>
                 </div>
             </div>
         </div>

@@ -63,52 +63,49 @@
 
     // Inject sidebar button in Main UI
     function injectSidebarButton() {
-        // ONLY on Main UI (normal view)
-        const isMain = document.body.classList.contains('normal') || 
-                       document.getElementById('stream') || 
-                       document.querySelector('.aside .nav-list');
-        
-        if (!isMain) {
-            const existing = document.getElementById('ep-sidebar-btn-main');
-            if (existing) existing.remove();
+        if (document.getElementById('ep-sidebar-btn-main')) return;
+
+        // Target the specific FreshRSS 1.28.1 sidebar structure
+        const targetDiv = document.querySelector('.configure-feeds');
+        if (targetDiv) {
+            const container = document.createElement('div');
+            container.className = 'stick ep-sidebar-container';
+            container.id = 'ep-sidebar-btn-main';
+            container.style.marginTop = '10px'; // Spacing
+            
+            const a = document.createElement('a');
+            a.href = './?c=extension&a=configure&e=EinkPush';
+            a.className = 'btn ep-btn-settings-orange';
+            a.style.width = '100%';
+            a.style.display = 'block';
+            a.innerHTML = 'EinkPush'; 
+            
+            container.appendChild(a);
+            targetDiv.parentNode.insertBefore(container, targetDiv.nextSibling);
+            console.log('[EinkPush] Sidebar button injected below .configure-feeds.');
             return;
         }
-        
-        if (document.getElementById('ep-sidebar-btn-main')) return;
-        
-        const allLinks = document.querySelectorAll('.aside a, #nav_menu a, .nav-list a');
-        let subManage = null;
-        
-        for (const a of allLinks) {
-            const txt = a.textContent.trim().toLowerCase();
-            const href = a.getAttribute('href') || '';
-            
-            // Flexible matching for Subscription Management
-            if (href.includes('a=subscription') || 
-                txt.includes('subscription management') || 
-                txt.includes('abonnements verwalten') ||
-                txt.includes('abonnement-verwaltung')) {
-                
-                subManage = a;
-                break;
-            }
-        }
+
+        // Fallback for other themes/versions
+        const subManage = Array.from(document.querySelectorAll('a')).find(a => 
+            (a.getAttribute('href') || '').includes('a=subscription') || 
+            a.textContent.trim().toLowerCase().includes('subscription management')
+        );
         
         if (subManage) {
-            const parentLi = subManage.closest('li');
-            if (parentLi && parentLi.parentNode) {
+            const parent = subManage.closest('li') || subManage.parentNode;
+            if (parent && parent.parentNode) {
                 const li = document.createElement('li');
                 li.className = 'item ep-sidebar-item';
                 li.id = 'ep-sidebar-btn-main';
                 
                 const a = document.createElement('a');
                 a.href = './?c=extension&a=configure&e=EinkPush';
-                // Button name: just "EinkPush"
                 a.className = subManage.className + ' ep-btn-settings-orange';
                 a.innerHTML = 'EinkPush'; 
                 
                 li.appendChild(a);
-                parentLi.parentNode.insertBefore(li, parentLi.nextSibling);
+                parent.parentNode.insertBefore(li, parent.nextSibling);
             }
         }
     }
@@ -116,7 +113,6 @@
     // Survival in AJAX environment
     const epObserver = new MutationObserver(() => injectSidebarButton());
     
-    // Initial load and periodic check
     function startInjection() {
         injectSidebarButton();
         if (document.body) {
@@ -130,6 +126,5 @@
         startInjection();
     }
     
-    // Safety fallback
     setInterval(injectSidebarButton, 2000);
 })();

@@ -6,6 +6,13 @@
 
 A [FreshRSS](https://github.com/FreshRSS/FreshRSS) extension that exports selected feed categories (or starred articles) into a simple, self-contained EPUB file sized for small e-ink readers like the XTe Ink X4. Pick your categories, set your screen dimensions, hit a button, and read your feeds offline — distraction-free, in about three minutes of setup.
 
+## Screenshots
+
+*(Add screenshots of the extension settings and the FreshRSS sidebar here)*
+
+![Settings Configuration](assets/screenshot-settings.png)
+![Sidebar Button](assets/screenshot-sidebar.png)
+
 ## How it works
 
 1. **Configure** — In the FreshRSS extension settings, tick the categories you want and enter your e-reader's screen width and height in pixels.

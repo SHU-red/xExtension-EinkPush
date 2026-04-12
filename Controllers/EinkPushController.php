@@ -54,14 +54,14 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
 
         if ($sourceKey) {
             $srcCfg = $this->getSourceConfig($sourceKey, $conf);
-            if (!$srcCfg) Minz_Request::bad(_t('ext.error_invalid_source'), _url('extension', 'configure', 'e', 'EinkPush'));
+            if (!$srcCfg) Minz_Request::bad(_t('ext.error_invalid_source'), ['c' => 'extension', 'a' => 'configure', 'e' => 'EinkPush']);
             
             $path = $this->helper->generateSingle($sourceKey, $srcCfg);
             if ($path) $this->downloadFile($path);
-            else Minz_Request::good(_t('ext.msg_no_articles'), _url('extension', 'configure', 'e', 'EinkPush'));
+            else Minz_Request::good(_t('ext.msg_no_articles'), ['c' => 'extension', 'a' => 'configure', 'e' => 'EinkPush']);
         } else {
             $paths = $this->helper->generateAll($conf['sources']);
-            if (empty($paths)) Minz_Request::good(_t('ext.msg_no_articles'), _url('extension', 'configure', 'e', 'EinkPush'));
+            if (empty($paths)) Minz_Request::good(_t('ext.msg_no_articles'), ['c' => 'extension', 'a' => 'configure', 'e' => 'EinkPush']);
             
             $latest = $this->helper->getLatestEpub();
             if ($latest) $this->downloadFile($latest);
@@ -71,10 +71,10 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
     public function pushAction(): void {
         $conf = $this->extension->getConfig();
         $endpoint = $conf['push_endpoint'];
-        if (empty($endpoint)) Minz_Request::bad(_t('ext.error_no_endpoint'), _url('extension', 'configure', 'e', 'EinkPush'));
+        if (empty($endpoint)) Minz_Request::bad(_t('ext.error_no_endpoint'), ['c' => 'extension', 'a' => 'configure', 'e' => 'EinkPush']);
 
         $paths = $this->helper->generateAll($conf['sources']);
-        if (empty($paths)) Minz_Request::good(_t('ext.msg_no_articles'), _url('extension', 'configure', 'e', 'EinkPush'));
+        if (empty($paths)) Minz_Request::good(_t('ext.msg_no_articles'), ['c' => 'extension', 'a' => 'configure', 'e' => 'EinkPush']);
 
         $success = 0; $failed = 0;
         foreach ($paths as $sourceKey => $path) {
@@ -83,8 +83,8 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
             else $failed++;
         }
 
-        if ($failed === 0) Minz_Request::good(_t('ext.msg_push_success', $success), _url('extension', 'configure', 'e', 'EinkPush'));
-        else Minz_Request::bad(_t('ext.msg_push_failed', $success, $failed), _url('extension', 'configure', 'e', 'EinkPush'));
+        if ($failed === 0) Minz_Request::good(_t('ext.msg_push_success', $success), ['c' => 'extension', 'a' => 'configure', 'e' => 'EinkPush']);
+        else Minz_Request::bad(_t('ext.msg_push_failed', $success, $failed), ['c' => 'extension', 'a' => 'configure', 'e' => 'EinkPush']);
     }
 
     public function pushSingleAction(): void {
@@ -92,25 +92,25 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         $conf = $this->extension->getConfig();
         $endpoint = $conf['push_endpoint'];
 
-        if (empty($endpoint)) Minz_Request::bad(_t('ext.error_no_endpoint'), _url('extension', 'configure', 'e', 'EinkPush'));
+        if (empty($endpoint)) Minz_Request::bad(_t('ext.error_no_endpoint'), ['c' => 'extension', 'a' => 'configure', 'e' => 'EinkPush']);
 
         $srcCfg = $this->getSourceConfig($sourceKey, $conf);
-        if (!$srcCfg) Minz_Request::bad(_t('ext.error_invalid_source'), _url('extension', 'configure', 'e', 'EinkPush'));
+        if (!$srcCfg) Minz_Request::bad(_t('ext.error_invalid_source'), ['c' => 'extension', 'a' => 'configure', 'e' => 'EinkPush']);
 
         $path = $this->helper->generateSingle($sourceKey, $srcCfg);
-        if (!$path) Minz_Request::good(_t('ext.msg_no_articles'), _url('extension', 'configure', 'e', 'EinkPush'));
+        if (!$path) Minz_Request::good(_t('ext.msg_no_articles'), ['c' => 'extension', 'a' => 'configure', 'e' => 'EinkPush']);
 
         $sourceName = $sourceKey === 'favorites' ? _t('ext.source_favorites') : $sourceKey;
         if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], $conf['push_retryDelay'], $sourceName)) {
-            Minz_Request::good(_t('ext.msg_push_success_single'), _url('extension', 'configure', 'e', 'EinkPush'));
+            Minz_Request::good(_t('ext.msg_push_success_single'), ['c' => 'extension', 'a' => 'configure', 'e' => 'EinkPush']);
         } else {
-            Minz_Request::bad(_t('ext.msg_push_failed_single'), _url('extension', 'configure', 'e', 'EinkPush'));
+            Minz_Request::bad(_t('ext.msg_push_failed_single'), ['c' => 'extension', 'a' => 'configure', 'e' => 'EinkPush']);
         }
     }
 
     public function clearHistoryAction(): void {
         $this->helper->clearHistory();
-        Minz_Request::good(_t('ext.msg_history_cleared'), _url('extension', 'configure', 'e', 'EinkPush'));
+        Minz_Request::good(_t('ext.msg_history_cleared'), ['c' => 'extension', 'a' => 'configure', 'e' => 'EinkPush']);
     }
 
     private function downloadFile(string $path) {

@@ -12,24 +12,21 @@ class EinkPushExtension extends Minz_Extension {
         Minz_View::appendStyle($styleUrl . '&v=' . time());
         Minz_View::appendScript($scriptUrl . '&v=' . time());
         
-        $this->registerHook('display_before_content', [$this, 'injectJsLabel']);
+        $this->registerHook('render_head', [$this, 'injectJsHead']);
     }
 
-    public function injectJsLabel() {
-        $label = _t('ext.sidebar_push_all');
-        $settingsLabel = _t('ext.nav_push');
+    public function injectJsHead() {
         $conf = FreshRSS_Context::$user_conf;
+        $showSidebarVal = ($conf && $conf->EinkPush_showSidebarButton !== null) ? (int)$conf->EinkPush_showSidebarButton : 1;
+        $showSidebar = ($showSidebarVal !== 0) ? 'true' : 'false';
         
-        // Use 1/0 for boolean to avoid ambiguity in some FreshRSS versions
-        $showSidebarVal = ($conf && $conf->EinkPush_showSidebarButton !== null) ? $conf->EinkPush_showSidebarButton : 1;
-        $showSidebar = ($showSidebarVal != 0) ? 'true' : 'false';
-        
-        error_log('[EinkPush] injectJsLabel: showSidebarButton=' . var_export($showSidebarVal, true) . ' -> JS=' . $showSidebar);
+        // Debug log to verify what's being injected during page render
+        error_log('[EinkPush] injectJsHead: showSidebarButton=' . $showSidebarVal . ' -> JS=' . $showSidebar);
         
         echo '<script>
-            window.EinkPushLabel = "' . addslashes($label) . '"; 
-            window.EinkSettingsLabel = "' . addslashes($settingsLabel) . '"; 
             window.EinkPushShowSidebar = ' . $showSidebar . ';
+            window.EinkPushLabel = "' . addslashes(_t('ext.sidebar_push_all')) . '"; 
+            window.EinkSettingsLabel = "' . addslashes(_t('ext.nav_push')) . '"; 
         </script>';
     }
 

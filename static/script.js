@@ -92,12 +92,19 @@
 
     // Inject sidebar button in Main UI
     function injectSidebarButton() {
-        if (typeof window.EinkPushShowSidebar !== 'undefined' && window.EinkPushShowSidebar === false) {
+        // Robust check: if explicitly false, remove and stop
+        if (window.EinkPushShowSidebar === false) {
             const existingBtn = document.getElementById('ep-sidebar-btn-main');
-            if (existingBtn) existingBtn.remove();
+            if (existingBtn) {
+                console.log('[EinkPush] Removing sidebar button per settings');
+                existingBtn.remove();
+            }
             return;
         }
+        
+        // If already exists or not yet decided, wait
         if (document.getElementById('ep-sidebar-btn-main')) return;
+        if (typeof window.EinkPushShowSidebar === 'undefined') return; 
 
         // Target the specific FreshRSS 1.28.1 sidebar structure
         const targetDiv = document.querySelector('.configure-feeds');

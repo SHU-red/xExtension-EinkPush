@@ -2,10 +2,16 @@
 
 class FreshRSS_einkpush2_Controller extends Minz_ActionController {
 
+    public function __construct() {
+        parent::__construct();
+        error_log('[EinkPush2] Controller __construct called');
+    }
+
     private ?EinkPush2Extension $extension;
     private ?EinkPushHelper $helper;
 
     public function firstAction(): void {
+        error_log('[EinkPush2] firstAction() called');
         $this->extension = Minz_ExtensionManager::findExtension('EinkPush2');
         if (!$this->extension) {
             $this->extension = Minz_ExtensionManager::findExtension('einkpush2');
@@ -51,6 +57,7 @@ class FreshRSS_einkpush2_Controller extends Minz_ActionController {
     }
 
     public function generateAction(): void {
+        error_log('[EinkPush2] generateAction() called');
         $sourceKey = Minz_Request::param('source');
         $conf = $this->extension->getConfig();
 

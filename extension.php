@@ -3,13 +3,19 @@
 class EinkPush2Extension extends Minz_Extension {
 
     public function init() {
+        error_log('[EinkPush2] init() called');
         $this->registerController('einkpush2');
+        error_log('[EinkPush2] Controller registered as: einkpush2');
         $this->registerTranslates();
         Minz_View::appendStyle($this->getFileUrl('style.css', 'css'));
         Minz_View::appendScript($this->getFileUrl('script.js', 'js'));
+        
+        error_log('[EinkPush2] Extension path: ' . $this->getPath());
+        error_log('[EinkPush2] Controller file exists: ' . (file_exists($this->getPath() . '/controllers/einkpush2Controller.php') ? 'YES' : 'NO'));
     }
 
     public function handleConfigureAction() {
+        error_log('[EinkPush2] handleConfigureAction() called');
         $this->registerTranslates();
         $this->ensureDefaults();
 

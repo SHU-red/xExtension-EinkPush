@@ -149,6 +149,15 @@ $history = $helper->getHistory();
             <button type="submit" class="ep-btn ep-btn-primary ep-btn-save"><?= _t('ext.save') ?></button>
         </footer>
     </form>
+
+    <!-- Diagnostics -->
+    <div class="ep-section" style="margin-top: 2rem; border-top: 1px solid #ddd; padding-top: 1rem; font-family: monospace; font-size: 0.8rem; color: #666;">
+        <h3>🔍 Diagnostics</h3>
+        <p>Extension Path: <?= htmlspecialchars($ext->getPath()) ?></p>
+        <p>Controller File: <?= file_exists($ext->getPath() . '/controllers/einkpush2Controller.php') ? '✅ Found' : '❌ NOT FOUND' ?></p>
+        <p>Controller Path: <?= htmlspecialchars($ext->getPath() . '/controllers/einkpush2Controller.php') ?></p>
+        <p>Current URL: <?= htmlspecialchars($_SERVER['REQUEST_URI']) ?></p>
+    </div>
 </div>
 
 <?php

@@ -19,18 +19,18 @@
                 const match = input.name.match(/sources\[(.*?)\]/);
                 if (match && match[1]) {
                     const sourceKey = match[1];
-                    const url = dlAllBtn.href + '&source=' + encodeURIComponent(sourceKey);
+                    // Add &silent=1 to avoid redirects when no articles are found
+                    const url = dlAllBtn.href + '&source=' + encodeURIComponent(sourceKey) + '&silent=1';
                     setTimeout(() => {
-                        // Using <a> with download attribute instead of <iframe> to bypass CSP frame-ancestors 'none'
+                        console.log('[EinkPush] Triggering download for: ' + sourceKey);
                         const a = document.createElement('a');
                         a.href = url;
                         a.style.display = 'none';
-                        a.setAttribute('download', '');
                         document.body.appendChild(a);
                         a.click();
-                        setTimeout(() => a.remove(), 1000);
+                        setTimeout(() => a.remove(), 2000);
                     }, delay);
-                    delay += 1500; // 1.5 second delay between downloads
+                    delay += 2000; // 2 second delay between downloads
                 }
             });
             return;
@@ -95,11 +95,13 @@
 
     // Inject sidebar button in Main UI
     function injectSidebarButton() {
-        const configMeta = document.querySelector('meta[name="einkpush-config"]');
-        if (!configMeta) return; // Wait for config meta
-
-        const showSidebar = configMeta.getAttribute('data-show-sidebar') === '1';
-        const label = configMeta.getAttribute('data-label') || '📖 EinkPush';
+        // Read config from script URL parameters (CSP-friendly)
+        const script = document.querySelector('script[src*="EinkPush/static/script.js"]');
+        if (!script) return;
+        
+        const urlParams = new URLSearchParams(script.src.split('?')[1]);
+        const showSidebar = urlParams.get('sb') === '1';
+        const label = urlParams.get('l') ? decodeURIComponent(urlParams.get('l')) : '📖 EinkPush';
         
         // Robust check: if explicitly false, remove and stop
         if (!showSidebar) {

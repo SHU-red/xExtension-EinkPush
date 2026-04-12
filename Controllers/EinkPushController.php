@@ -51,17 +51,28 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         error_log('[EinkPush] generateAction() called');
         $sourceKey = Minz_Request::param('source');
         $conf = $this->extension->getConfig();
+        $isSilent = Minz_Request::param('silent') === '1';
 
         if ($sourceKey) {
             $srcCfg = $this->getSourceConfig($sourceKey, $conf);
-            if (!$srcCfg) Minz_Request::bad(_t('ext.error_invalid_source'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+            if (!$srcCfg) {
+                if ($isSilent) { header('HTTP/1.1 204 No Content'); exit; }
+                Minz_Request::bad(_t('ext.error_invalid_source'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+            }
             
             $path = $this->helper->generateSingle($sourceKey, $srcCfg);
-            if ($path) $this->downloadFile($path);
-            else Minz_Request::good(_t('ext.msg_no_articles'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+            if ($path) {
+                $this->downloadFile($path);
+            } else {
+                if ($isSilent) { header('HTTP/1.1 204 No Content'); exit; }
+                Minz_Request::good(_t('ext.msg_no_articles'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+            }
         } else {
             $paths = $this->helper->generateAll($conf['sources']);
-            if (empty($paths)) Minz_Request::good(_t('ext.msg_no_articles'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+            if (empty($paths)) {
+                if ($isSilent) { header('HTTP/1.1 204 No Content'); exit; }
+                Minz_Request::good(_t('ext.msg_no_articles'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+            }
             
             $latest = $this->helper->getLatestEpub();
             if ($latest) $this->downloadFile($latest);

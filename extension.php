@@ -6,25 +6,19 @@ class EinkPushExtension extends Minz_Extension {
         $this->registerController('EinkPush');
         $this->registerTranslates();
         
-        $styleUrl = Minz_Url::display('/ext.php?f=xExtension-EinkPush/static/style.css', 'php');
-        $scriptUrl = Minz_Url::display('/ext.php?f=xExtension-EinkPush/static/script.js', 'php');
-        
-        Minz_View::appendStyle($styleUrl . '&v=' . time());
-        Minz_View::appendScript($scriptUrl . '&v=' . time());
-        
-        $this->registerHook('render_head', [$this, 'injectConfigMeta']);
-    }
-
-    public function injectConfigMeta() {
         $conf = FreshRSS_Context::$user_conf;
         $showSidebarVal = ($conf && $conf->EinkPush_showSidebarButton !== null) ? (int)$conf->EinkPush_showSidebarButton : 1;
         $showSidebar = ($showSidebarVal !== 0) ? '1' : '0';
         
-        // Using a meta tag in <head> is more robust and CSP-friendly than a div in <body>
-        echo '<meta name="einkpush-config" 
-              data-show-sidebar="' . $showSidebar . '"
-              data-label="' . htmlspecialchars(_t('ext.sidebar_push_all'), ENT_QUOTES) . '"
-              data-settings-label="' . htmlspecialchars(_t('ext.nav_push'), ENT_QUOTES) . '">';
+        $styleUrl = Minz_Url::display('/ext.php?f=xExtension-EinkPush/static/style.css', 'php');
+        // Pass config via URL parameters to bypass strict CSP (Content Security Policy)
+        $scriptUrl = Minz_Url::display('/ext.php?f=xExtension-EinkPush/static/script.js', 'php') . 
+                     '&v=' . time() . 
+                     '&sb=' . $showSidebar . 
+                     '&l=' . urlencode(_t('ext.sidebar_push_all'));
+        
+        Minz_View::appendStyle($styleUrl . '&v=' . time());
+        Minz_View::appendScript($scriptUrl);
     }
 
     public function handleConfigureAction() {

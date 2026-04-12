@@ -63,13 +63,22 @@
 
     // Inject sidebar button in Main UI
     function injectSidebarButton() {
-        // Prevent double injection
         if (document.getElementById('ep-sidebar-btn-main')) return;
         
-        // Find subscription management link anywhere in the sidebar/aside
-        const subManage = document.querySelector('.aside a[href*="a=subscription"]') 
-                       || document.querySelector('#nav_menu a[href*="a=subscription"]')
-                       || document.querySelector('a[href*="a=subscription"]');
+        // Find subscription management link (trying multiple ways)
+        const subLinks = document.querySelectorAll('a[href*="a=subscription"]');
+        let subManage = null;
+        
+        for (const link of subLinks) {
+            // Favor the one in the sidebar/aside
+            if (link.closest('.aside') || link.closest('#nav_menu') || link.closest('.nav-list')) {
+                subManage = link;
+                break;
+            }
+        }
+        
+        // Fallback to first one found
+        if (!subManage && subLinks.length > 0) subManage = subLinks[0];
 
         if (subManage) {
             const li = document.createElement('li');
@@ -79,19 +88,24 @@
             const a = document.createElement('a');
             a.href = './?a=extension&e=EinkPush';
             a.className = 'ep-btn-sidebar ep-btn-amber';
-            // Use translation if available, or fallback
             a.innerHTML = '⚙️ ' + (window.EinkSettingsLabel || 'EinkPush Settings');
             
             li.appendChild(a);
             
-            // Insert after the LI containing the link
             const parentLi = subManage.closest('li');
             if (parentLi) {
                 parentLi.after(li);
             }
         }
     }
+
+    // Use MutationObserver to survive AJAX updates
+    const observer = new MutationObserver((mutations) => {
+        injectSidebarButton();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
     
-    // Run periodically to catch AJAX updates
-    setInterval(injectSidebarButton, 1000);
+    // Initial calls
+    injectSidebarButton();
+    setInterval(injectSidebarButton, 2000); // Fail-safe periodic check
 })();

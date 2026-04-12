@@ -110,8 +110,9 @@
     position: relative;
     display: inline-block;
     width: 32px;
-    height: 12px;
+    height: 14px;
     margin: 0 !important;
+    vertical-align: middle;
 }
 .ep-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
 .ep-slider {
@@ -125,8 +126,8 @@
 .ep-slider:before {
     position: absolute;
     content: "";
-    height: 12px; width: 12px;
-    left: 0; bottom: 0;
+    height: 14px; width: 14px;
+    left: 0; top: 0;
     background-color: white;
     transition: all 0.1s ease;
     border-radius: 1px;
@@ -134,7 +135,8 @@
     border: 1px solid rgba(0,0,0,0.1);
 }
 input:checked + .ep-slider { background-color: #0062be; }
-input:checked + .ep-slider:before { transform: translateX(20px); }
+input:checked + .ep-slider:before { transform: translateX(18px); }
+
 
 
 

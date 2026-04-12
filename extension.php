@@ -19,7 +19,13 @@ class EinkPushExtension extends Minz_Extension {
         $label = _t('ext.sidebar_push_all');
         $settingsLabel = _t('ext.nav_push');
         $conf = FreshRSS_Context::$user_conf;
-        $showSidebar = ($conf && $conf->EinkPush_showSidebarButton) ? 'true' : 'false';
+        
+        // Use 1/0 for boolean to avoid ambiguity in some FreshRSS versions
+        $showSidebarVal = ($conf && $conf->EinkPush_showSidebarButton !== null) ? $conf->EinkPush_showSidebarButton : 1;
+        $showSidebar = ($showSidebarVal != 0) ? 'true' : 'false';
+        
+        error_log('[EinkPush] injectJsLabel: showSidebarButton=' . var_export($showSidebarVal, true) . ' -> JS=' . $showSidebar);
+        
         echo '<script>
             window.EinkPushLabel = "' . addslashes($label) . '"; 
             window.EinkSettingsLabel = "' . addslashes($settingsLabel) . '"; 
@@ -41,7 +47,9 @@ class EinkPushExtension extends Minz_Extension {
             $conf->EinkPush_screenWidth = max(100, (int) Minz_Request::param('screenWidth', 480, true));
             $conf->EinkPush_screenHeight = max(100, (int) Minz_Request::param('screenHeight', 800, true));
             $conf->EinkPush_fontSize = max(0.5, min(3.0, (float) Minz_Request::param('fontSize', 1.0, true)));
-            $conf->EinkPush_showSidebarButton = !empty($_POST['showSidebarButton']);
+            $conf->EinkPush_showSidebarButton = !empty($_POST['showSidebarButton']) ? 1 : 0;
+            
+            error_log('[EinkPush] Saving showSidebarButton: ' . $conf->EinkPush_showSidebarButton);
 
             // Push settings
             $endpoint = trim((string) Minz_Request::param('push_endpoint', 'http://crosspoint.local/upload?path=/RSSFeeds', true));
@@ -142,7 +150,7 @@ class EinkPushExtension extends Minz_Extension {
             'EinkPush_screenWidth'    => 480,
             'EinkPush_screenHeight'   => 800,
             'EinkPush_fontSize'       => 1.0,
-            'EinkPush_showSidebarButton' => true,
+            'EinkPush_showSidebarButton' => 1,
             'EinkPush_sources'        => [
                 'favorites' => ['enabled' => false, 'historyDays' => 7, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 50, 'removeFromFavorites' => false],
             ],
@@ -155,7 +163,7 @@ class EinkPushExtension extends Minz_Extension {
         ];
         $dirty = false;
         foreach ($defaults as $key => $value) {
-            if (!$conf->hasParam($key)) {
+            if ($conf->$key === null) {
                 $conf->$key = $value;
                 $dirty = true;
             }

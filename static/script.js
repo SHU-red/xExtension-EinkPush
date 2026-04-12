@@ -66,25 +66,21 @@
         if (document.getElementById('ep-sidebar-btn-main')) return;
         
         // Find subscription management link (trying multiple ways)
-        const selectors = [
-            'a.btn[href*="a=subscription"]',
-            '.aside a[href*="a=subscription"]',
-            '#nav_menu a[href*="a=subscription"]',
-            'a[href*="a=subscription"]'
-        ];
-        
+        const allLinks = document.querySelectorAll('a');
         let subManage = null;
-        for (const s of selectors) {
-            subManage = document.querySelector(s);
-            if (subManage) break;
-        }
         
-        // Final fallback: check text
-        if (!subManage) {
-            const anchors = document.querySelectorAll('a');
-            for (const a of anchors) {
-                const txt = a.textContent.toLowerCase();
-                if (txt.includes('subscription') || txt.includes('abonnement')) {
+        for (const a of allLinks) {
+            const href = a.getAttribute('href') || '';
+            const txt = a.textContent.toLowerCase();
+            
+            // Look for known patterns
+            if (href.includes('a=subscription') || 
+                txt.includes('subscription management') || 
+                txt.includes('abonnement-verwaltung') ||
+                txt.includes('abonnements verwalten')) {
+                
+                // Ensure it's in a sidebar or nav
+                if (a.closest('.aside') || a.closest('#nav_menu') || a.closest('.nav-list') || a.closest('#aside_feed')) {
                     subManage = a;
                     break;
                 }
@@ -92,36 +88,34 @@
         }
         
         if (subManage) {
-            const li = document.createElement('li');
-            li.className = 'item ep-sidebar-item';
-            li.id = 'ep-sidebar-btn-main';
-            li.style.display = 'block';
-            li.style.width = '100%';
-            li.style.marginTop = '6px';
-            
-            const a = document.createElement('a');
-            a.href = './?a=extension&e=EinkPush';
-            // Use same classes as subscription button
-            a.className = (subManage.className || 'btn') + ' ep-btn-amber-flat';
-            a.innerHTML = window.EinkSettingsLabel || 'EinkPush Settings';
-            
-            li.appendChild(a);
-            
             const parentLi = subManage.closest('li');
             if (parentLi && parentLi.parentNode) {
+                const li = document.createElement('li');
+                li.className = 'item ep-sidebar-item';
+                li.id = 'ep-sidebar-btn-main';
+                li.style.display = 'block';
+                li.style.width = '100%';
+                li.style.marginTop = '6px';
+                
+                const a = document.createElement('a');
+                a.href = './?a=extension&e=EinkPush';
+                a.className = (subManage.className || 'btn') + ' ep-btn-amber-flat';
+                // Safe label with fallback
+                const label = window.EinkSettingsLabel || 'EinkPush Settings';
+                a.innerHTML = label;
+                
+                li.appendChild(a);
                 parentLi.parentNode.insertBefore(li, parentLi.nextSibling);
             }
         }
     }
 
-    // Survives AJAX with MutationObserver
-    try {
-        const observer = new MutationObserver(injectSidebarButton);
-        observer.observe(document.documentElement, { childList: true, subtree: true });
-    } catch (e) {
-        setInterval(injectSidebarButton, 2000);
-    }
+    // Use MutationObserver for AJAX
+    const epObserver = new MutationObserver((mutations) => {
+        injectSidebarButton();
+    });
+    epObserver.observe(document.body, { childList: true, subtree: true });
     
     injectSidebarButton();
-    setInterval(injectSidebarButton, 3000);
+    setInterval(injectSidebarButton, 2000);
 })();

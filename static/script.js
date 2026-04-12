@@ -65,35 +65,50 @@
     function injectSidebarButton() {
         if (document.getElementById('ep-sidebar-btn-main')) return;
         
-        // Find subscription management link
-        const subLinks = document.querySelectorAll('a[href*="a=subscription"]');
+        // Find subscription management link (trying multiple ways)
+        const selectors = [
+            'a.btn[href*="a=subscription"]',
+            '.aside a[href*="a=subscription"]',
+            '#nav_menu a[href*="a=subscription"]',
+            'a[href*="a=subscription"]'
+        ];
+        
         let subManage = null;
-        for (const a of subLinks) {
-            if (a.closest('.aside') || a.closest('#nav_menu')) {
-                subManage = a;
-                break;
+        for (const s of selectors) {
+            subManage = document.querySelector(s);
+            if (subManage) break;
+        }
+        
+        // Final fallback: check text
+        if (!subManage) {
+            const anchors = document.querySelectorAll('a');
+            for (const a of anchors) {
+                const txt = a.textContent.toLowerCase();
+                if (txt.includes('subscription') || txt.includes('abonnement')) {
+                    subManage = a;
+                    break;
+                }
             }
         }
         
         if (subManage) {
+            const li = document.createElement('li');
+            li.className = 'item ep-sidebar-item';
+            li.id = 'ep-sidebar-btn-main';
+            li.style.display = 'block';
+            li.style.width = '100%';
+            li.style.marginTop = '6px';
+            
+            const a = document.createElement('a');
+            a.href = './?a=extension&e=EinkPush';
+            // Use same classes as subscription button
+            a.className = (subManage.className || 'btn') + ' ep-btn-amber-flat';
+            a.innerHTML = window.EinkSettingsLabel || 'EinkPush Settings';
+            
+            li.appendChild(a);
+            
             const parentLi = subManage.closest('li');
             if (parentLi && parentLi.parentNode) {
-                const li = document.createElement('li');
-                li.className = 'item ep-sidebar-item';
-                li.id = 'ep-sidebar-btn-main';
-                // Force new row if the theme uses flex/inline-block
-                li.style.display = 'block';
-                li.style.width = '100%';
-                li.style.marginTop = '4px';
-                
-                const a = document.createElement('a');
-                a.href = './?a=extension&e=EinkPush';
-                // Copy classes from the original button
-                a.className = subManage.className + ' ep-btn-amber-flat';
-                // No icon, same text style
-                a.innerHTML = window.EinkSettingsLabel || 'EinkPush Settings';
-                
-                li.appendChild(a);
                 parentLi.parentNode.insertBefore(li, parentLi.nextSibling);
             }
         }
@@ -103,9 +118,10 @@
     try {
         const observer = new MutationObserver(injectSidebarButton);
         observer.observe(document.documentElement, { childList: true, subtree: true });
-    } catch (e) { console.error('EP Observer failed', e); }
+    } catch (e) {
+        setInterval(injectSidebarButton, 2000);
+    }
     
-    // Initial and periodic checks
     injectSidebarButton();
-    setInterval(injectSidebarButton, 1500);
+    setInterval(injectSidebarButton, 3000);
 })();

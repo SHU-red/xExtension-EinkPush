@@ -5,8 +5,10 @@ class EinkPushExtension extends Minz_Extension {
     public function init() {
         $this->registerController('EinkPush');
         $this->registerTranslates();
-        Minz_View::appendStyle($this->getFileUrl('style.css', 'css') . '?v=' . time());
-        Minz_View::appendScript($this->getFileUrl('script.js', 'js') . '?v=' . time());
+        
+        $baseUrl = Minz_Url::display('/extensions/xExtension-EinkPush/static/', 'php');
+        Minz_View::appendStyle($baseUrl . 'style.css?v=' . time());
+        Minz_View::appendScript($baseUrl . 'script.js?v=' . time());
         
         $this->registerHook('display_before_content', [$this, 'injectJsLabel']);
     }

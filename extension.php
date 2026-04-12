@@ -19,8 +19,12 @@ class EinkPushExtension extends Minz_Extension {
         $label = _t('ext.sidebar_push_all');
         $settingsLabel = _t('ext.nav_push');
         $conf = FreshRSS_Context::$user_conf;
-        $showSidebar = $conf && $conf->EinkPush_showSidebarButton ? 'true' : 'false';
-        echo '<script>window.EinkPushLabel = "' . addslashes($label) . '"; window.EinkSettingsLabel = "' . addslashes($settingsLabel) . '"; window.EinkPushShowSidebar = ' . $showSidebar . ';</script>';
+        $showSidebar = ($conf && $conf->EinkPush_showSidebarButton) ? 'true' : 'false';
+        echo '<script>
+            window.EinkPushLabel = "' . addslashes($label) . '"; 
+            window.EinkSettingsLabel = "' . addslashes($settingsLabel) . '"; 
+            window.EinkPushShowSidebar = ' . $showSidebar . ';
+        </script>';
     }
 
     public function handleConfigureAction() {

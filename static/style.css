@@ -321,30 +321,33 @@ input:checked + .ep-slider:before {
     .ep-grid { grid-template-columns: 1fr; }
 }
 .ep-btn-settings-orange {
-    background-color: #e66a19 !important; /* Darker orange for better contrast */
-    border: 1px solid rgba(0, 0, 0, 0.15) !important; /* Subtle border to match native buttons */
-    color: #fff !important;
+    background-color: #343a40 !important; /* Muted dark grey background */
+    border: 1px solid #e66a19 !important; /* Subtle orange border */
+    color: #eee !important;
     text-align: center !important;
     display: block !important;
     text-decoration: none !important;
     width: 100% !important;
     box-sizing: border-box !important;
     border-radius: 4px !important;
-    padding: 4px 10px !important; /* Match native button padding */
-    line-height: 1.5 !important;
+    padding: 5px 10px !important;
+    line-height: 1.4 !important;
+    font-size: 0.85rem !important;
+    transition: all 0.2s ease;
 }
 .ep-btn-settings-orange:hover {
-    background-color: #d95c0e !important;
-    border-color: rgba(0, 0, 0, 0.25) !important;
+    background-color: #e66a19 !important;
+    border-color: #e66a19 !important;
+    color: #fff !important;
     text-decoration: none !important;
 }
 
 .ep-sidebar-container {
     display: block !important;
     clear: both !important;
-    width: auto !important;
-    padding: 0 !important;
-    margin: 0 10px 15px 10px !important; /* Align perfectly with configure-feeds */
+    width: 100% !important;
+    padding: 0 10px !important; /* Match native sidebar padding */
+    margin: 8px 0 15px 0 !important; /* Added 8px top spacing */
     box-sizing: border-box !important;
 }
 

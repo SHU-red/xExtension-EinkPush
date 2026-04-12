@@ -110,7 +110,7 @@
             const a = document.createElement('a');
             a.href = './?c=extension&a=configure&e=EinkPush';
             a.className = 'btn ep-btn-settings-orange';
-            a.innerHTML = '📱 EinkPush'; 
+            a.innerHTML = '📖 EinkPush'; 
             
             container.appendChild(a);
             targetDiv.parentNode.insertBefore(container, targetDiv.nextSibling);
@@ -133,7 +133,7 @@
                 const a = document.createElement('a');
                 a.href = './?c=extension&a=configure&e=EinkPush';
                 a.className = 'btn ep-btn-settings-orange';
-                a.innerHTML = '📱 EinkPush'; 
+                a.innerHTML = '📖 EinkPush'; 
                 
                 li.appendChild(a);
                 parent.parentNode.insertBefore(li, parent.nextSibling);

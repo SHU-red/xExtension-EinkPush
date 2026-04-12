@@ -18,7 +18,9 @@ class EinkPushExtension extends Minz_Extension {
     public function injectJsLabel() {
         $label = _t('ext.sidebar_push_all');
         $settingsLabel = _t('ext.nav_push');
-        echo '<script>window.EinkPushLabel = "' . addslashes($label) . '"; window.EinkSettingsLabel = "' . addslashes($settingsLabel) . '";</script>';
+        $conf = FreshRSS_Context::$user_conf;
+        $showSidebar = $conf && $conf->EinkPush_showSidebarButton ? 'true' : 'false';
+        echo '<script>window.EinkPushLabel = "' . addslashes($label) . '"; window.EinkSettingsLabel = "' . addslashes($settingsLabel) . '"; window.EinkPushShowSidebar = ' . $showSidebar . ';</script>';
     }
 
     public function handleConfigureAction() {
@@ -32,6 +34,7 @@ class EinkPushExtension extends Minz_Extension {
             $conf->EinkPush_screenWidth = max(100, (int) Minz_Request::param('screenWidth', 480, true));
             $conf->EinkPush_screenHeight = max(100, (int) Minz_Request::param('screenHeight', 800, true));
             $conf->EinkPush_fontSize = max(0.5, min(3.0, (float) Minz_Request::param('fontSize', 1.0, true)));
+            $conf->EinkPush_showSidebarButton = isset($_POST['showSidebarButton']);
 
             // Push settings
             $endpoint = trim((string) Minz_Request::param('push_endpoint', 'http://crosspoint.local/upload?path=/RSSFeeds', true));
@@ -60,13 +63,13 @@ class EinkPushExtension extends Minz_Extension {
             $fav = $posted['favorites'] ?? [];
             $sources['favorites'] = [
                 'enabled'      => !empty($fav['enabled']),
-                'historyDays'  => max(0, (int) ($fav['historyDays'] ?? 0)),
+                'historyDays'  => max(0, (int) ($fav['historyDays'] ?? 7)),
                 'unreadOnly'   => !empty($fav['unreadOnly']),
                 'markAsRead'   => !empty($fav['markAsRead']),
                 'autoPush'     => !empty($fav['autoPush']),
                 'fetchContent' => !empty($fav['fetchContent']),
                 'addTimestamp' => !empty($fav['addTimestamp']),
-                'maxArticles'  => max(0, (int) ($fav['maxArticles'] ?? 0)),
+                'maxArticles'  => max(0, (int) ($fav['maxArticles'] ?? 50)),
                 'removeFromFavorites' => !empty($fav['removeFromFavorites']),
             ];
 
@@ -84,7 +87,7 @@ class EinkPushExtension extends Minz_Extension {
                     'autoPush'     => !empty($src['autoPush']),
                 'fetchContent' => !empty($src['fetchContent']),
                 'addTimestamp' => !empty($src['addTimestamp']),
-                'maxArticles'  => max(0, (int) ($src['maxArticles'] ?? 0)),
+                'maxArticles'  => max(0, (int) ($src['maxArticles'] ?? 50)),
             ];
             }
 
@@ -112,6 +115,7 @@ class EinkPushExtension extends Minz_Extension {
             'screenWidth'     => $conf->EinkPush_screenWidth,
             'screenHeight'    => $conf->EinkPush_screenHeight,
             'fontSize'        => $conf->EinkPush_fontSize,
+            'showSidebarButton'=> $conf->EinkPush_showSidebarButton,
             'sources'         => $conf->EinkPush_sources,
             'push_endpoint'   => $conf->EinkPush_push_endpoint,
             'push_cron'       => $conf->EinkPush_push_cron,
@@ -131,8 +135,9 @@ class EinkPushExtension extends Minz_Extension {
             'EinkPush_screenWidth'    => 480,
             'EinkPush_screenHeight'   => 800,
             'EinkPush_fontSize'       => 1.0,
+            'EinkPush_showSidebarButton' => true,
             'EinkPush_sources'        => [
-                'favorites' => ['enabled' => true, 'historyDays' => 0, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 0, 'removeFromFavorites' => false],
+                'favorites' => ['enabled' => false, 'historyDays' => 7, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 50, 'removeFromFavorites' => false],
             ],
             'EinkPush_push_endpoint'  => 'http://crosspoint.local/upload?path=/RSSFeeds',
             'EinkPush_push_cron'      => '0 6 * * *',

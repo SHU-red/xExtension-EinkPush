@@ -1,40 +1,34 @@
-> **Vibe-coded with AI.** This extension was built entirely with AI assistance. No manual PHP was written. It exists solely to solve a daily personal workflow — nothing more, nothing less.
+# 📱 EinkPush
 
-# xExtension-EinkPush
+**Your personal E-ink delivery service for FreshRSS.**
 
-> ⚠️ **Work in Progress** — This extension is under active development. Settings consistency and push functionality are not yet implemented.
+EinkPush turns your FreshRSS feeds into beautifully formatted EPUB files, optimized specifically for e-ink readers. Whether you want to download them manually or have them automatically pushed to your device, EinkPush makes reading your news a distraction-free experience.
 
-A [FreshRSS](https://github.com/FreshRSS/FreshRSS) extension that exports selected feed categories (or starred articles) into a simple, self-contained EPUB file sized for small e-ink readers like the XTe Ink X4. Pick your categories, set your screen dimensions, hit a button, and read your feeds offline — distraction-free, in about three minutes of setup.
+![Dashboard](assets/screenshot.png)
 
-## How it works
+## ✨ Key Features
 
-1. **Configure** — In the FreshRSS extension settings, tick the categories you want and enter your e-reader's screen width and height in pixels.
-2. **Generate** — Click *Generate & Download EPUB*. The extension pulls the cached article content from FreshRSS (no external re-fetching), wraps it in a clean, e-ink-friendly EPUB 3 file, and serves it as a download.
-3. **Read offline** — Transfer the `.epub` to your device and read without connectivity or distractions.
+*   **Smart Content Selection**: Export specific categories or your starred "Favorites".
+*   **Automatic Delivery**: Schedule cron jobs to automatically push new content to your device via a simple HTTP endpoint.
+*   **Device-Specific Optimization**: Custom screen dimensions and font scaling ensure your EPUBs look perfect on any e-reader.
+*   **Full-Text Extraction**: Optional Readability API integration to fetch full article content for truncated feeds.
+*   **Native Integration**: A clean, orange "EinkPush" button fits right into your FreshRSS sidebar.
+*   **Multi-File Downloads**: Download all your enabled sources at once with a single click.
 
-> ⚠️ **Missing Features**
-> - Settings consistency across sessions
-> - Push functionality to automatically send EPUB to devices
+## 📸 In Action
 
-## Install
+<p align="center">
+  <img src="assets/xteink_x4_02.jpg" width="30%" />
+  <img src="assets/xteink_x4_01.jpg" width="30%" />
+  <img src="assets/xteink_x4_03.jpg" width="30%" />
+</p>
 
-1. Download or clone this repository into the `extensions/` directory of your FreshRSS installation so the folder is named `xExtension-EinkPush`.
-2. Enable the extension in FreshRSS under *Settings > Extensions*.
-3. Open the extension configuration, select categories, set screen size, and save.
+## 🚀 Quick Start
 
-## Configuration options
+1.  **Install**: Clone this repo into your FreshRSS `extensions/` folder as `xExtension-EinkPush`.
+2.  **Enable**: Go to *Settings > Extensions* in FreshRSS and enable **EinkPush**.
+3.  **Configure**: Click the **📱 EinkPush** button in your sidebar to set your screen size and select your content.
+4.  **Read**: Download your EPUBs or set up an endpoint for automatic delivery.
 
-| Setting | Default | Description |
-|---|---|---|
-| Categories | *(none)* | Which feed categories to include |
-| Include favorites | off | Also export starred/favorite articles |
-| Screen width | 480 px | Target e-reader display width |
-| Screen height | 800 px | Target e-reader display height |
-| History days | 7 | How many days of articles to include |
-| Mark as read | off | Mark exported articles as read in FreshRSS |
-
-## Requirements
-
-- FreshRSS 1.20+
-- PHP 8.1+
-- PHP `zip` extension (enabled by default in most PHP builds)
+---
+*Vibe-coded with AI. Built to solve a daily reading workflow.*

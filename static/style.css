@@ -83,6 +83,33 @@
 .ep-section { display: none; }
 .ep-section.active { display: block; }
 
+.ep-welcome-banner {
+    background: rgba(242, 125, 38, 0.1);
+    border: 1px solid #f27d26;
+    color: var(--ep-text);
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    border-radius: 4px;
+}
+.ep-welcome-banner b {
+    color: #f27d26;
+}
+
+.ep-experimental-section {
+    background: rgba(128, 128, 128, 0.03);
+    border: 1px dashed var(--ep-border);
+    padding: 12px;
+    border-radius: 4px;
+    margin-top: 15px;
+}
+.ep-experimental-title {
+    font-size: 0.9rem;
+    color: #f27d26;
+    margin: 0 0 5px 0;
+    font-weight: 600;
+}
+
 /* Source Cards - List View */
 .ep-source-list { display: flex; flex-direction: column; gap: 2px; }
 .ep-source-item {
@@ -294,30 +321,31 @@ input:checked + .ep-slider:before {
     .ep-grid { grid-template-columns: 1fr; }
 }
 .ep-btn-settings-orange {
-    background-color: #ff8c00 !important;
-    border: 1px solid #e67e00 !important;
+    background-color: #e66a19 !important; /* Darker orange for better contrast */
+    border: 1px solid rgba(0, 0, 0, 0.15) !important; /* Subtle border to match native buttons */
     color: #fff !important;
     text-align: center !important;
-    font-weight: bold !important;
     display: block !important;
-    padding: 8px 5px !important;
-    border-radius: 0 !important;
     text-decoration: none !important;
-    font-size: 13.5px !important;
     width: 100% !important;
     box-sizing: border-box !important;
+    border-radius: 4px !important;
+    padding: 4px 10px !important; /* Match native button padding */
+    line-height: 1.5 !important;
 }
 .ep-btn-settings-orange:hover {
-    background-color: #e67e00 !important;
+    background-color: #d95c0e !important;
+    border-color: rgba(0, 0, 0, 0.25) !important;
     text-decoration: none !important;
 }
 
 .ep-sidebar-container {
     display: block !important;
     clear: both !important;
-    width: 100% !important;
+    width: auto !important;
     padding: 0 !important;
-    margin: 10px 0 5px 0 !important;
+    margin: 0 10px 15px 10px !important; /* Align perfectly with configure-feeds */
+    box-sizing: border-box !important;
 }
 
 

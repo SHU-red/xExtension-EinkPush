@@ -60,4 +60,29 @@
     document.addEventListener('DOMContentLoaded', restoreTab);
     // Run periodically in case of AJAX load (FreshRSS doesn't always fire a clean event)
     setInterval(restoreTab, 500);
+
+    // Inject sidebar button
+    function injectSidebarButton() {
+        if (document.getElementById('ep-sidebar-btn')) return;
+        
+        // Target specifically the subscription management link in the sidebar
+        const subManage = document.querySelector('.aside li.item a[href*="a=subscription"]');
+        if (subManage) {
+            const li = document.createElement('li');
+            li.className = 'item ep-sidebar-item';
+            li.id = 'ep-sidebar-btn';
+            
+            const a = document.createElement('a');
+            a.href = './?a=extension&e=EinkPush&get=push';
+            a.className = 'ep-btn-sidebar';
+            a.innerHTML = window.EinkPushLabel || 'Push All to E-Ink';
+            
+            // Insert after the subscription list item
+            subManage.closest('li').after(li);
+            li.appendChild(a);
+        }
+    }
+    
+    // Run periodically to catch AJAX updates
+    setInterval(injectSidebarButton, 1000);
 })();

@@ -1,12 +1,15 @@
 <?php
 
-class EinkPush2Extension extends Minz_Extension {
+class EinkPushExtension extends Minz_Extension {
 
     public function init() {
-        $this->registerController('EinkPush2');
+        $this->registerController('EinkPush');
         $this->registerTranslates();
         Minz_View::appendStyle($this->getFileUrl('style.css', 'css') . '?v=' . time());
         Minz_View::appendScript($this->getFileUrl('script.js', 'js') . '?v=' . time());
+        
+        $label = _t('ext.sidebar_push_all');
+        Minz_View::appendScript('window.EinkPushLabel = "' . addslashes($label) . '";');
     }
 
     public function handleConfigureAction() {
@@ -86,10 +89,10 @@ class EinkPush2Extension extends Minz_Extension {
                     . ' push=' . (int)$v['autoPush'] . ' days=' . $v['historyDays']
                     . ' max=' . $v['maxArticles'] . ' ts=' . (int)$v['addTimestamp'];
             }
-            error_log('[EinkPush2] Saving sources: ' . json_encode($sourcesSummary));
+            error_log('[EinkPush] Saving sources: ' . json_encode($sourcesSummary));
 
             $saveResult = $conf->save();
-            error_log('[EinkPush2] Config save result: ' . var_export($saveResult, true));
+            error_log('[EinkPush] Config save result: ' . var_export($saveResult, true));
         }
     }
 
@@ -147,7 +150,7 @@ class EinkPush2Extension extends Minz_Extension {
     }
 
     public function getEpubDir() {
-        $dir = USERS_PATH . '/' . Minz_User::name() . '/EinkPush2/';
+        $dir = USERS_PATH . '/' . Minz_User::name() . '/EinkPush/';
         if (!is_dir($dir)) {
             @mkdir($dir, 0770, true);
         }

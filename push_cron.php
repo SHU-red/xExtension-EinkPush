@@ -7,7 +7,7 @@
  *   php push_cron.php --user=USERNAME
  *
  * Add to crontab (e.g. daily at 06:00):
- *   0 6 * * * php /var/www/FreshRSS/extensions/xExtension-EinkPush2/push_cron.php --user=USERNAME
+ *   0 6 * * * php /var/www/FreshRSS/extensions/xExtension-EinkPush/push_cron.php --user=USERNAME
  */
 
 $options = getopt('', ['user:']);
@@ -16,7 +16,7 @@ if (empty($options['user'])) {
     exit(1);
 }
 
-// Bootstrap FreshRSS (extension sits in extensions/xExtension-EinkPush2/)
+// Bootstrap FreshRSS (extension sits in extensions/xExtension-EinkPush/)
 $freshrssRoot = dirname(__DIR__, 2);
 $cliBootstrap = $freshrssRoot . '/cli/_cli.php';
 if (!file_exists($cliBootstrap)) {
@@ -54,7 +54,7 @@ if ($endpoint === '') {
 }
 
 // Output directory
-$userDataDir = USERS_PATH . '/' . $username . '/EinkPush2/';
+$userDataDir = USERS_PATH . '/' . $username . '/EinkPush/';
 if (!is_dir($userDataDir)) {
     mkdir($userDataDir, 0770, true);
 }

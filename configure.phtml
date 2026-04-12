@@ -1,5 +1,5 @@
 <?php
-/** @var EinkPush2Extension $this */
+/** @var EinkPushExtension $this */
 $cfg = $this->getConfig();
 $categoryDAO = FreshRSS_Factory::createCategoryDao();
 $categories = $categoryDAO->listCategories() ?: [];
@@ -8,7 +8,7 @@ $sources = $cfg['sources'] ?? [];
 $favDefaults = ['enabled' => true, 'historyDays' => 0, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 0, 'removeFromFavorites' => false];
 $catDefaults = ['enabled' => false, 'historyDays' => 7, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 0];
 
-$ext = Minz_ExtensionManager::findExtension('EinkPush2');
+$ext = Minz_ExtensionManager::findExtension('EinkPush');
 $cronScript = $ext ? ($ext->getPath() . '/push_cron.php') : '';
 $cronCmd = ($cfg['push_cron'] ?? '0 6 * * *') . ' php ' . escapeshellarg($cronScript) . ' --user=' . escapeshellarg(Minz_User::name());
 
@@ -26,10 +26,10 @@ $history = $helper->getHistory();
             <p><?= _t('ext.description') ?></p>
         </div>
         <div class="ep-quick-actions">
-            <a class="ep-btn" href="<?= _url('EinkPush2', 'generate') ?>">
+            <a class="ep-btn" href="<?= _url('EinkPush', 'generate') ?>">
                 <span>📥</span> <?= _t('ext.dashboard_dl_all') ?>
             </a>
-            <a class="ep-btn ep-btn-primary" href="<?= _url('EinkPush2', 'push') ?>">
+            <a class="ep-btn ep-btn-primary" href="<?= _url('EinkPush', 'push') ?>">
                 <span>🚀</span> <?= _t('ext.dashboard_push_all') ?>
             </a>
         </div>
@@ -43,7 +43,7 @@ $history = $helper->getHistory();
         <button type="button" class="ep-nav-item" data-target="history"><?= _t('ext.nav_history') ?></button>
     </nav>
 
-    <form method="post" action="<?= _url('extension', 'configure', 'e', 'EinkPush2') ?>">
+    <form method="post" action="<?= _url('extension', 'configure', 'e', 'EinkPush') ?>">
         <input type="hidden" name="_csrf" value="<?= FreshRSS_Auth::csrfToken() ?>">
 
         <!-- Sources Section -->
@@ -124,7 +124,7 @@ $history = $helper->getHistory();
                     </div>
                 <?php else: ?>
                     <div class="ep-history-actions">
-                        <a href="<?= _url('EinkPush2', 'clearHistory') ?>" class="ep-btn ep-btn-danger"><?= _t('ext.history_clear') ?></a>
+                        <a href="<?= _url('EinkPush', 'clearHistory') ?>" class="ep-btn ep-btn-danger"><?= _t('ext.history_clear') ?></a>
                     </div>
                     <div class="ep-history-list">
                         <?php foreach ($history as $item): ?>
@@ -164,10 +164,10 @@ function renderSourceItem($key, $name, $cfg, $isFav) {
                 <span class="ep-source-name"><?= htmlspecialchars($name) ?></span>
             </div>
             <div class="ep-source-actions">
-                <a class="ep-btn" href="<?= _url('EinkPush2', 'generate', 'source', $key) ?>">
+                <a class="ep-btn" href="<?= _url('EinkPush', 'generate', 'source', $key) ?>">
                     <span>📥</span> <?= _t('ext.card_download') ?>
                 </a>
-                <a class="ep-btn ep-btn-primary" href="<?= _url('EinkPush2', 'pushSingle', 'source', $key) ?>">
+                <a class="ep-btn ep-btn-primary" href="<?= _url('EinkPush', 'pushSingle', 'source', $key) ?>">
                     <span>🚀</span> <?= _t('ext.card_push_now') ?>
                 </a>
                 <span class="ep-source-chevron">▾</span>

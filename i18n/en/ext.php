@@ -1,7 +1,7 @@
 <?php
 
 $trans = [
-    'title' => 'EinkPush 2',
+    'title' => 'EinkPush',
     'description' => 'Your personal E-ink delivery service.',
     'nav_sources' => 'Sources',
     'nav_push' => 'Push Settings',
@@ -9,6 +9,7 @@ $trans = [
     'nav_history' => 'History',
     'dashboard_push_all' => 'Push All Enabled',
     'dashboard_dl_all' => 'Download All Enabled',
+    'sidebar_push_all' => 'Push All to E-Ink',
     'section_global' => 'Global Settings',
     'screen_size' => 'Target Screen Size',
     'width' => 'Width',

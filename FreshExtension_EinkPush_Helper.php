@@ -177,7 +177,7 @@ class EinkPushHelper {
                 $entryDAO->toggleFavorite($entryId, false);
             }
         } catch (Exception $e) {
-            error_log('[EinkPush2] Failed to remove articles from favorites: ' . $e->getMessage());
+            error_log('[EinkPush] Failed to remove articles from favorites: ' . $e->getMessage());
         }
     }
 
@@ -279,10 +279,10 @@ class EinkPushHelper {
                             // Google News encrypted URL — readability can't fetch it either
                             $this->fetchFailCount++;
                             $fetchError = 'Google News uses encrypted article links that cannot be resolved server-side. The RSS summary is shown instead.';
-                            error_log('[EinkPush2] Skipping readability for unresolvable Google News URL: ' . $url);
+                            error_log('[EinkPush] Skipping readability for unresolvable Google News URL: ' . $url);
                         } else {
                             if ($wasResolved) {
-                                error_log('[EinkPush2] Resolved redirect: ' . $url . ' → ' . $resolvedUrl);
+                                error_log('[EinkPush] Resolved redirect: ' . $url . ' → ' . $resolvedUrl);
                             }
                             $result = $this->fetchViaReadability($resolvedUrl);
                             if ($result['ok']) {
@@ -292,14 +292,14 @@ class EinkPushHelper {
                                 $this->fetchFailCount++;
                                 $fetchError = $result['error'];
                                 $fetchDebug = $result['debug'] ?? '';
-                                error_log('[EinkPush2] Readability failed for: ' . $resolvedUrl . ' — ' . $fetchError);
+                                error_log('[EinkPush] Readability failed for: ' . $resolvedUrl . ' — ' . $fetchError);
                             }
                         }
                     }
                 }
             } elseif ($fetchContent && $this->readabilityUrl === '') {
                 if ($chapterIndex === 1) {
-                    error_log('[EinkPush2] Fetch content is enabled but no Readability API URL configured');
+                    error_log('[EinkPush] Fetch content is enabled but no Readability API URL configured');
                 }
                 $fetchError = 'No Readability API URL configured in extension settings.';
             }
@@ -439,12 +439,12 @@ class EinkPushHelper {
         if (preg_match('#^https?://news\.google\.com/rss/articles/([A-Za-z0-9_-]+)#', $url, $m)) {
             $decoded = $this->decodeGoogleNewsUrl($m[1]);
             if ($decoded !== null) {
-                error_log('[EinkPush2] Decoded Google News URL: ' . $url . ' → ' . $decoded);
+                error_log('[EinkPush] Decoded Google News URL: ' . $url . ' → ' . $decoded);
                 return $decoded;
             }
             // New-format (encrypted) Google News URLs cannot be resolved server-side.
             // The page is a JS SPA with no extractable redirect — skip the heavy HTTP fetch.
-            error_log('[EinkPush2] Google News article uses encrypted format, cannot resolve: ' . $url);
+            error_log('[EinkPush] Google News article uses encrypted format, cannot resolve: ' . $url);
             return $url;
         }
 
@@ -494,7 +494,7 @@ class EinkPushHelper {
         curl_close($ch);
 
         if ($body === false) {
-            error_log('[EinkPush2] resolveRedirects curl error for ' . $url . ': ' . $curlError);
+            error_log('[EinkPush] resolveRedirects curl error for ' . $url . ': ' . $curlError);
             return $url;
         }
 
@@ -563,7 +563,7 @@ class EinkPushHelper {
 
         // New format (since July 2024): encrypted — cannot decode server-side
         if (strpos($inner, 'AU_') === 0) {
-            error_log('[EinkPush2] Google News article uses new encrypted format (AU_ prefix)');
+            error_log('[EinkPush] Google News article uses new encrypted format (AU_ prefix)');
             return null;
         }
 
@@ -609,7 +609,7 @@ class EinkPushHelper {
             // 'ok' = got content → lock in and return
             if ($r['ok']) {
                 $this->detectedApiPattern = $pattern;
-                error_log('[EinkPush2] Readability API pattern detected (with content): ' . $desc);
+                error_log('[EinkPush] Readability API pattern detected (with content): ' . $desc);
                 return $r;
             }
 
@@ -617,7 +617,7 @@ class EinkPushHelper {
             // Lock in this pattern — it works, just this article has no content
             if (!empty($r['reachable'])) {
                 $this->detectedApiPattern = $pattern;
-                error_log('[EinkPush2] Readability API pattern detected (reachable): ' . $desc);
+                error_log('[EinkPush] Readability API pattern detected (reachable): ' . $desc);
                 return $r;
             }
 
@@ -629,7 +629,7 @@ class EinkPushHelper {
         $msg = 'None of the API patterns returned HTTP 200 on ' . $this->readabilityUrl
             . '. Tried: ' . implode(', ', array_values($patterns))
             . '. Last error: ' . ($lastResult['error'] ?? 'unknown');
-        error_log('[EinkPush2] ' . $msg);
+        error_log('[EinkPush] ' . $msg);
         return ['ok' => false, 'error' => $msg, 'debug' => $lastResult['debug'] ?? ''];
     }
 

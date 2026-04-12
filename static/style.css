@@ -273,7 +273,6 @@ input:checked + .ep-slider:before { transform: translateX(20px); }
     .ep-grid { grid-template-columns: 1fr; }
 }
 .ep-btn-sidebar {
-    background-color: #f59e0b !important; /* Amber 500 */
     color: #fff !important;
     font-weight: 700 !important;
     text-align: center !important;
@@ -283,7 +282,9 @@ input:checked + .ep-slider:before { transform: translateX(20px); }
     display: block !important;
     padding: 8px 5px !important;
 }
-.ep-btn-sidebar:hover {
-    background-color: #d97706 !important; /* Amber 600 */
-    text-decoration: none !important;
-}
+.ep-btn-sidebar:hover { text-decoration: none !important; opacity: 0.9; }
+
+.ep-btn-blue  { background-color: #3b82f6 !important; }
+.ep-btn-amber { background-color: #f59e0b !important; }
+.ep-btn-green { background-color: #10b981 !important; }
+

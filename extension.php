@@ -8,8 +8,12 @@ class EinkPushExtension extends Minz_Extension {
         Minz_View::appendStyle($this->getFileUrl('style.css', 'css') . '?v=' . time());
         Minz_View::appendScript($this->getFileUrl('script.js', 'js') . '?v=' . time());
         
+        $this->registerHook('display_before_content', [$this, 'injectJsLabel']);
+    }
+
+    public function injectJsLabel() {
         $label = _t('ext.sidebar_push_all');
-        Minz_View::appendScript('window.EinkPushLabel = "' . addslashes($label) . '";');
+        echo '<script>window.EinkPushLabel = "' . addslashes($label) . '";</script>';
     }
 
     public function handleConfigureAction() {

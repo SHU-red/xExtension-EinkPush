@@ -26,8 +26,12 @@ $history = $helper->getHistory();
             <p><?= _t('ext.description') ?></p>
         </div>
         <div class="ep-quick-actions">
-            <a class="ep-btn" href="<?= _url('einkpush2', 'generate') ?>" title="<?= _t('ext.dashboard_dl_all') ?>">📥 <?= _t('ext.card_download') ?></a>
-            <a class="ep-btn ep-btn-primary" href="<?= _url('einkpush2', 'push') ?>" title="<?= _t('ext.dashboard_push_all') ?>">🚀 <?= _t('ext.dashboard_push_all') ?></a>
+            <a class="ep-btn" href="<?= _url('einkpush2', 'generate') ?>">
+                <span>📥</span> <?= _t('ext.dashboard_dl_all') ?>
+            </a>
+            <a class="ep-btn ep-btn-primary" href="<?= _url('einkpush2', 'push') ?>">
+                <span>🚀</span> <?= _t('ext.dashboard_push_all') ?>
+            </a>
         </div>
     </header>
 
@@ -153,15 +157,19 @@ function renderSourceItem($key, $name, $cfg, $isFav) {
     <div class="ep-source-item">
         <div class="ep-source-main">
             <div class="ep-source-info">
-                <label class="ep-switch">
+                <label class="ep-switch" title="<?= _t('ext.card_enabled') ?>">
                     <input type="checkbox" name="sources[<?= $key ?>][enabled]" value="1" <?= !empty($cfg['enabled']) ? 'checked' : '' ?>>
                     <span class="ep-slider"></span>
                 </label>
                 <span class="ep-source-name"><?= htmlspecialchars($name) ?></span>
             </div>
             <div class="ep-source-actions">
-                <a class="ep-btn" href="<?= _url('einkpush2', 'generate', 'source', $key) ?>" title="<?= _t('ext.card_download') ?>">📥</a>
-                <a class="ep-btn ep-btn-primary" href="<?= _url('einkpush2', 'pushSingle', 'source', $key) ?>" title="<?= _t('ext.card_push_now') ?>">🚀</a>
+                <a class="ep-btn" href="<?= _url('einkpush2', 'generate', 'source', $key) ?>">
+                    <span>📥</span> <?= _t('ext.card_download') ?>
+                </a>
+                <a class="ep-btn ep-btn-primary" href="<?= _url('einkpush2', 'pushSingle', 'source', $key) ?>">
+                    <span>🚀</span> <?= _t('ext.card_push_now') ?>
+                </a>
                 <span class="ep-source-chevron">▾</span>
             </div>
         </div>

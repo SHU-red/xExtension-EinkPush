@@ -113,6 +113,89 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         Minz_Request::good(_t('ext.msg_history_cleared'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
     }
 
+    public function apiAction(): void {
+        $token = Minz_Request::param('token');
+        $conf = $this->extension->getConfig();
+        
+        if (empty($token) || $token !== $conf['push_token']) {
+            Minz_Error::error(403);
+        }
+
+        $action = Minz_Request::param('action', 'push'); // 'push' or 'download'
+        $sourceKey = Minz_Request::param('source', 'all'); // 'all', 'favorites', 'cat_1', etc.
+
+        if ($action === 'download') {
+            if ($sourceKey === 'all') {
+                $paths = $this->helper->generateAll($conf['sources']);
+                if (empty($paths)) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['status' => 'error', 'message' => 'No articles found']);
+                    exit;
+                }
+                $latest = $this->helper->getLatestEpub();
+                if ($latest) $this->downloadFile($latest);
+            } else {
+                $srcCfg = $this->getSourceConfig($sourceKey, $conf);
+                if (!$srcCfg) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['status' => 'error', 'message' => 'Invalid source']);
+                    exit;
+                }
+                $path = $this->helper->generateSingle($sourceKey, $srcCfg);
+                if ($path) $this->downloadFile($path);
+                else {
+                    header('Content-Type: application/json');
+                    echo json_encode(['status' => 'error', 'message' => 'No articles found']);
+                    exit;
+                }
+            }
+        } else {
+            // Default: Push
+            $endpoint = $conf['push_endpoint'];
+            if (empty($endpoint)) {
+                header('Content-Type: application/json');
+                echo json_encode(['status' => 'error', 'message' => 'No endpoint configured']);
+                exit;
+            }
+
+            if ($sourceKey === 'all') {
+                $paths = $this->helper->generateAll($conf['sources']);
+                if (empty($paths)) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['status' => 'ok', 'message' => 'No articles found']);
+                    exit;
+                }
+                $success = 0; $failed = 0;
+                foreach ($paths as $sk => $path) {
+                    $sourceName = $sk === 'favorites' ? _t('ext.source_favorites') : $sk;
+                    if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], $conf['push_retryDelay'], $sourceName)) $success++;
+                    else $failed++;
+                }
+                header('Content-Type: application/json');
+                echo json_encode(['status' => 'ok', 'success' => $success, 'failed' => $failed]);
+                exit;
+            } else {
+                $srcCfg = $this->getSourceConfig($sourceKey, $conf);
+                if (!$srcCfg) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['status' => 'error', 'message' => 'Invalid source']);
+                    exit;
+                }
+                $path = $this->helper->generateSingle($sourceKey, $srcCfg);
+                if (!$path) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['status' => 'ok', 'message' => 'No articles found']);
+                    exit;
+                }
+                $sourceName = $sourceKey === 'favorites' ? _t('ext.source_favorites') : $sourceKey;
+                $res = $this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], $conf['push_retryDelay'], $sourceName);
+                header('Content-Type: application/json');
+                echo json_encode(['status' => $res ? 'ok' : 'error']);
+                exit;
+            }
+        }
+    }
+
     private function downloadFile(string $path) {
         $filename = basename($path);
         header('Content-Type: application/epub+zip');

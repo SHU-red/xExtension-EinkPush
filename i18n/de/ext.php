@@ -5,6 +5,7 @@ return [
     'description' => 'Ihr persönlicher E-Ink Zustelldienst.',
     'nav_sources' => 'Inhaltsauswahl',
     'nav_push' => 'Auto-Zustellung',
+    'nav_api' => 'REST API',
     'nav_global' => 'Gerät & Anzeige',
     'nav_history' => 'Protokolle',
     'dashboard_push_all' => 'An Gerät senden',
@@ -61,5 +62,9 @@ return [
     'msg_push_failed' => '%d EPUB(s) gesendet, aber %d fehlgeschlagen.',
     'msg_push_success_single' => 'EPUB erfolgreich gesendet.',
     'msg_push_failed_single' => 'Senden des EPUB fehlgeschlagen.',
-    'msg_history_cleared' => 'Protokolle gelöscht.'
+    'msg_history_cleared' => 'Protokolle gelöscht.',
+    'api_help' => 'Verwenden Sie diese Endpunkte, um die EPUB-Generierung und -Zustellung von externen Geräten oder Skripten auszulösen.',
+    'api_url' => 'Ihre persönliche API-URL',
+    'api_url_help' => 'Halten Sie diesen Token geheim. Er ermöglicht es jedem, Exporte für Ihr Konto auszulösen.',
+    'api_examples' => 'Nutzungsbeispiele'
 ];

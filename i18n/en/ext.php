@@ -5,6 +5,7 @@ $trans = [
     'description' => 'Your personal E-ink delivery service.',
     'nav_sources' => 'Content Selection',
     'nav_push' => 'Auto-Delivery',
+    'nav_api' => 'REST API',
     'nav_global' => 'Device & Display',
     'nav_history' => 'Logs',
     'dashboard_push_all' => 'Send to Device',
@@ -61,7 +62,11 @@ $trans = [
     'msg_push_failed' => 'Pushed %d EPUB(s), but %d failed.',
     'msg_push_success_single' => 'EPUB pushed successfully.',
     'msg_push_failed_single' => 'Failed to push EPUB.',
-    'msg_history_cleared' => 'History cleared.'
+    'msg_history_cleared' => 'History cleared.',
+    'api_help' => 'Use these endpoints to trigger EPUB generation and delivery from external devices or scripts.',
+    'api_url' => 'Your Personal API URL',
+    'api_url_help' => 'Keep this token secret. It allows anyone to trigger exports for your account.',
+    'api_examples' => 'Usage Examples'
 ];
 
 return $trans;

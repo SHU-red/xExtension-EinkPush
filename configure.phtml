@@ -39,6 +39,7 @@ $history = $helper->getHistory();
     <nav class="ep-nav">
         <button type="button" class="ep-nav-item active" data-target="sources"><?= _t('ext.nav_sources') ?></button>
         <button type="button" class="ep-nav-item" data-target="push"><?= _t('ext.nav_push') ?></button>
+        <button type="button" class="ep-nav-item" data-target="api"><?= _t('ext.nav_api') ?></button>
         <button type="button" class="ep-nav-item" data-target="ep-global"><?= _t('ext.nav_global') ?></button>
         <button type="button" class="ep-nav-item" data-target="history"><?= _t('ext.nav_history') ?></button>
     </nav>
@@ -103,6 +104,40 @@ $history = $helper->getHistory();
                         <label><?= _t('ext.push_cron') ?></label>
                         <input type="text" name="push_cron" value="<?= htmlspecialchars($cfg['push_cron'] ?? '0 6 * * *', ENT_QUOTES) ?>">
                         <p class="help"><?= _t('ext.push_cron_help') ?></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- REST API Section -->
+        <div id="api" class="ep-section">
+            <div class="ep-card-form">
+                <p class="help" style="margin-bottom: 20px;"><?= _t('ext.api_help') ?></p>
+                
+                <?php 
+                $apiUrl = Minz_Url::display(['c' => 'EinkPush', 'a' => 'api'], 'php', true);
+                $fullUrl = $apiUrl . '&token=' . $cfg['push_token'];
+                ?>
+
+                <div class="ep-form-group">
+                    <label><?= _t('ext.api_url') ?></label>
+                    <div class="ep-cron-cmd-wrapper">
+                        <input type="text" readonly value="<?= htmlspecialchars($fullUrl, ENT_QUOTES) ?>" class="ep-cron-cmd-input">
+                    </div>
+                    <p class="help"><?= _t('ext.api_url_help') ?></p>
+                </div>
+
+                <div class="ep-experimental-section">
+                    <h3 class="ep-experimental-title">🛠️ <?= _t('ext.api_examples') ?></h3>
+                    <div style="font-size: 0.8rem; color: var(--ep-text-muted); line-height: 1.6;">
+                        <p><strong>Push all enabled sources:</strong><br>
+                        <code>...&action=push&source=all</code></p>
+                        
+                        <p><strong>Push specific category (e.g. ID 5):</strong><br>
+                        <code>...&action=push&source=cat_5</code></p>
+                        
+                        <p><strong>Download favorites EPUB:</strong><br>
+                        <code>...&action=download&source=favorites</code></p>
                     </div>
                 </div>
             </div>

@@ -18,7 +18,7 @@ class EinkPushExtension extends Minz_Extension {
     public function injectJsLabel() {
         $label = _t('ext.sidebar_push_all');
         $settingsLabel = _t('ext.nav_push');
-        $conf = FreshRSS_Context::$user_conf;
+        $conf = $this->getUserConfiguration();
         $showSidebar = ($conf && $conf->EinkPush_showSidebarButton) ? 'true' : 'false';
         echo '<script>
             window.EinkPushLabel = "' . addslashes($label) . '"; 
@@ -32,13 +32,13 @@ class EinkPushExtension extends Minz_Extension {
         $this->ensureDefaults();
 
         if (Minz_Request::isPost()) {
-            $conf = FreshRSS_Context::$user_conf;
+            $conf = $this->getUserConfiguration();
 
             // Global settings — 3rd param = true to get raw values (param() HTML-encodes by default)
             $conf->EinkPush_screenWidth = max(100, (int) Minz_Request::param('screenWidth', 480, true));
             $conf->EinkPush_screenHeight = max(100, (int) Minz_Request::param('screenHeight', 800, true));
             $conf->EinkPush_fontSize = max(0.5, min(3.0, (float) Minz_Request::param('fontSize', 1.0, true)));
-            $conf->EinkPush_showSidebarButton = isset($_POST['showSidebarButton']);
+            $conf->EinkPush_showSidebarButton = !empty($_POST['showSidebarButton']);
 
             // Push settings
             $endpoint = trim((string) Minz_Request::param('push_endpoint', 'http://crosspoint.local/upload?path=/RSSFeeds', true));

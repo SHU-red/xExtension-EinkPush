@@ -5,6 +5,7 @@ return [
     'description' => 'Votre service de livraison E-ink personnel.',
     'nav_sources' => 'Sélection de contenu',
     'nav_push' => 'Livraison automatique',
+    'nav_api' => 'REST API',
     'nav_global' => 'Appareil & Affichage',
     'nav_history' => 'Journaux',
     'dashboard_push_all' => 'Envoyer à l\'appareil',
@@ -61,5 +62,9 @@ return [
     'msg_push_failed' => '%d EPUB(s) envoyé(s), mais %d ont échoué.',
     'msg_push_success_single' => 'EPUB envoyé avec succès.',
     'msg_push_failed_single' => 'Échec de l\'envoi de l\'EPUB.',
-    'msg_history_cleared' => 'Journaux effacés.'
+    'msg_history_cleared' => 'Journaux effacés.',
+    'api_help' => 'Utilisez ces points de terminaison pour déclencher la génération et la livraison d\'EPUB à partir d\'appareils ou de scripts externes.',
+    'api_url' => 'Votre URL API personnelle',
+    'api_url_help' => 'Gardez ce jeton secret. Il permet à quiconque de déclencher des exportations pour votre compte.',
+    'api_examples' => 'Exemples d\'utilisation'
 ];

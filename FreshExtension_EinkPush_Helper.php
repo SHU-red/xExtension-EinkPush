@@ -119,6 +119,13 @@ class EinkPushHelper {
         $filename = basename($filePath);
         $attempts = max(1, $retries + 1);
 
+        // Auto-create remote directory if path is specified in endpoint
+        $query = $parsed['query'] ?? '';
+        parse_str($query, $queryParams);
+        if (!empty($queryParams['path'])) {
+            $this->ensureRemoteDir($endpoint, $queryParams['path']);
+        }
+
         for ($i = 0; $i < $attempts; $i++) {
             if ($i > 0) {
                 sleep($retryDelay);
@@ -151,6 +158,56 @@ class EinkPushHelper {
 
         $this->logPush($sourceName, $success, $success ? 'HTTP ' . $httpCode : 'Failed after retries (Last: ' . $httpCode . ($lastError ? ' - ' . $lastError : '') . ')');
         return $success;
+    }
+
+    /**
+     * Check if the device is online via /api/status
+     */
+    public function checkDeviceStatus(string $endpoint): bool {
+        $parsed = parse_url($endpoint);
+        if (!$parsed || !isset($parsed['host'])) return false;
+        
+        $statusUrl = ($parsed['scheme'] ?? 'http') . '://' . $parsed['host'] . (isset($parsed['port']) ? ':' . $parsed['port'] : '') . '/api/status';
+        
+        if (!function_exists('curl_init')) return false;
+
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $statusUrl,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 5,
+            CURLOPT_CONNECTTIMEOUT => 2,
+            CURLOPT_FOLLOWLOCATION => true,
+        ]);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        return ($httpCode === 200);
+    }
+
+    /**
+     * Ensure remote directory exists via /mkdir
+     */
+    private function ensureRemoteDir(string $endpoint, string $path): void {
+        $parsed = parse_url($endpoint);
+        if (!$parsed || !isset($parsed['host'])) return;
+        
+        $mkdirUrl = ($parsed['scheme'] ?? 'http') . '://' . $parsed['host'] . (isset($parsed['port']) ? ':' . $parsed['port'] : '') . '/mkdir';
+        
+        if (!function_exists('curl_init')) return;
+
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $mkdirUrl,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => ['path' => $path],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 5,
+            CURLOPT_CONNECTTIMEOUT => 2,
+        ]);
+        curl_exec($ch);
+        curl_close($ch);
     }
     /**
      * List currently available EPUB files with metadata.

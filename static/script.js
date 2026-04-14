@@ -384,16 +384,6 @@
                         });
                 }
                 return;
-            // Cron Helper
-            const cronHelper = e.target.closest('#ep-cron-helper');
-            if (cronHelper) {
-                cronHelper.onchange = () => {
-                    const input = document.getElementById('ep-push-cron');
-                    if (input && cronHelper.value) {
-                        input.value = cronHelper.value;
-                    }
-                };
-            }
         } catch (err) {
             console.error('[EinkPush] Error in click handler:', err);
         }

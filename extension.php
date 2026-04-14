@@ -1,13 +1,17 @@
 <?php
 
 class EinkPushExtension extends Minz_Extension {
-    const VERSION = '1.1.7';
+    const VERSION = '1.1.8';
 
     public function init() {
         $this->registerController('EinkPush');
         $this->registerTranslates();
         
         $conf = FreshRSS_Context::$user_conf;
+        if ($conf) {
+            $this->checkAutoPush($conf);
+        }
+
         $showSidebarVal = ($conf && $conf->EinkPush_showSidebarButton !== null) ? (int)$conf->EinkPush_showSidebarButton : 1;
         $showSidebar = ($showSidebarVal !== 0) ? '1' : '0';
         
@@ -48,7 +52,8 @@ class EinkPushExtension extends Minz_Extension {
                 $endpoint = 'http://crosspoint.local/upload?path=/RSSFeeds';
             }
             $conf->EinkPush_push_endpoint = $endpoint;
-            $conf->EinkPush_push_cron = trim((string) Minz_Request::param('push_cron', '0 6 * * *', true));
+            $conf->EinkPush_ping_interval = max(1, (int) Minz_Request::param('ping_interval', 5, true));
+            $conf->EinkPush_push_cooldown = max(1, (int) Minz_Request::param('push_cooldown', 20, true));
             $conf->EinkPush_push_retries = max(0, min(20, (int) Minz_Request::param('push_retries', 3, true)));
             $conf->EinkPush_push_retryDelay = max(1, min(300, (int) Minz_Request::param('push_retryDelay', 10, true)));
 
@@ -122,7 +127,8 @@ class EinkPushExtension extends Minz_Extension {
             'showSidebarButton'=> $conf->EinkPush_showSidebarButton,
             'sources'         => $conf->EinkPush_sources,
             'push_endpoint'   => $conf->EinkPush_push_endpoint,
-            'push_cron'       => $conf->EinkPush_push_cron,
+            'ping_interval'   => $conf->EinkPush_ping_interval,
+            'push_cooldown'   => $conf->EinkPush_push_cooldown,
             'push_retries'    => $conf->EinkPush_push_retries,
             'push_retryDelay' => $conf->EinkPush_push_retryDelay,
             'push_token'      => $conf->EinkPush_push_token,
@@ -144,7 +150,10 @@ class EinkPushExtension extends Minz_Extension {
                 'favorites' => ['enabled' => false, 'historyDays' => 7, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 50, 'removeFromFavorites' => false],
             ],
             'EinkPush_push_endpoint'  => 'http://crosspoint.local/upload?path=/RSSFeeds',
-            'EinkPush_push_cron'      => '0 6 * * *',
+            'EinkPush_ping_interval'  => 5,
+            'EinkPush_push_cooldown'  => 20,
+            'EinkPush_last_ping'      => 0,
+            'EinkPush_last_push'      => 0,
             'EinkPush_push_retries'   => 3,
             'EinkPush_push_retryDelay'=> 10,
             'EinkPush_push_token'     => '',
@@ -173,5 +182,63 @@ class EinkPushExtension extends Minz_Extension {
             @mkdir($dir, 0770, true);
         }
         return $dir;
+    }
+
+    private function checkAutoPush($conf) {
+        $now = time();
+        $lastPing = (int) ($conf->EinkPush_last_ping ?? 0);
+        $lastPush = (int) ($conf->EinkPush_last_push ?? 0);
+        $pingInterval = (int) ($conf->EinkPush_ping_interval ?? 5) * 60;
+        $cooldown = (int) ($conf->EinkPush_push_cooldown ?? 20) * 3600;
+
+        // 1. Check cooldown
+        if (($now - $lastPush) < $cooldown) {
+            return;
+        }
+
+        // 2. Check ping interval
+        if (($now - $lastPing) < $pingInterval) {
+            return;
+        }
+
+        // 3. Update last ping time immediately to avoid concurrent pings if possible
+        $conf->EinkPush_last_ping = $now;
+        $conf->save();
+
+        // 4. Ping device
+        $endpoint = $conf->EinkPush_push_endpoint;
+        if (empty($endpoint)) return;
+
+        require_once $this->getPath() . '/FreshExtension_EinkPush_Helper.php';
+        $helper = new EinkPushHelper($this->getEpubDir());
+        
+        if ($helper->checkDeviceStatus($endpoint)) {
+            error_log('[EinkPush] Device is ONLINE. Triggering auto-push.');
+            
+            // Trigger push for all enabled sources that have autoPush=true
+            $sources = $conf->EinkPush_sources;
+            $paths = $helper->generateAll($sources);
+            
+            if (!empty($paths)) {
+                $success = 0;
+                foreach ($paths as $key => $path) {
+                    $srcCfg = $sources[$key] ?? [];
+                    if (empty($srcCfg['autoPush'])) continue;
+
+                    $sourceName = $key === 'favorites' ? _t('ext.source_favorites') : $key;
+                    if ($helper->pushToEndpoint($path, $endpoint, (int)$conf->EinkPush_push_retries, (int)$conf->EinkPush_push_retryDelay, $sourceName)) {
+                        $success++;
+                    }
+                }
+                
+                if ($success > 0) {
+                    $conf->EinkPush_last_push = time();
+                    $conf->save();
+                    error_log('[EinkPush] Auto-push completed. Success: ' . $success);
+                }
+            }
+        } else {
+            error_log('[EinkPush] Device is OFFLINE.');
+        }
     }
 }

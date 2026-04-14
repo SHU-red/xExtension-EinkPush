@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.8] - 2026-04-14
+### Added
+- **Auto-Push (Device Status)**: New primary delivery method that pings your device's `/api/status` endpoint.
+- **Smart Cooldown**: Configurable ping interval and push cooldown to prevent redundant deliveries.
+- **Auto-Directory Creation**: The extension now automatically creates remote folders via `/mkdir` if they don't exist.
+### Removed
+- **Cron Scheduling**: Obsolete Cron-based scheduling has been replaced by the more reliable Device Status ping method.
+
 ## [1.1.7] - 2026-04-14
 ### Added
 - **Real-Time Progress Dashboard**: Visual progress bar during "Push All" operations.

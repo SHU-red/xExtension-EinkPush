@@ -81,7 +81,7 @@ async function run() {
             method: 'POST',
             headers,
             body: JSON.stringify({
-                message: 'Fix Readability error handling, footer transparency, and push spinner animation',
+                message: 'Fix syntax error in script.js and bump version',
                 tree: treeData.sha,
                 parents: [latestCommitSha]
             })

@@ -92,7 +92,7 @@
                     return;
                 }
                 
-                const origHtml = showLoading(dlAllBtn);
+                const origState = showLoading(dlAllBtn);
                 
                 let expectedSources = [];
                 enabledSources.forEach(input => {
@@ -104,36 +104,89 @@
 
                 console.log('[EinkPush] Expected sources:', expectedSources);
 
-                // Clear existing cookies for these sources to avoid immediate poll exit
-                expectedSources.forEach(src => {
-                    document.cookie = 'ep_dl_' + src + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-                });
-                document.cookie = 'ep_dl_complete=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                (async () => {
+                    try {
+                        let dirHandle = null;
+                        if ('showDirectoryPicker' in window) {
+                            try {
+                                dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                            } catch (err) {
+                                console.log('[EinkPush] Directory picker cancelled or failed', err);
+                                hideLoading(dlAllBtn, origState);
+                                return;
+                            }
+                        }
 
-                let delay = 0;
-                enabledSources.forEach(input => {
-                    const match = input.name.match(/sources\[(.*?)\]/);
-                    if (match && match[1]) {
-                        const sourceKey = match[1];
-                        const url = dlAllBtn.href + '&source=' + encodeURIComponent(sourceKey) + '&silent=1';
-                        setTimeout(() => {
-                            console.log('[EinkPush] Triggering download for: ' + sourceKey + ' via URL: ' + url);
-                            const iframe = document.createElement('iframe');
-                            iframe.className = 'ep-hidden';
-                            iframe.src = url;
-                            document.body.appendChild(iframe);
-                            setTimeout(() => iframe.remove(), 120000); // 2 minutes timeout
-                        }, delay);
-                        delay += 1500;
+                        if (dirHandle) {
+                            // Modern approach: fetch each file and save to directory
+                            let downloadedCount = 0;
+                            for (const sourceKey of expectedSources) {
+                                const url = dlAllBtn.href + '&source=' + encodeURIComponent(sourceKey) + '&silent=1';
+                                console.log('[EinkPush] Fetching download for: ' + sourceKey);
+                                const response = await fetch(url);
+                                if (response.status === 204) {
+                                    console.log('[EinkPush] No content for: ' + sourceKey);
+                                    continue; // No articles
+                                }
+                                if (!response.ok) throw new Error('Network response was not ok');
+                                
+                                const blob = await response.blob();
+                                const contentDisposition = response.headers.get('Content-Disposition');
+                                let filename = sourceKey + '.epub';
+                                if (contentDisposition) {
+                                    const match = contentDisposition.match(/filename="([^"]+)"/);
+                                    if (match) filename = match[1];
+                                }
+                                
+                                const fileHandle = await dirHandle.getFileHandle(filename, { create: true });
+                                const writable = await fileHandle.createWritable();
+                                await writable.write(blob);
+                                await writable.close();
+                                console.log('[EinkPush] Saved: ' + filename);
+                                downloadedCount++;
+                            }
+                            hideLoading(dlAllBtn, origState);
+                            if (downloadedCount > 0) {
+                                alert('Successfully saved ' + downloadedCount + ' EPUB(s) to the selected folder.');
+                            } else {
+                                alert('No new articles found to download.');
+                            }
+                        } else {
+                            // Fallback approach: iframes
+                            // Clear existing cookies for these sources to avoid immediate poll exit
+                            expectedSources.forEach(src => {
+                                document.cookie = 'ep_dl_' + src + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                            });
+                            document.cookie = 'ep_dl_complete=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+
+                            let delay = 0;
+                            expectedSources.forEach(sourceKey => {
+                                const url = dlAllBtn.href + '&source=' + encodeURIComponent(sourceKey) + '&silent=1';
+                                setTimeout(() => {
+                                    console.log('[EinkPush] Triggering download for: ' + sourceKey + ' via URL: ' + url);
+                                    const iframe = document.createElement('iframe');
+                                    iframe.className = 'ep-hidden';
+                                    iframe.src = url;
+                                    document.body.appendChild(iframe);
+                                    setTimeout(() => iframe.remove(), 120000); // 2 minutes timeout
+                                }, delay);
+                                delay += 1500;
+                            });
+                            pollCookie(expectedSources, dlAllBtn, origState);
+                            
+                            // Fallback timeout in case some downloads fail silently
+                            setTimeout(() => {
+                                console.log('[EinkPush] Fallback timeout reached');
+                                hideLoading(dlAllBtn, origState);
+                            }, 120000); // 2 minutes timeout
+                        }
+                    } catch (err) {
+                        console.error('[EinkPush] Error during Download All:', err);
+                        hideLoading(dlAllBtn, origState);
+                        alert('An error occurred during download: ' + err.message);
                     }
-                });
-                pollCookie(expectedSources, dlAllBtn, origHtml);
+                })();
                 
-                // Fallback timeout in case some downloads fail silently
-                setTimeout(() => {
-                    console.log('[EinkPush] Fallback timeout reached');
-                    hideLoading(dlAllBtn, origHtml);
-                }, 120000); // 2 minutes timeout
                 return;
             }
 

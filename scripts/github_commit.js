@@ -81,7 +81,7 @@ async function run() {
             method: 'POST',
             headers,
             body: JSON.stringify({
-                message: 'Lock button dimensions during loading state to prevent shape shifting',
+                message: 'Update button texts and implement showDirectoryPicker for Download All',
                 tree: treeData.sha,
                 parents: [latestCommitSha]
             })

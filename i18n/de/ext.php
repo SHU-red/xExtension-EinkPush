@@ -63,7 +63,7 @@ return [
     'msg_push_success_single' => 'EPUB erfolgreich gesendet.',
     'msg_push_failed_single' => 'Senden des EPUB fehlgeschlagen.',
     'msg_history_cleared' => 'Protokolle gelöscht.',
-    'api_help' => 'Verwenden Sie diese Endpunkte, um die EPUB-Generierung und -Zustellung von externen Geräten oder Skripten auszulösen.',
+    'api_help' => '⚠️ ABSOLUT EXPERIMENTELL: Verwenden Sie diese Endpunkte, um die EPUB-Generierung und -Zustellung von externen Geräten oder Skripten auszulösen. Nutzung auf eigene Gefahr.',
     'api_url' => 'Ihre persönliche API-URL',
     'api_url_help' => 'Halten Sie diesen Token geheim. Er ermöglicht es jedem, Exporte für Ihr Konto auszulösen.',
     'api_examples' => 'Nutzungsbeispiele'

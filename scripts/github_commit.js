@@ -81,7 +81,7 @@ async function run() {
             method: 'POST',
             headers,
             body: JSON.stringify({
-                message: 'Update button texts and implement showDirectoryPicker for Download All',
+                message: 'Highlight REST API as experimental and bump version to 1.1.6',
                 tree: treeData.sha,
                 parents: [latestCommitSha]
             })

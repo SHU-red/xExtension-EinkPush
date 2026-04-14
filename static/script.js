@@ -8,21 +8,34 @@
         if (!btn) return null;
         if (btn.classList.contains('ep-loading')) return null;
         
+        const rect = btn.getBoundingClientRect();
         const originalHtml = btn.innerHTML;
+        const originalWidth = btn.style.width;
+        const originalHeight = btn.style.height;
+        
+        // Lock dimensions to prevent shape change
+        btn.style.width = rect.width + 'px';
+        btn.style.height = rect.height + 'px';
+        
         btn.classList.add('ep-loading');
-        btn.innerHTML = '<span class="ep-spinner-inline"></span>...';
-        return originalHtml;
+        btn.innerHTML = '<span class="ep-spinner-inline"></span>';
+        
+        return { html: originalHtml, width: originalWidth, height: originalHeight };
     }
 
-    function hideLoading(btn, originalHtml) {
+    function hideLoading(btn, originalState) {
         if (!btn) return;
         btn.classList.remove('ep-loading');
         btn.style.pointerEvents = 'auto';
         btn.style.opacity = '1';
-        if (originalHtml) btn.innerHTML = originalHtml;
+        if (originalState) {
+            btn.innerHTML = originalState.html;
+            btn.style.width = originalState.width;
+            btn.style.height = originalState.height;
+        }
     }
 
-    function pollCookie(expectedSources = [], btn = null, originalHtml = null) {
+    function pollCookie(expectedSources = [], btn = null, originalState = null) {
         console.log('[EinkPush] Polling cookies for:', expectedSources);
         
         // Check for error cookie first
@@ -30,7 +43,7 @@
         if (errorMatch) {
             console.error('[EinkPush] Download error:', decodeURIComponent(errorMatch[1]));
             document.cookie = 'ep_dl_error=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-            hideLoading(btn, originalHtml);
+            hideLoading(btn, originalState);
             alert('EinkPush Error:\n\n' + decodeURIComponent(errorMatch[1]));
             return;
         }
@@ -47,17 +60,17 @@
                 expectedSources.forEach(src => {
                     document.cookie = 'ep_dl_' + src + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
                 });
-                hideLoading(btn, originalHtml);
+                hideLoading(btn, originalState);
             } else {
-                setTimeout(() => pollCookie(expectedSources, btn, originalHtml), 1000);
+                setTimeout(() => pollCookie(expectedSources, btn, originalState), 1000);
             }
         } else {
             if (document.cookie.indexOf('ep_dl_complete=1') !== -1) {
                 console.log('[EinkPush] Single download complete');
                 document.cookie = 'ep_dl_complete=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-                hideLoading(btn, originalHtml);
+                hideLoading(btn, originalState);
             } else {
-                setTimeout(() => pollCookie([], btn, originalHtml), 1000);
+                setTimeout(() => pollCookie([], btn, originalState), 1000);
             }
         }
     }

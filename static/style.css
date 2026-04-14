@@ -378,6 +378,9 @@ body.theme-dark .ep-footer {
     cursor: wait !important;
     opacity: 1 !important;
     pointer-events: none !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
 }
 .ep-spinner-inline {
     display: inline-block !important;

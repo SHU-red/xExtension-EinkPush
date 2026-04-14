@@ -81,7 +81,7 @@ async function run() {
             method: 'POST',
             headers,
             body: JSON.stringify({
-                message: 'Fix metadata.json format for FreshRSS',
+                message: 'Lock button dimensions during loading state to prevent shape shifting',
                 tree: treeData.sha,
                 parents: [latestCommitSha]
             })

@@ -81,7 +81,7 @@ async function run() {
             method: 'POST',
             headers,
             body: JSON.stringify({
-                message: 'Highlight REST API as experimental and bump version to 1.1.6',
+                message: 'feat: UI/UX & Security refinements (v1.1.7)\n\n- Real-Time Progress Dashboard for Push All\n- Live Readability Preview modal\n- Smart Scheduling UI for Cron\n- Endpoint Health Check (Test Connection)\n- API Token Regeneration\n- Interactive History auto-refresh hint',
                 tree: treeData.sha,
                 parents: [latestCommitSha]
             })

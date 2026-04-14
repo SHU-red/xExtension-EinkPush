@@ -68,7 +68,21 @@ $trans = [
     'api_help' => '⚠️ ABSOLUTELY EXPERIMENTAL: Use these endpoints to trigger EPUB generation and delivery from external devices or scripts. Use at your own risk.',
     'api_url' => 'Your Personal API URL',
     'api_url_help' => 'Keep this token secret. It allows anyone to trigger exports for your account.',
-    'api_examples' => 'Usage Examples'
+    'api_regenerate' => 'Regenerate Token',
+    'api_regenerate_confirm' => 'Are you sure? All existing API URLs will stop working.',
+    'api_examples' => 'Usage Examples',
+    'push_test' => 'Test Connection',
+    'push_test_sent' => 'Test EPUB sent!',
+    'push_test_failed' => 'Test failed: %s',
+    'card_preview' => 'Preview Latest',
+    'preview_title' => 'Readability Preview',
+    'preview_loading' => 'Fetching cleaned content...',
+    'preview_close' => 'Close',
+    'progress_starting' => 'Starting...',
+    'progress_generating' => 'Generating %s...',
+    'progress_pushing' => 'Pushing %s...',
+    'progress_done' => 'Finished!',
+    'progress_error' => 'Error: %s',
 ];
 
 return $trans;

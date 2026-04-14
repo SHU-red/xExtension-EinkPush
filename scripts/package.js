@@ -15,10 +15,12 @@ const filesToInclude = [
 ];
 
 filesToInclude.forEach(file => {
-    if (fs.lstatSync(file).isDirectory()) {
-        archive.directory(file, `xExtension-EinkPush/${file}`);
-    } else {
-        archive.file(file, { name: `xExtension-EinkPush/${file}` });
+    if (fs.existsSync(file)) {
+        if (fs.lstatSync(file).isDirectory()) {
+            archive.directory(file, `xExtension-EinkPush/${file}`);
+        } else {
+            archive.file(file, { name: `xExtension-EinkPush/${file}` });
+        }
     }
 });
 

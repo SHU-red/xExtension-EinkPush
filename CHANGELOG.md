@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.7] - 2026-04-14
+### Added
+- **Real-Time Progress Dashboard**: Visual progress bar during "Push All" operations.
+- **Live Preview**: "Preview Latest" button to see how Readability cleans an article before exporting.
+- **Smart Scheduling**: Quick-select dropdown for common Cron schedules.
+- **Endpoint Health Check**: "Test Connection" button to verify your push endpoint.
+- **API Security**: "Regenerate Token" button for the REST API.
+- **Interactive Logs**: Improved history view with auto-refresh indicators.
+
 ## [1.1.6] - 2026-04-14
 
 ### Changed

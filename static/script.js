@@ -75,11 +75,167 @@
         }
     }
 
+    function showProgress(total) {
+        let overlay = document.getElementById('ep-progress-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'ep-progress-overlay';
+            overlay.className = 'ep-progress-overlay';
+            overlay.innerHTML = `
+                <div class="ep-progress-header">
+                    <span>EinkPush Delivery</span>
+                    <span class="ep-progress-close">✕</span>
+                </div>
+                <div class="ep-progress-bar-bg">
+                    <div id="ep-progress-bar-fill" class="ep-progress-bar-fill"></div>
+                </div>
+                <div id="ep-progress-status" class="ep-progress-status">Starting...</div>
+            `;
+            document.body.appendChild(overlay);
+            overlay.querySelector('.ep-progress-close').onclick = () => overlay.remove();
+        }
+        return overlay;
+    }
+
+    function updateProgress(current, total, status) {
+        const fill = document.getElementById('ep-progress-bar-fill');
+        const statusEl = document.getElementById('ep-progress-status');
+        if (fill) fill.style.width = (current / total * 100) + '%';
+        if (statusEl) statusEl.innerText = status;
+    }
+
+    function showPreview(html) {
+        let overlay = document.getElementById('ep-preview-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'ep-preview-overlay';
+            overlay.className = 'ep-modal-overlay';
+            overlay.innerHTML = `
+                <div class="ep-modal">
+                    <div class="ep-modal-header">
+                        <h3 id="ep-preview-title">Preview</h3>
+                        <span class="ep-progress-close" id="ep-preview-close">✕</span>
+                    </div>
+                    <div id="ep-preview-body" class="ep-modal-body"></div>
+                    <div class="ep-modal-footer">
+                        <button type="button" class="ep-btn" id="ep-preview-close-btn">Close</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+            const close = () => overlay.remove();
+            document.getElementById('ep-preview-close').onclick = close;
+            document.getElementById('ep-preview-close-btn').onclick = close;
+            overlay.onclick = (e) => { if (e.target === overlay) close(); };
+        }
+        document.getElementById('ep-preview-body').innerHTML = html;
+        return overlay;
+    }
+
     // We use event delegation with capture phase to beat FreshRSS AJAX
     document.addEventListener('click', function(e) {
         console.log('[EinkPush] Click detected in capture phase. Target:', e.target);
         
         try {
+            const wrapper = e.target.closest('.ep-wrapper');
+            if (wrapper) {
+                // Regenerate Token
+                const regenBtn = e.target.closest('.ep-btn-regenerate');
+                if (regenBtn) {
+                    e.preventDefault();
+                    if (confirm('Are you sure? All existing API URLs will stop working.')) {
+                        window.location.href = regenBtn.href;
+                    }
+                    return;
+                }
+
+                // Test Connection
+                const testBtn = e.target.closest('.ep-btn-test');
+                if (testBtn) {
+                    e.preventDefault();
+                    const orig = showLoading(testBtn);
+                    fetch(testBtn.href)
+                        .then(r => r.text())
+                        .then(() => window.location.reload())
+                        .catch(err => {
+                            alert('Test failed: ' + err.message);
+                            hideLoading(testBtn, orig);
+                        });
+                    return;
+                }
+
+                // Preview
+                const previewBtn = e.target.closest('.ep-btn-preview');
+                if (previewBtn) {
+                    e.preventDefault();
+                    const orig = showLoading(previewBtn);
+                    fetch(previewBtn.href)
+                        .then(r => r.text())
+                        .then(html => {
+                            showPreview(html);
+                            hideLoading(previewBtn, orig);
+                        })
+                        .catch(err => {
+                            alert('Preview failed: ' + err.message);
+                            hideLoading(previewBtn, orig);
+                        });
+                    return;
+                }
+
+                // Intercept "Push All" for progress bar
+                const pushAllBtn = e.target.closest('a[href*="a=push"][href*="EinkPush"]');
+                if (pushAllBtn && !pushAllBtn.href.includes('source=')) {
+                    e.preventDefault();
+                    const orig = showLoading(pushAllBtn);
+                    
+                    const sources = Array.from(document.querySelectorAll('.ep-source-item'))
+                        .filter(item => item.querySelector('input[type="checkbox"]:checked'))
+                        .map(item => {
+                            const dlLink = item.querySelector('a[href*="a=generate"][href*="source="]');
+                            if (!dlLink) return null;
+                            const match = dlLink.href.match(/source=([^&]+)/);
+                            return match ? match[1] : null;
+                        })
+                        .filter(s => s !== null);
+
+                    if (sources.length === 0) {
+                        alert('No sources enabled.');
+                        hideLoading(pushAllBtn, orig);
+                        return;
+                    }
+
+                    showProgress(sources.length);
+                    let completed = 0;
+
+                    const processNext = () => {
+                        if (completed >= sources.length) {
+                            updateProgress(sources.length, sources.length, 'Finished!');
+                            setTimeout(() => window.location.reload(), 1500);
+                            return;
+                        }
+
+                        const source = sources[completed];
+                        updateProgress(completed, sources.length, 'Pushing ' + source + '...');
+                        
+                        // Use pushSingleAction for each
+                        const url = pushAllBtn.href.replace('a=push', 'a=pushSingle') + '&source=' + encodeURIComponent(source);
+                        
+                        fetch(url)
+                            .then(() => {
+                                completed++;
+                                processNext();
+                            })
+                            .catch(err => {
+                                updateProgress(completed, sources.length, 'Error: ' + err.message);
+                                setTimeout(() => window.location.reload(), 3000);
+                            });
+                    };
+
+                    processNext();
+                    return;
+                }
+            }
+
             // Intercept "Download all enabled"
             const dlAllBtn = e.target.closest('a[href*="a=generate"]:not([href*="source="])');
             if (dlAllBtn) {
@@ -228,6 +384,15 @@
                         });
                 }
                 return;
+            // Cron Helper
+            const cronHelper = e.target.closest('#ep-cron-helper');
+            if (cronHelper) {
+                cronHelper.onchange = () => {
+                    const input = document.getElementById('ep-push-cron');
+                    if (input && cronHelper.value) {
+                        input.value = cronHelper.value;
+                    }
+                };
             }
         } catch (err) {
             console.error('[EinkPush] Error in click handler:', err);
@@ -283,6 +448,23 @@
                 tabBtn.click();
             }
         }
+    }
+
+    // History Auto-refresh
+    let historyInterval = null;
+    function startHistoryRefresh() {
+        if (historyInterval) return;
+        historyInterval = setInterval(() => {
+            const historyTab = document.querySelector('.ep-nav-item[data-target="history"].active');
+            if (historyTab) {
+                console.log('[EinkPush] Refreshing history...');
+                // We can't easily refresh just the history div without a dedicated endpoint,
+                // but we can reload the page if the user is idle.
+                // For now, let's just refresh the whole page if history is active and user is not interacting.
+                // A better way would be a fetch to a history-only endpoint.
+                // Let's stick to manual refresh or a small fetch if we add the endpoint.
+            }
+        }, 30000);
     }
 
     // Run on initial load

@@ -364,7 +364,25 @@ body.theme-dark .ep-footer {
     box-sizing: border-box !important;
 }
 
-.ep-mb-15 { margin-bottom: 15px !important; }
+.ep-select-small {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    border: 1px solid var(--ep-border);
+    background: var(--ep-bg-card);
+    color: var(--ep-text);
+    border-radius: 0;
+}
+.ep-history-status-hint {
+    font-size: 0.7rem;
+    color: var(--ep-text-muted);
+    margin-right: auto;
+    opacity: 0.7;
+}
+.ep-btn-test { border-color: var(--ep-primary) !important; color: var(--ep-primary) !important; }
+.ep-btn-test:hover { background: rgba(0,98,255,0.1) !important; }
+.ep-btn-preview { border-color: #f27d26 !important; color: #f27d26 !important; }
+.ep-btn-preview:hover { background: rgba(242,125,38,0.1) !important; }
+
 .ep-mb-20 { margin-bottom: 20px !important; }
 .ep-mt-10 { margin-top: 10px !important; }
 .ep-flex-center-gap-8 { display: flex !important; align-items: center !important; gap: 8px !important; }
@@ -393,10 +411,87 @@ body.theme-dark .ep-footer {
     margin-right: 8px !important;
     vertical-align: middle !important;
 }
-@keyframes ep-spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+/* Preview Modal */
+.ep-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
 }
+.ep-modal {
+    background: var(--ep-bg-card-solid);
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+.ep-modal-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--ep-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.ep-modal-header h3 { margin: 0; font-size: 1.1rem; }
+.ep-modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+    line-height: 1.6;
+}
+.ep-modal-body h2 { border: none !important; margin-top: 0 !important; }
+.ep-modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid var(--ep-border);
+    text-align: right;
+}
+
+/* Progress Dashboard */
+.ep-progress-overlay {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 300px;
+    background: var(--ep-bg-card-solid);
+    border: 1px solid var(--ep-primary);
+    border-radius: 8px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+    z-index: 1500;
+    padding: 15px;
+}
+.ep-progress-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+.ep-progress-bar-bg {
+    height: 8px;
+    background: var(--ep-bg-hover);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+.ep-progress-bar-fill {
+    height: 100%;
+    background: var(--ep-primary);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+.ep-progress-status {
+    font-size: 0.8rem;
+    color: var(--ep-text-muted);
+}
+.ep-progress-close { cursor: pointer; opacity: 0.6; }
+.ep-progress-close:hover { opacity: 1; }
+
 
 
 

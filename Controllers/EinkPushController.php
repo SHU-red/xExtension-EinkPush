@@ -154,6 +154,81 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         Minz_Request::good(_t('ext.msg_history_cleared'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
     }
 
+    public function regenerateTokenAction(): void {
+        $conf = FreshRSS_Context::$user_conf;
+        if ($conf) {
+            $conf->EinkPush_push_token = bin2hex(random_bytes(16));
+            $conf->save();
+            Minz_Request::good(_t('ext.api_regenerate'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+        }
+    }
+
+    public function testEndpointAction(): void {
+        $conf = $this->extension->getConfig();
+        $endpoint = $conf['push_endpoint'];
+        
+        if (empty($endpoint)) {
+            Minz_Request::bad(_t('ext.error_no_endpoint'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+        }
+
+        // Create a dummy EPUB for testing
+        $testPath = $this->extension->getEpubDir() . 'test_connection.epub';
+        file_put_contents($testPath, 'Test EPUB content');
+
+        if ($this->helper->pushToEndpoint($testPath, $endpoint, 1, 1, 'Connection Test')) {
+            Minz_Request::good(_t('ext.push_test_sent'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+        } else {
+            Minz_Request::bad(_t('ext.push_test_failed', 'Check logs'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+        }
+        @unlink($testPath);
+    }
+
+    public function previewAction(): void {
+        $sourceKey = Minz_Request::param('source');
+        $conf = $this->extension->getConfig();
+        $srcCfg = $this->getSourceConfig($sourceKey, $conf);
+        
+        if (!$srcCfg) {
+            echo 'Invalid source';
+            exit;
+        }
+
+        require_once $this->extension->getPath() . '/FreshExtension_EinkPush_Helper.php';
+        $entries = $this->helper->collectForSource($sourceKey, 30, false);
+        
+        if (empty($entries)) {
+            echo 'No articles found in this source.';
+            exit;
+        }
+
+        $entry = $entries[0];
+        $content = $entry->content(true);
+        $title = $entry->title();
+        $url = method_exists($entry, 'link') ? $entry->link() : '';
+
+        $fetchResult = null;
+        if ($srcCfg['fetchContent'] && !empty($conf['readability_url'])) {
+            $fetchResult = $this->helper->fetchViaReadability($url);
+            if ($fetchResult['ok']) {
+                $content = $fetchResult['html'];
+            }
+        }
+
+        $html = '<h2>' . htmlspecialchars($title) . '</h2>';
+        if ($fetchResult && !$fetchResult['ok']) {
+            $html .= '<div style="background:#fee;padding:10px;border:1px solid #f99;margin-bottom:15px;">';
+            $html .= '<strong>Readability Error:</strong> ' . htmlspecialchars($fetchResult['error']);
+            if (!empty($fetchResult['debug'])) {
+                $html .= '<br><small>' . htmlspecialchars($fetchResult['debug']) . '</small>';
+            }
+            $html .= '</div>';
+        }
+        $html .= '<div class="preview-content">' . $content . '</div>';
+        
+        echo $html;
+        exit;
+    }
+
     public function apiAction(): void {
         $token = Minz_Request::param('token');
         $conf = $this->extension->getConfig();

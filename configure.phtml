@@ -84,7 +84,10 @@ $history = $helper->getHistory();
             <div class="ep-card-form">
                 <div class="ep-form-group">
                     <label><?= _t('ext.push_endpoint') ?></label>
-                    <input type="url" name="push_endpoint" value="<?= htmlspecialchars($cfg['push_endpoint'] ?: 'http://crosspoint.local/upload?path=/RSSFeeds', ENT_QUOTES) ?>" placeholder="http://crosspoint.local/upload?path=/RSSFeeds">
+                    <div class="ep-flex-center-gap-8">
+                        <input type="url" name="push_endpoint" value="<?= htmlspecialchars($cfg['push_endpoint'] ?: 'http://crosspoint.local/upload?path=/RSSFeeds', ENT_QUOTES) ?>" placeholder="http://crosspoint.local/upload?path=/RSSFeeds" style="flex:1;">
+                        <a href="<?= _url('EinkPush', 'testEndpoint') ?>" class="ep-btn ep-btn-test"><?= _t('ext.push_test') ?></a>
+                    </div>
                     <p class="help"><?= _t('ext.push_endpoint_help') ?></p>
                 </div>
                 
@@ -102,7 +105,17 @@ $history = $helper->getHistory();
 
                     <div class="ep-form-group">
                         <label><?= _t('ext.push_cron') ?></label>
-                        <input type="text" name="push_cron" value="<?= htmlspecialchars($cfg['push_cron'] ?? '0 6 * * *', ENT_QUOTES) ?>">
+                        <div class="ep-flex-center-gap-8">
+                            <input type="text" name="push_cron" id="ep-push-cron" value="<?= htmlspecialchars($cfg['push_cron'] ?? '0 6 * * *', ENT_QUOTES) ?>" style="flex:1;">
+                            <select id="ep-cron-helper" class="ep-select-small">
+                                <option value=""><?= _t('ext.push_cron_helper_select') ?: '-- Quick Select --' ?></option>
+                                <option value="0 6 * * *">Daily at 06:00</option>
+                                <option value="0 7 * * *">Daily at 07:00</option>
+                                <option value="0 8 * * *">Daily at 08:00</option>
+                                <option value="0 */6 * * *">Every 6 hours</option>
+                                <option value="0 0 * * 1">Weekly (Mon 00:00)</option>
+                            </select>
+                        </div>
                         <p class="help"><?= _t('ext.push_cron_help') ?></p>
                     </div>
                 </div>
@@ -125,6 +138,7 @@ $history = $helper->getHistory();
                         <input type="text" readonly value="<?= htmlspecialchars($fullUrl, ENT_QUOTES) ?>" class="ep-cron-cmd-input">
                     </div>
                     <p class="help"><?= _t('ext.api_url_help') ?></p>
+                    <a href="<?= _url('EinkPush', 'regenerateToken') ?>" class="ep-btn ep-btn-danger ep-mt-10 ep-btn-regenerate"><?= _t('ext.api_regenerate') ?></a>
                 </div>
 
                 <div class="ep-experimental-section">
@@ -189,6 +203,7 @@ $history = $helper->getHistory();
                     </div>
                 <?php else: ?>
                     <div class="ep-history-actions">
+                        <span class="ep-history-status-hint">🔄 Auto-refreshing...</span>
                         <a href="<?= _url('EinkPush', 'clearHistory') ?>" class="ep-btn ep-btn-danger"><?= _t('ext.history_clear') ?></a>
                     </div>
                     <div class="ep-history-list">
@@ -229,6 +244,9 @@ function renderSourceItem($key, $name, $cfg, $isFav) {
                 <span class="ep-source-name"><?= htmlspecialchars($name) ?></span>
             </div>
             <div class="ep-source-actions">
+                <a class="ep-btn ep-btn-preview" href="<?= _url('EinkPush', 'preview', 'source', $key) ?>" title="<?= _t('ext.card_preview') ?>">
+                    <span>👁️</span>
+                </a>
                 <a class="ep-btn" href="<?= _url('EinkPush', 'generate', 'source', $key) ?>">
                     <span>📥</span> <?= _t('ext.card_download') ?>
                 </a>

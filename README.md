@@ -30,5 +30,22 @@ EinkPush turns your FreshRSS feeds into beautifully formatted EPUB files, optimi
 3.  **Configure**: Click the **📱 EinkPush** button in your sidebar to set your screen size and select your content.
 4.  **Read**: Download your EPUBs or set up an endpoint for automatic delivery.
 
+## 🛠️ Development & Releases
+
+This project uses a structured versioning and release system.
+
+### Versioning
+Versions are defined consistently across:
+- `metadata.json` (FreshRSS requirement)
+- `extension.php` (`VERSION` constant)
+- `CHANGELOG.md` (Release notes)
+
+### How to Release
+1.  **Update Version**: Update the version number in `metadata.json` and `extension.php`.
+2.  **Update Changelog**: Add the new version entry to `CHANGELOG.md`.
+3.  **Run Release Script**: Run `php scripts/release.php` to verify consistency and create a local zip package.
+4.  **GitHub Release**: Push a tag starting with `v` (e.g., `git tag v1.1.0 && git push origin v1.1.0`).
+    - A GitHub Action will automatically create a release, attach the changelog, and upload the extension zip.
+
 ---
 *Vibe-coded with AI. Built to solve a daily reading workflow.*

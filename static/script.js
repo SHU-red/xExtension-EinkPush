@@ -1,39 +1,236 @@
 (function() {
+    console.log('[EinkPush] Script loaded and initialized');
     if (window._epScriptLoaded) return;
     window._epScriptLoaded = true;
 
-    // We use event delegation because the DOM might be replaced via AJAX
-    document.addEventListener('click', function(e) {
-        // Intercept "Download all enabled"
-        const dlAllBtn = e.target.closest('a[href*="a=generate"]:not([href*="source="])');
-        if (dlAllBtn) {
-            e.preventDefault();
-            const enabledSources = document.querySelectorAll('input[name^="sources["][name$="][enabled]"]:checked');
-            if (enabledSources.length === 0) {
-                alert('No sources are currently enabled.');
-                return;
-            }
-            
-            let delay = 0;
-            enabledSources.forEach(input => {
-                const match = input.name.match(/sources\[(.*?)\]/);
-                if (match && match[1]) {
-                    const sourceKey = match[1];
-                    // Add &silent=1 to avoid redirects when no articles are found
-                    const url = dlAllBtn.href + '&source=' + encodeURIComponent(sourceKey) + '&silent=1';
-                    setTimeout(() => {
-                        console.log('[EinkPush] Triggering download for: ' + sourceKey);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.style.display = 'none';
-                        document.body.appendChild(a);
-                        a.click();
-                        setTimeout(() => a.remove(), 2000);
-                    }, delay);
-                    delay += 2000; // 2 second delay between downloads
+    function showLoading(btn) {
+        console.log('[EinkPush] showLoading called on button', btn);
+        if (!btn) return null;
+        if (btn.classList.contains('ep-loading')) return null;
+        
+        const rect = btn.getBoundingClientRect();
+        const originalHtml = btn.innerHTML;
+        const originalWidth = btn.style.width;
+        const originalHeight = btn.style.height;
+        
+        // Lock dimensions to prevent shape change
+        btn.style.width = rect.width + 'px';
+        btn.style.height = rect.height + 'px';
+        
+        btn.classList.add('ep-loading');
+        btn.innerHTML = '<span class="ep-spinner-inline"></span>';
+        
+        return { html: originalHtml, width: originalWidth, height: originalHeight };
+    }
+
+    function hideLoading(btn, originalState) {
+        if (!btn) return;
+        btn.classList.remove('ep-loading');
+        btn.style.pointerEvents = 'auto';
+        btn.style.opacity = '1';
+        if (originalState) {
+            btn.innerHTML = originalState.html;
+            btn.style.width = originalState.width;
+            btn.style.height = originalState.height;
+        }
+    }
+
+    function pollCookie(expectedSources = [], btn = null, originalState = null) {
+        console.log('[EinkPush] Polling cookies for:', expectedSources);
+        
+        // Check for error cookie first
+        const errorMatch = document.cookie.match(/ep_dl_error=([^;]+)/);
+        if (errorMatch) {
+            console.error('[EinkPush] Download error:', decodeURIComponent(errorMatch[1]));
+            document.cookie = 'ep_dl_error=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            hideLoading(btn, originalState);
+            alert('EinkPush Error:\n\n' + decodeURIComponent(errorMatch[1]));
+            return;
+        }
+
+        if (expectedSources.length > 0) {
+            let allDone = true;
+            expectedSources.forEach(src => {
+                if (document.cookie.indexOf('ep_dl_' + src + '=1') === -1) {
+                    allDone = false;
                 }
             });
-            return;
+            if (allDone) {
+                console.log('[EinkPush] All downloads complete');
+                expectedSources.forEach(src => {
+                    document.cookie = 'ep_dl_' + src + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                });
+                hideLoading(btn, originalState);
+            } else {
+                setTimeout(() => pollCookie(expectedSources, btn, originalState), 1000);
+            }
+        } else {
+            if (document.cookie.indexOf('ep_dl_complete=1') !== -1) {
+                console.log('[EinkPush] Single download complete');
+                document.cookie = 'ep_dl_complete=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                hideLoading(btn, originalState);
+            } else {
+                setTimeout(() => pollCookie([], btn, originalState), 1000);
+            }
+        }
+    }
+
+    // We use event delegation with capture phase to beat FreshRSS AJAX
+    document.addEventListener('click', function(e) {
+        console.log('[EinkPush] Click detected in capture phase. Target:', e.target);
+        
+        try {
+            // Intercept "Download all enabled"
+            const dlAllBtn = e.target.closest('a[href*="a=generate"]:not([href*="source="])');
+            if (dlAllBtn) {
+                console.log('[EinkPush] Download All clicked:', dlAllBtn.href);
+                e.preventDefault();
+                e.stopPropagation();
+                const enabledSources = document.querySelectorAll('input[name^="sources["][name$="][enabled]"]:checked');
+                if (enabledSources.length === 0) {
+                    alert('No sources are currently enabled.');
+                    return;
+                }
+                
+                const origState = showLoading(dlAllBtn);
+                
+                let expectedSources = [];
+                enabledSources.forEach(input => {
+                    const match = input.name.match(/sources\[(.*?)\]/);
+                    if (match && match[1]) {
+                        expectedSources.push(match[1]);
+                    }
+                });
+
+                console.log('[EinkPush] Expected sources:', expectedSources);
+
+                (async () => {
+                    try {
+                        let dirHandle = null;
+                        if ('showDirectoryPicker' in window) {
+                            try {
+                                dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                            } catch (err) {
+                                console.log('[EinkPush] Directory picker cancelled or failed', err);
+                                hideLoading(dlAllBtn, origState);
+                                return;
+                            }
+                        }
+
+                        if (dirHandle) {
+                            // Modern approach: fetch each file and save to directory
+                            let downloadedCount = 0;
+                            for (const sourceKey of expectedSources) {
+                                const url = dlAllBtn.href + '&source=' + encodeURIComponent(sourceKey) + '&silent=1';
+                                console.log('[EinkPush] Fetching download for: ' + sourceKey);
+                                const response = await fetch(url);
+                                if (response.status === 204) {
+                                    console.log('[EinkPush] No content for: ' + sourceKey);
+                                    continue; // No articles
+                                }
+                                if (!response.ok) throw new Error('Network response was not ok');
+                                
+                                const blob = await response.blob();
+                                const contentDisposition = response.headers.get('Content-Disposition');
+                                let filename = sourceKey + '.epub';
+                                if (contentDisposition) {
+                                    const match = contentDisposition.match(/filename="([^"]+)"/);
+                                    if (match) filename = match[1];
+                                }
+                                
+                                const fileHandle = await dirHandle.getFileHandle(filename, { create: true });
+                                const writable = await fileHandle.createWritable();
+                                await writable.write(blob);
+                                await writable.close();
+                                console.log('[EinkPush] Saved: ' + filename);
+                                downloadedCount++;
+                            }
+                            hideLoading(dlAllBtn, origState);
+                            if (downloadedCount > 0) {
+                                alert('Successfully saved ' + downloadedCount + ' EPUB(s) to the selected folder.');
+                            } else {
+                                alert('No new articles found to download.');
+                            }
+                        } else {
+                            // Fallback approach: iframes
+                            // Clear existing cookies for these sources to avoid immediate poll exit
+                            expectedSources.forEach(src => {
+                                document.cookie = 'ep_dl_' + src + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                            });
+                            document.cookie = 'ep_dl_complete=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+
+                            let delay = 0;
+                            expectedSources.forEach(sourceKey => {
+                                const url = dlAllBtn.href + '&source=' + encodeURIComponent(sourceKey) + '&silent=1';
+                                setTimeout(() => {
+                                    console.log('[EinkPush] Triggering download for: ' + sourceKey + ' via URL: ' + url);
+                                    const iframe = document.createElement('iframe');
+                                    iframe.className = 'ep-hidden';
+                                    iframe.src = url;
+                                    document.body.appendChild(iframe);
+                                    setTimeout(() => iframe.remove(), 120000); // 2 minutes timeout
+                                }, delay);
+                                delay += 1500;
+                            });
+                            pollCookie(expectedSources, dlAllBtn, origState);
+                            
+                            // Fallback timeout in case some downloads fail silently
+                            setTimeout(() => {
+                                console.log('[EinkPush] Fallback timeout reached');
+                                hideLoading(dlAllBtn, origState);
+                            }, 120000); // 2 minutes timeout
+                        }
+                    } catch (err) {
+                        console.error('[EinkPush] Error during Download All:', err);
+                        hideLoading(dlAllBtn, origState);
+                        alert('An error occurred during download: ' + err.message);
+                    }
+                })();
+                
+                return;
+            }
+
+            // Intercept single download or push
+            const actionBtn = e.target.closest('a[href*="a=generate"][href*="source="], a[href*="a=push"]');
+            if (actionBtn) {
+                console.log('[EinkPush] Single action intercepted:', actionBtn.href);
+                e.preventDefault();
+                e.stopPropagation(); // Stop FreshRSS from hijacking
+                const origHtml = showLoading(actionBtn);
+                
+                // Force a reflow so the browser paints the spinner immediately
+                void actionBtn.offsetWidth;
+                
+                if (actionBtn.href.includes('a=generate')) {
+                    console.log('[EinkPush] Single download mode');
+                    // Clear cookie before polling
+                    document.cookie = 'ep_dl_complete=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                    pollCookie([], actionBtn, origHtml);
+                    
+                    // Trigger download via hidden iframe
+                    const iframe = document.createElement('iframe');
+                    iframe.className = 'ep-hidden';
+                    iframe.src = actionBtn.href + '&silent=1';
+                    document.body.appendChild(iframe);
+                    setTimeout(() => iframe.remove(), 120000); // 2 minutes timeout
+                } else {
+                    console.log('[EinkPush] Push mode, fetching in background');
+                    // For push, use fetch so the page doesn't navigate and the spinner keeps spinning
+                    fetch(actionBtn.href)
+                        .then(response => {
+                            console.log('[EinkPush] Push fetch complete, reloading page to show notification');
+                            window.location.reload();
+                        })
+                        .catch(err => {
+                            console.error('[EinkPush] Push fetch failed:', err);
+                            hideLoading(actionBtn, origHtml);
+                            alert('Push failed: ' + err.message);
+                        });
+                }
+                return;
+            }
+        } catch (err) {
+            console.error('[EinkPush] Error in click handler:', err);
         }
 
         // Tab Switching
@@ -75,7 +272,7 @@
         if (e.target.classList.contains('ep-cron-cmd-input')) {
             e.target.select();
         }
-    });
+    }, true); // USE CAPTURE PHASE
 
     // Restore active tab on load/ajax-load
     function restoreTab() {

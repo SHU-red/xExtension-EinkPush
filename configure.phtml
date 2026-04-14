@@ -22,7 +22,7 @@ $history = $helper->getHistory();
     <!-- Header -->
     <header class="ep-header">
         <div class="ep-header-info">
-            <h2><?= _t('ext.title') ?></h2>
+            <h2><?= _t('ext.title') ?> <span class="ep-version"><?= _t('ext.version') ?> <?= $this::VERSION ?></span></h2>
             <p><?= _t('ext.description') ?></p>
         </div>
         <div class="ep-quick-actions">
@@ -90,7 +90,7 @@ $history = $helper->getHistory();
                 
                 <div class="ep-experimental-section">
                     <h3 class="ep-experimental-title">🧪 <?= _t('ext.push_experimental_title') ?></h3>
-                    <p class="help" style="margin-bottom: 15px;"><?= _t('ext.push_experimental_desc') ?></p>
+                    <p class="help ep-mb-15"><?= _t('ext.push_experimental_desc') ?></p>
                     
                     <div class="ep-form-group">
                         <label><?= _t('ext.push_cron_cmd') ?></label>
@@ -112,7 +112,7 @@ $history = $helper->getHistory();
         <!-- REST API Section -->
         <div id="api" class="ep-section">
             <div class="ep-card-form">
-                <p class="help" style="margin-bottom: 20px;"><?= _t('ext.api_help') ?></p>
+                <p class="help ep-mb-20"><?= _t('ext.api_help') ?></p>
                 
                 <?php 
                 $apiUrl = Minz_Url::display(['c' => 'EinkPush', 'a' => 'api'], 'php', true);
@@ -129,7 +129,7 @@ $history = $helper->getHistory();
 
                 <div class="ep-experimental-section">
                     <h3 class="ep-experimental-title">🛠️ <?= _t('ext.api_examples') ?></h3>
-                    <div style="font-size: 0.8rem; color: var(--ep-text-muted); line-height: 1.6;">
+                    <div class="ep-api-examples">
                         <p><strong>Push all enabled sources:</strong><br>
                         <code>...&action=push&source=all</code></p>
                         
@@ -169,10 +169,10 @@ $history = $helper->getHistory();
                     <input type="url" name="readability_url" value="<?= htmlspecialchars($cfg['readability_url'] ?? '', ENT_QUOTES) ?>" placeholder="https://readability.example.com">
                     <p class="help"><?= _t('ext.readability_url_help') ?></p>
                 </div>
-                <div class="ep-form-group" style="margin-top: 10px;">
-                    <label class="ep-checkbox-group" style="display: flex; align-items: center; gap: 8px;">
+                <div class="ep-form-group ep-mt-10">
+                    <label class="ep-checkbox-group ep-flex-center-gap-8">
                         <input type="checkbox" name="showSidebarButton" value="1" <?= !empty($cfg['showSidebarButton']) ? 'checked' : '' ?>>
-                        <span style="font-weight: 700; font-size: 0.8rem;"><?= _t('ext.show_sidebar_button') ?></span>
+                        <span class="ep-label-bold-small"><?= _t('ext.show_sidebar_button') ?></span>
                     </label>
                     <p class="help"><?= _t('ext.show_sidebar_button_help') ?></p>
                 </div>

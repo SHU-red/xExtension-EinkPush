@@ -45,13 +45,13 @@ class EinkPushHelper {
             $fetchContent = !empty($srcCfg['fetchContent']);
             $maxArticles = (int) ($srcCfg['maxArticles'] ?? 0);
             $addTimestamp = !empty($srcCfg['addTimestamp']);
-            $entries = $this->collectForSource($key, $historyDays, $unreadOnly, $maxArticles);
+            $entries = $this->collectForSource($key, $historyDays, $unreadOnly);
             if (empty($entries)) {
                 continue;
             }
             $label = $this->sourceLabel($key);
             $entryIds = array_map(function($entry) { return $entry->id(); }, $entries);
-            $path = $this->buildEpub($key, $label, $entries, $markAsRead, $fetchContent, $addTimestamp);
+            try { $path = $this->buildEpub($key, $label, $entries, $markAsRead, $fetchContent, $addTimestamp, $maxArticles); } catch (Exception $e) { throw new Exception("Source '{$label}': " . $e->getMessage()); }
             
             // Handle remove from favorites if enabled and this is the favorites source
             if ($key === 'favorites' && !empty($srcCfg['removeFromFavorites'])) {
@@ -86,13 +86,13 @@ class EinkPushHelper {
         $markAsRead = !empty($srcCfg['markAsRead']);
         $fetchContent = !empty($srcCfg['fetchContent']);
         $maxArticles = (int) ($srcCfg['maxArticles'] ?? 0);
-        $entries = $this->collectForSource($key, $historyDays, $unreadOnly, $maxArticles);
+        $entries = $this->collectForSource($key, $historyDays, $unreadOnly);
         if (empty($entries)) {
             return null;
         }
         
         $entryIds = array_map(function($entry) { return $entry->id(); }, $entries);
-        $path = $this->buildEpub($key, $label, $entries, $markAsRead, $fetchContent, $addTimestamp);
+        $path = $this->buildEpub($key, $label, $entries, $markAsRead, $fetchContent, $addTimestamp, $maxArticles);
         
         // Handle remove from favorites if enabled and this is the favorites source
         if ($key === 'favorites' && !empty($srcCfg['removeFromFavorites'])) {
@@ -146,9 +146,10 @@ class EinkPushHelper {
                 $success = true;
                 break;
             }
+            $lastError = curl_error($ch);
         }
 
-        $this->logPush($sourceName, $success, $success ? 'HTTP ' . $httpCode : 'Failed after retries (Last: ' . $httpCode . ')');
+        $this->logPush($sourceName, $success, $success ? 'HTTP ' . $httpCode : 'Failed after retries (Last: ' . $httpCode . ($lastError ? ' - ' . $lastError : '') . ')');
         return $success;
     }
     /**
@@ -183,7 +184,7 @@ class EinkPushHelper {
 
     // ── private helpers ─────────────────────────────────────────────
 
-    private function collectForSource(string $sourceKey, int $historyDays, bool $unreadOnly, int $maxArticles = 0): array {
+    private function collectForSource(string $sourceKey, int $historyDays, bool $unreadOnly): array {
         $entryDAO = FreshRSS_Factory::createEntryDao();
         $limit = 500;
         $idMin = '';
@@ -235,7 +236,7 @@ class EinkPushHelper {
         return $entries;
     }
 
-    private function buildEpub(string $sourceKey, string $label, array $entries, bool $markAsRead, bool $fetchContent = false, bool $addTimestamp = true): ?string {
+    private function buildEpub(string $sourceKey, string $label, array $entries, bool $markAsRead, bool $fetchContent = false, bool $addTimestamp = true, int $maxArticles = 0): ?string {
         $safeName = $this->sanitizeFilename($label);
         $filename = $addTimestamp ? $safeName . '_' . date('Ymd_His') . '.epub' : $safeName . '.epub';
         $fullPath = $this->outputDir . $filename;
@@ -253,8 +254,12 @@ class EinkPushHelper {
         $chapters = [];
         $chapterIndex = 0;
         $feedDAOCache = null;
+        $includedCount = 0;
 
         foreach ($entries as $entry) {
+            if ($maxArticles > 0 && $includedCount >= $maxArticles) {
+                break;
+            }
             $chapterIndex++;
             $rawTitle = $entry->title();
             $safeTitle = htmlspecialchars($rawTitle, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -265,6 +270,7 @@ class EinkPushHelper {
             // If fetch-full-content is enabled and stored content is short, fetch via readability API
             $fetchError = '';
             $fetchDebug = '';
+            $fetchSkipped = false;
             if ($fetchContent && $this->readabilityUrl !== '') {
                 $textLength = mb_strlen(strip_tags($rawContent));
                 if ($textLength < 1000) {
@@ -278,8 +284,9 @@ class EinkPushHelper {
                         if ($isGoogleNews && !$wasResolved) {
                             // Google News encrypted URL — readability can't fetch it either
                             $this->fetchFailCount++;
-                            $fetchError = 'Google News uses encrypted article links that cannot be resolved server-side. The RSS summary is shown instead.';
-                            error_log('[EinkPush] Skipping readability for unresolvable Google News URL: ' . $url);
+                            $fetchError = 'Google News uses encrypted article links that cannot be resolved server-side.';
+                            $fetchSkipped = true;
+                            error_log('[EinkPush] Skipping article due to unresolvable Google News URL: ' . $url);
                         } else {
                             if ($wasResolved) {
                                 error_log('[EinkPush] Resolved redirect: ' . $url . ' → ' . $resolvedUrl);
@@ -292,7 +299,8 @@ class EinkPushHelper {
                                 $this->fetchFailCount++;
                                 $fetchError = $result['error'];
                                 $fetchDebug = $result['debug'] ?? '';
-                                error_log('[EinkPush] Readability failed for: ' . $resolvedUrl . ' — ' . $fetchError);
+                                $fetchSkipped = false;
+                                throw new Exception('Readability API failed for "' . $rawTitle . '": ' . $fetchError);
                             }
                         }
                     }
@@ -302,8 +310,16 @@ class EinkPushHelper {
                     error_log('[EinkPush] Fetch content is enabled but no Readability API URL configured');
                 }
                 $fetchError = 'No Readability API URL configured in extension settings.';
+                throw new Exception('Readability API URL is not configured, but "Extract full article text" is enabled.');
             }
 
+            // If fetch failed and we are skipping, log it and continue to next article
+            if ($fetchSkipped) {
+                $this->logInfo(_t('ext.log_skipped_fetch', $rawTitle));
+                continue;
+            }
+
+            $includedCount++;
             $bodyXhtml = $this->htmlToXhtml($rawContent);
 
             // Build fetch-error banner to show in the EPUB article
@@ -367,7 +383,9 @@ class EinkPushHelper {
         }
 
         $zip = new ZipArchive();
-        if ($zip->open($fullPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+        $zipRes = $zip->open($fullPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+        if ($zipRes !== true) {
+            error_log('[EinkPush] Failed to create EPUB zip at ' . $fullPath . '. Error code: ' . $zipRes);
             return null;
         }
 
@@ -880,6 +898,14 @@ CSS;
     }
 
     private function logPush(string $source, bool $success, string $message): void {
+        $this->addLogEntry($source, $success, $message);
+    }
+
+    private function logInfo(string $message): void {
+        $this->addLogEntry('System', true, $message);
+    }
+
+    private function addLogEntry(string $source, bool $success, string $message): void {
         $logFile = $this->outputDir . 'push_history.json';
         $history = [];
         if (file_exists($logFile)) {
@@ -890,11 +916,20 @@ CSS;
             'time'    => date('Y-m-d H:i:s'),
             'source'  => $source,
             'success' => $success,
-            'message' => $message
+            'message' => $message,
+            'ts'      => time()
         ]);
         
-        $history = array_slice($history, 0, 50);
-        file_put_contents($logFile, json_encode($history));
+        // State-of-the-art cleanup:
+        // 1. Limit to 100 entries (increased from 50)
+        // 2. Remove entries older than 14 days
+        $threshold = time() - (14 * 86400);
+        $history = array_filter($history, function($item) use ($threshold) {
+            return ($item['ts'] ?? time()) > $threshold;
+        });
+        
+        $history = array_slice($history, 0, 100);
+        file_put_contents($logFile, json_encode(array_values($history)));
     }
 
     public function getHistory(): array {

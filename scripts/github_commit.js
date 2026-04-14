@@ -81,7 +81,7 @@ async function run() {
             method: 'POST',
             headers,
             body: JSON.stringify({
-                message: 'Fix syntax error in script.js and bump version',
+                message: 'Fix metadata.json format for FreshRSS',
                 tree: treeData.sha,
                 parents: [latestCommitSha]
             })

@@ -9,8 +9,6 @@ $favDefaults = ['enabled' => false, 'historyDays' => 7, 'unreadOnly' => true, 'm
 $catDefaults = ['enabled' => false, 'historyDays' => 7, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 50];
 
 $ext = Minz_ExtensionManager::findExtension('EinkPush');
-$cronScript = $ext ? ($ext->getPath() . '/push_cron.php') : '';
-$cronCmd = ($cfg['push_cron'] ?? '0 6 * * *') . ' php ' . escapeshellarg($cronScript) . ' --user=' . escapeshellarg(Minz_User::name());
 
 // Load helper for history
 require_once $ext->getPath() . '/FreshExtension_EinkPush_Helper.php';
@@ -82,41 +80,41 @@ $history = $helper->getHistory();
         <!-- Push Settings Section -->
         <div id="push" class="ep-section">
             <div class="ep-card-form">
+                <div class="ep-section-header">
+                    <h3><?= _t('ext.push_auto_title') ?></h3>
+                    <a href="<?= _url('EinkPush', 'testEndpoint') ?>" class="ep-btn ep-btn-test"><?= _t('ext.push_test') ?></a>
+                </div>
+                <p class="ep-mb-20"><?= _t('ext.push_auto_desc') ?></p>
+
                 <div class="ep-form-group">
                     <label><?= _t('ext.push_endpoint') ?></label>
                     <div class="ep-flex-center-gap-8">
                         <input type="url" name="push_endpoint" value="<?= htmlspecialchars($cfg['push_endpoint'] ?: 'http://crosspoint.local/upload?path=/RSSFeeds', ENT_QUOTES) ?>" placeholder="http://crosspoint.local/upload?path=/RSSFeeds" style="flex:1;">
-                        <a href="<?= _url('EinkPush', 'testEndpoint') ?>" class="ep-btn ep-btn-test"><?= _t('ext.push_test') ?></a>
                     </div>
                     <p class="help"><?= _t('ext.push_endpoint_help') ?></p>
                 </div>
-                
-                <div class="ep-experimental-section">
-                    <h3 class="ep-experimental-title">🧪 <?= _t('ext.push_experimental_title') ?></h3>
-                    <p class="help ep-mb-15"><?= _t('ext.push_experimental_desc') ?></p>
-                    
-                    <div class="ep-form-group">
-                        <label><?= _t('ext.push_cron_cmd') ?></label>
-                        <div class="ep-cron-cmd-wrapper">
-                            <input type="text" readonly value="<?= htmlspecialchars($cronCmd, ENT_QUOTES) ?>" class="ep-cron-cmd-input">
-                        </div>
-                        <p class="help"><?= _t('ext.push_cron_cmd_help') ?></p>
-                    </div>
 
-                    <div class="ep-form-group">
-                        <label><?= _t('ext.push_cron') ?></label>
-                        <div class="ep-flex-center-gap-8">
-                            <input type="text" name="push_cron" id="ep-push-cron" value="<?= htmlspecialchars($cfg['push_cron'] ?? '0 6 * * *', ENT_QUOTES) ?>" style="flex:1;">
-                            <select id="ep-cron-helper" class="ep-select-small">
-                                <option value=""><?= _t('ext.push_cron_helper_select') ?: '-- Quick Select --' ?></option>
-                                <option value="0 6 * * *">Daily at 06:00</option>
-                                <option value="0 7 * * *">Daily at 07:00</option>
-                                <option value="0 8 * * *">Daily at 08:00</option>
-                                <option value="0 */6 * * *">Every 6 hours</option>
-                                <option value="0 0 * * 1">Weekly (Mon 00:00)</option>
-                            </select>
-                        </div>
-                        <p class="help"><?= _t('ext.push_cron_help') ?></p>
+                <div class="ep-flex-center-gap-8 ep-mb-15">
+                    <div class="ep-form-group" style="flex:1;">
+                        <label><?= _t('ext.push_ping_interval') ?></label>
+                        <input type="number" name="ping_interval" value="<?= (int)($cfg['ping_interval'] ?? 5) ?>" min="1">
+                        <p class="help"><?= _t('ext.push_ping_interval_help') ?></p>
+                    </div>
+                    <div class="ep-form-group" style="flex:1;">
+                        <label><?= _t('ext.push_cooldown') ?></label>
+                        <input type="number" name="push_cooldown" value="<?= (int)($cfg['push_cooldown'] ?? 20) ?>" min="1">
+                        <p class="help"><?= _t('ext.push_cooldown_help') ?></p>
+                    </div>
+                </div>
+
+                <div class="ep-flex-center-gap-8">
+                    <div class="ep-form-group" style="flex:1;">
+                        <label><?= _t('ext.push_retries') ?></label>
+                        <input type="number" name="push_retries" value="<?= (int)$cfg['push_retries'] ?>" min="0" max="20">
+                    </div>
+                    <div class="ep-form-group" style="flex:1;">
+                        <label><?= _t('ext.push_retryDelay') ?> (s)</label>
+                        <input type="number" name="push_retryDelay" value="<?= (int)$cfg['push_retryDelay'] ?>" min="1" max="300">
                     </div>
                 </div>
             </div>

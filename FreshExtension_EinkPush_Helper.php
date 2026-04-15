@@ -162,8 +162,9 @@ class EinkPushHelper {
 
     /**
      * Check if the device is online via /api/status
+     * Returns the response body (JSON) if online, false otherwise.
      */
-    public function checkDeviceStatus(string $endpoint): bool {
+    public function checkDeviceStatus(string $endpoint) {
         $parsed = parse_url($endpoint);
         if (!$parsed || !isset($parsed['host'])) return false;
         
@@ -183,7 +184,7 @@ class EinkPushHelper {
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
         
-        return ($httpCode === 200);
+        return ($httpCode === 200) ? $response : false;
     }
 
     /**

@@ -81,7 +81,7 @@ async function run() {
             method: 'POST',
             headers,
             body: JSON.stringify({
-                message: 'feat: Auto-Push (Device Status) & Auto-Directory Creation (v1.1.8)\n\n- Implemented device status pinging via /api/status\n- Added configurable ping interval and push cooldown\n- Automated remote directory creation via /mkdir\n- Replaced Cron scheduling with Auto-Push mechanism\n- Updated UI and translations for new features',
+                message: 'feat: Auto-Push Refinements & Sidebar "Push Now" Button\n\n- Added master enabler for auto-delivery\n- Displayed last auto-push timestamp in header\n- Integrated optional "Push Now" button in sidebar\n- Enhanced device status display with rich data from /api/status\n- Updated translations and styling for new UI elements',
                 tree: treeData.sha,
                 parents: [latestCommitSha]
             })

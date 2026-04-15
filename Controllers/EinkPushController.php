@@ -104,11 +104,17 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
     public function pushAction(): void {
         $conf = $this->extension->getConfig();
         $endpoint = $conf['push_endpoint'];
-        if (empty($endpoint)) Minz_Request::bad(_t('ext.error_no_endpoint'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+        $redirect = Minz_Request::param('r', '');
+        $target = ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']];
+        if ($redirect === 'main') {
+            $target = ['c' => 'index', 'a' => 'index'];
+        }
+
+        if (empty($endpoint)) Minz_Request::bad(_t('ext.error_no_endpoint'), $target);
 
         try {
             $paths = $this->helper->generateAll($conf['sources']);
-            if (empty($paths)) Minz_Request::good(_t('ext.msg_no_articles'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+            if (empty($paths)) Minz_Request::good(_t('ext.msg_no_articles'), $target);
 
             $success = 0; $failed = 0;
             foreach ($paths as $sourceKey => $path) {
@@ -117,10 +123,10 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
                 else $failed++;
             }
 
-            if ($failed === 0) Minz_Request::good(_t('ext.msg_push_success', $success), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
-            else Minz_Request::bad(_t('ext.msg_push_failed', $success, $failed), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+            if ($failed === 0) Minz_Request::good(_t('ext.msg_push_success', $success), $target);
+            else Minz_Request::bad(_t('ext.msg_push_failed', $success, $failed), $target);
         } catch (Exception $e) {
-            Minz_Request::bad($e->getMessage(), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+            Minz_Request::bad($e->getMessage(), $target);
         }
     }
 

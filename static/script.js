@@ -470,7 +470,9 @@
         
         const urlParams = new URLSearchParams(script.src.split('?')[1]);
         const showSidebar = urlParams.get('sb') === '1';
+        const showPushNow = urlParams.get('spn') === '1';
         const label = urlParams.get('l') ? decodeURIComponent(urlParams.get('l')) : '📖 EinkPush';
+        const pushNowLabel = urlParams.get('pn_l') ? decodeURIComponent(urlParams.get('pn_l')) : '🚀 Push Now';
         
         // Robust check: if explicitly false, remove and stop
         if (!showSidebar) {
@@ -483,7 +485,23 @@
         }
         
         // If already exists, stop
-        if (document.getElementById('ep-sidebar-btn-main')) return;
+        if (document.getElementById('ep-sidebar-btn-main')) {
+            // Check if we need to add/remove the second button
+            const container = document.getElementById('ep-sidebar-btn-main');
+            const existingPushNow = document.getElementById('ep-sidebar-push-now');
+            
+            if (showPushNow && !existingPushNow) {
+                const a = document.createElement('a');
+                a.id = 'ep-sidebar-push-now';
+                a.href = './?c=EinkPush&a=push&r=main';
+                a.className = 'btn ep-btn-push-now-orange ep-mt-5';
+                a.innerHTML = pushNowLabel;
+                container.appendChild(a);
+            } else if (!showPushNow && existingPushNow) {
+                existingPushNow.remove();
+            }
+            return;
+        }
 
         // Target the specific FreshRSS 1.28.1 sidebar structure
         const targetDiv = document.querySelector('.configure-feeds');
@@ -499,6 +517,16 @@
             a.innerHTML = label; 
             
             container.appendChild(a);
+
+            if (showPushNow) {
+                const aPush = document.createElement('a');
+                aPush.id = 'ep-sidebar-push-now';
+                aPush.href = './?c=EinkPush&a=push&r=main';
+                aPush.className = 'btn ep-btn-push-now-orange ep-mt-5';
+                aPush.innerHTML = pushNowLabel;
+                container.appendChild(aPush);
+            }
+
             targetDiv.parentNode.insertBefore(container, targetDiv.nextSibling);
             return;
         }
@@ -522,6 +550,16 @@
                 a.innerHTML = label; 
                 
                 li.appendChild(a);
+
+                if (showPushNow) {
+                    const aPush = document.createElement('a');
+                    aPush.id = 'ep-sidebar-push-now';
+                    aPush.href = './?c=EinkPush&a=push&r=main';
+                    aPush.className = 'btn ep-btn-push-now-orange ep-mt-5';
+                    aPush.innerHTML = pushNowLabel;
+                    li.appendChild(aPush);
+                }
+
                 parent.parentNode.insertBefore(li, parent.nextSibling);
             }
         }

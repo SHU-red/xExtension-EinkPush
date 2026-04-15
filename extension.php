@@ -14,13 +14,16 @@ class EinkPushExtension extends Minz_Extension {
 
         $showSidebarVal = ($conf && $conf->EinkPush_showSidebarButton !== null) ? (int)$conf->EinkPush_showSidebarButton : 1;
         $showSidebar = ($showSidebarVal !== 0) ? '1' : '0';
+        $showPushNow = ($conf && !empty($conf->EinkPush_show_push_now_button)) ? '1' : '0';
         
         $styleUrl = Minz_Url::display('/ext.php?f=xExtension-EinkPush/static/style.css', 'php');
         // Pass config via URL parameters to bypass strict CSP (Content Security Policy)
         $scriptUrl = Minz_Url::display('/ext.php?f=xExtension-EinkPush/static/script.js', 'php') . 
                      '&v=' . time() . 
                      '&sb=' . $showSidebar . 
-                     '&l=' . urlencode(_t('ext.sidebar_push_all'));
+                     '&spn=' . $showPushNow . 
+                     '&l=' . urlencode(_t('ext.sidebar_push_all')) .
+                     '&pn_l=' . urlencode(_t('ext.sidebar_push_now'));
         
         Minz_View::appendStyle($styleUrl . '&v=' . time());
         Minz_View::appendScript($scriptUrl);
@@ -41,6 +44,8 @@ class EinkPushExtension extends Minz_Extension {
             $conf->EinkPush_screenHeight = max(100, (int) Minz_Request::param('screenHeight', 800, true));
             $conf->EinkPush_fontSize = max(0.5, min(3.0, (float) Minz_Request::param('fontSize', 1.0, true)));
             $conf->EinkPush_showSidebarButton = !empty($_POST['showSidebarButton']) ? 1 : 0;
+            $conf->EinkPush_show_push_now_button = !empty($_POST['show_push_now_button']) ? 1 : 0;
+            $conf->EinkPush_auto_push_enabled = !empty($_POST['auto_push_enabled']) ? 1 : 0;
             
             error_log('[EinkPush] Saving showSidebarButton: ' . $conf->EinkPush_showSidebarButton);
 
@@ -125,6 +130,10 @@ class EinkPushExtension extends Minz_Extension {
             'screenHeight'    => $conf->EinkPush_screenHeight,
             'fontSize'        => $conf->EinkPush_fontSize,
             'showSidebarButton'=> $conf->EinkPush_showSidebarButton,
+            'show_push_now_button' => $conf->EinkPush_show_push_now_button,
+            'auto_push_enabled' => $conf->EinkPush_auto_push_enabled,
+            'device_info'     => $conf->EinkPush_device_info,
+            'last_push'       => $conf->EinkPush_last_push,
             'sources'         => $conf->EinkPush_sources,
             'push_endpoint'   => $conf->EinkPush_push_endpoint,
             'ping_interval'   => $conf->EinkPush_ping_interval,
@@ -146,6 +155,9 @@ class EinkPushExtension extends Minz_Extension {
             'EinkPush_screenHeight'   => 800,
             'EinkPush_fontSize'       => 1.0,
             'EinkPush_showSidebarButton' => 1,
+            'EinkPush_show_push_now_button' => 0,
+            'EinkPush_auto_push_enabled' => 0,
+            'EinkPush_device_info'    => '',
             'EinkPush_sources'        => [
                 'favorites' => ['enabled' => false, 'historyDays' => 7, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 50, 'removeFromFavorites' => false],
             ],
@@ -185,6 +197,10 @@ class EinkPushExtension extends Minz_Extension {
     }
 
     private function checkAutoPush($conf) {
+        if (empty($conf->EinkPush_auto_push_enabled)) {
+            return;
+        }
+
         $now = time();
         $lastPing = (int) ($conf->EinkPush_last_ping ?? 0);
         $lastPush = (int) ($conf->EinkPush_last_push ?? 0);
@@ -212,9 +228,14 @@ class EinkPushExtension extends Minz_Extension {
         require_once $this->getPath() . '/FreshExtension_EinkPush_Helper.php';
         $helper = new EinkPushHelper($this->getEpubDir());
         
-        if ($helper->checkDeviceStatus($endpoint)) {
+        $statusResponse = $helper->checkDeviceStatus($endpoint);
+        if ($statusResponse !== false) {
             error_log('[EinkPush] Device is ONLINE. Triggering auto-push.');
             
+            // Store device info
+            $conf->EinkPush_device_info = $statusResponse;
+            $conf->save();
+
             // Trigger push for all enabled sources that have autoPush=true
             $sources = $conf->EinkPush_sources;
             $paths = $helper->generateAll($sources);

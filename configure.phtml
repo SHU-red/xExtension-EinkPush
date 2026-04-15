@@ -22,6 +22,9 @@ $history = $helper->getHistory();
         <div class="ep-header-info">
             <h2><?= _t('ext.title') ?> <span class="ep-version"><?= _t('ext.version') ?> <?= $this::VERSION ?></span></h2>
             <p><?= _t('ext.description') ?></p>
+            <?php if (!empty($cfg['auto_push_enabled']) && !empty($cfg['last_push'])): ?>
+                <p class="ep-last-push-header"><?= _t('ext.push_last_auto_push', date('Y-m-d H:i:s', $cfg['last_push'])) ?></p>
+            <?php endif; ?>
         </div>
         <div class="ep-quick-actions">
             <a class="ep-btn" href="<?= _url('EinkPush', 'generate') ?>">
@@ -86,6 +89,14 @@ $history = $helper->getHistory();
                 </div>
                 <p class="ep-mb-20"><?= _t('ext.push_auto_desc') ?></p>
 
+                <div class="ep-form-group ep-mb-20">
+                    <label class="ep-checkbox-group ep-flex-center-gap-8">
+                        <input type="checkbox" name="auto_push_enabled" value="1" <?= !empty($cfg['auto_push_enabled']) ? 'checked' : '' ?>>
+                        <span class="ep-label-bold-small"><?= _t('ext.push_auto_enabled') ?></span>
+                    </label>
+                    <p class="help"><?= _t('ext.push_auto_enabled_help') ?></p>
+                </div>
+
                 <div class="ep-form-group">
                     <label><?= _t('ext.push_endpoint') ?></label>
                     <div class="ep-flex-center-gap-8">
@@ -116,6 +127,31 @@ $history = $helper->getHistory();
                         <label><?= _t('ext.push_retryDelay') ?> (s)</label>
                         <input type="number" name="push_retryDelay" value="<?= (int)$cfg['push_retryDelay'] ?>" min="1" max="300">
                     </div>
+                </div>
+
+                <div class="ep-device-info-section ep-mt-20">
+                    <h4><?= _t('ext.device_info_title') ?></h4>
+                    <?php if (empty($cfg['device_info'])): ?>
+                        <p class="help"><?= _t('ext.device_info_unknown') ?></p>
+                    <?php else: ?>
+                        <?php 
+                        $info = json_decode($cfg['device_info'], true);
+                        if ($info): 
+                        ?>
+                            <div class="ep-device-info-grid">
+                                <?php foreach ($info as $k => $v): ?>
+                                    <?php if (is_scalar($v)): ?>
+                                        <div class="ep-device-info-item">
+                                            <span class="ep-device-info-key"><?= htmlspecialchars($k) ?>:</span>
+                                            <span class="ep-device-info-val"><?= htmlspecialchars((string)$v) ?></span>
+                                        </div>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php else: ?>
+                            <pre class="ep-device-info-raw"><?= htmlspecialchars($cfg['device_info']) ?></pre>
+                        <?php endif; ?>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -187,6 +223,13 @@ $history = $helper->getHistory();
                         <span class="ep-label-bold-small"><?= _t('ext.show_sidebar_button') ?></span>
                     </label>
                     <p class="help"><?= _t('ext.show_sidebar_button_help') ?></p>
+                </div>
+                <div class="ep-form-group ep-mt-10">
+                    <label class="ep-checkbox-group ep-flex-center-gap-8">
+                        <input type="checkbox" name="show_push_now_button" value="1" <?= !empty($cfg['show_push_now_button']) ? 'checked' : '' ?>>
+                        <span class="ep-label-bold-small"><?= _t('ext.show_push_now_button') ?></span>
+                    </label>
+                    <p class="help"><?= _t('ext.show_push_now_button_help') ?></p>
                 </div>
             </div>
         </div>

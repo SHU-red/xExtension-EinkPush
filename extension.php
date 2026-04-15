@@ -14,7 +14,8 @@ class EinkPushExtension extends Minz_Extension {
 
         $showSidebarVal = ($conf && $conf->EinkPush_showSidebarButton !== null) ? (int)$conf->EinkPush_showSidebarButton : 1;
         $showSidebar = ($showSidebarVal !== 0) ? '1' : '0';
-        $showPushNow = ($conf && !empty($conf->EinkPush_show_push_now_button)) ? '1' : '0';
+        $showPushNowVal = ($conf && $conf->EinkPush_show_push_now_button !== null) ? (int)$conf->EinkPush_show_push_now_button : 1;
+        $showPushNow = ($showPushNowVal !== 0) ? '1' : '0';
         $lastPushTime = ($conf && !empty($conf->EinkPush_last_push)) ? (int)$conf->EinkPush_last_push : 0;
         $lastPushType = ($conf && !empty($conf->EinkPush_last_push_type)) ? (string)$conf->EinkPush_last_push_type : '';
         
@@ -166,7 +167,7 @@ class EinkPushExtension extends Minz_Extension {
             'EinkPush_screenHeight'   => 800,
             'EinkPush_fontSize'       => 1.0,
             'EinkPush_showSidebarButton' => 1,
-            'EinkPush_show_push_now_button' => 0,
+            'EinkPush_show_push_now_button' => 1,
             'EinkPush_auto_push_enabled' => 0,
             'EinkPush_device_info'    => '',
             'EinkPush_sources'        => [

@@ -537,10 +537,10 @@
         const typeAuto = urlParams.get('ty_a') ? decodeURIComponent(urlParams.get('ty_a')) : 'Auto';
         
         // Robust check: if explicitly false, remove and stop
-        if (!showSidebar) {
+        if (!showSidebar && !showPushNow) {
             const existingBtn = document.getElementById('ep-sidebar-btn-main');
             if (existingBtn) {
-                console.log('[EinkPush] Removing sidebar button per settings');
+                console.log('[EinkPush] Removing sidebar buttons per settings');
                 existingBtn.remove();
             }
             return;
@@ -548,17 +548,34 @@
         
         // If already exists, stop
         if (document.getElementById('ep-sidebar-btn-main')) {
-            // Check if we need to add/remove the second button
+            // Check if we need to add/remove the buttons
             const container = document.getElementById('ep-sidebar-btn-main');
+            const existingSettings = container.querySelector('a[href*="a=configure"]');
             const existingPushNow = document.getElementById('ep-sidebar-push-now');
             
+            if (showSidebar && !existingSettings) {
+                const a = document.createElement('a');
+                a.href = './?c=extension&a=configure&e=EinkPush';
+                a.className = 'btn ep-btn-settings-orange';
+                a.innerHTML = label; 
+                container.insertBefore(a, container.firstChild);
+            } else if (!showSidebar && existingSettings) {
+                existingSettings.remove();
+            }
+
             if (showPushNow && !existingPushNow) {
                 const a = document.createElement('a');
                 a.id = 'ep-sidebar-push-now';
                 a.href = './?c=EinkPush&a=push&r=main';
                 a.className = 'btn ep-btn-push-now-orange ep-mt-5';
                 a.innerHTML = pushNowLabel;
-                container.appendChild(a);
+                // Insert after settings button if it exists, otherwise at the beginning
+                const settingsBtn = container.querySelector('a[href*="a=configure"]');
+                if (settingsBtn) {
+                    settingsBtn.insertAdjacentElement('afterend', a);
+                } else {
+                    container.insertBefore(a, container.firstChild);
+                }
             } else if (!showPushNow && existingPushNow) {
                 existingPushNow.remove();
             }
@@ -591,12 +608,13 @@
             container.className = 'ep-sidebar-container';
             container.id = 'ep-sidebar-btn-main';
             
-            const a = document.createElement('a');
-            a.href = './?c=extension&a=configure&e=EinkPush';
-            a.className = 'btn ep-btn-settings-orange';
-            a.innerHTML = label; 
-            
-            container.appendChild(a);
+            if (showSidebar) {
+                const a = document.createElement('a');
+                a.href = './?c=extension&a=configure&e=EinkPush';
+                a.className = 'btn ep-btn-settings-orange';
+                a.innerHTML = label; 
+                container.appendChild(a);
+            }
 
             if (showPushNow) {
                 const aPush = document.createElement('a');
@@ -635,12 +653,13 @@
                 li.className = 'item ep-sidebar-container';
                 li.id = 'ep-sidebar-btn-main';
                 
-                const a = document.createElement('a');
-                a.href = './?c=extension&a=configure&e=EinkPush';
-                a.className = 'btn ep-btn-settings-orange';
-                a.innerHTML = label; 
-                
-                li.appendChild(a);
+                if (showSidebar) {
+                    const a = document.createElement('a');
+                    a.href = './?c=extension&a=configure&e=EinkPush';
+                    a.className = 'btn ep-btn-settings-orange';
+                    a.innerHTML = label; 
+                    li.appendChild(a);
+                }
 
                 if (showPushNow) {
                     const aPush = document.createElement('a');
@@ -665,6 +684,7 @@
                 parent.parentNode.insertBefore(li, parent.nextSibling);
             }
         }
+
     }
 
     

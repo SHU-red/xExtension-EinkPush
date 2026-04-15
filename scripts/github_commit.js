@@ -81,7 +81,7 @@ async function run() {
             method: 'POST',
             headers,
             body: JSON.stringify({
-                message: 'feat: Interactive Button Feedback\n\n- Replaced top notifications with direct button visual feedback\n- Added color-coded states: Orange (Loading), Green (Success), Gray (No Articles), Red (Error)\n- Implemented AJAX support with silent=1 parameter in controller\n- Updated sidebar "Push Now" button to follow the same interactive logic\n- Added localized labels for button states',
+                message: 'fix: Push Now button visibility in sidebar\n\n- Fixed logic to allow showing Push Now button even if the main Settings button is disabled\n- Made Push Now button enabled by default for new installations',
                 tree: treeData.sha,
                 parents: [latestCommitSha]
             })

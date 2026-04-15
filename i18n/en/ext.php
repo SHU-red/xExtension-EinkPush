@@ -94,6 +94,9 @@ $trans = [
     'progress_pushing' => 'Pushing %s...',
     'progress_done' => 'Finished!',
     'progress_error' => 'Error: %s',
+    'btn_no_articles' => 'No articles',
+    'btn_success' => 'Success',
+    'btn_error' => 'Error',
 ];
 
 return $trans;

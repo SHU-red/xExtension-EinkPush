@@ -92,4 +92,7 @@ return [
     'progress_pushing' => 'Sende %s...',
     'progress_done' => 'Fertig!',
     'progress_error' => 'Fehler: %s',
+    'btn_no_articles' => 'Keine Artikel',
+    'btn_success' => 'Erfolg',
+    'btn_error' => 'Fehler',
 ];

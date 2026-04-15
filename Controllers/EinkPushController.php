@@ -105,16 +105,23 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         $conf = $this->extension->getConfig();
         $endpoint = $conf['push_endpoint'];
         $redirect = Minz_Request::param('r', '');
+        $isSilent = Minz_Request::param('silent') === '1';
         $target = ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']];
         if ($redirect === 'main') {
             $target = ['c' => 'index', 'a' => 'index'];
         }
 
-        if (empty($endpoint)) Minz_Request::bad(_t('ext.error_no_endpoint'), $target);
+        if (empty($endpoint)) {
+            if ($isSilent) { header('Content-Type: application/json'); echo json_encode(['status' => 'error', 'message' => _t('ext.error_no_endpoint')]); exit; }
+            Minz_Request::bad(_t('ext.error_no_endpoint'), $target);
+        }
 
         try {
             $paths = $this->helper->generateAll($conf['sources']);
-            if (empty($paths)) Minz_Request::good(_t('ext.msg_no_articles'), $target);
+            if (empty($paths)) {
+                if ($isSilent) { header('HTTP/1.1 204 No Content'); exit; }
+                Minz_Request::good(_t('ext.msg_no_articles'), $target);
+            }
 
             $success = 0; $failed = 0;
             foreach ($paths as $sourceKey => $path) {
@@ -130,11 +137,14 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
                     $conf->EinkPush_last_push_type = 'manual';
                     $conf->save();
                 }
+                if ($isSilent) { header('Content-Type: application/json'); echo json_encode(['status' => 'ok', 'message' => _t('ext.msg_push_success', $success)]); exit; }
                 Minz_Request::good(_t('ext.msg_push_success', $success), $target);
             } else {
+                if ($isSilent) { header('Content-Type: application/json'); echo json_encode(['status' => 'error', 'message' => _t('ext.msg_push_failed', $success, $failed)]); exit; }
                 Minz_Request::bad(_t('ext.msg_push_failed', $success, $failed), $target);
             }
         } catch (Exception $e) {
+            if ($isSilent) { header('Content-Type: application/json'); echo json_encode(['status' => 'error', 'message' => $e->getMessage()]); exit; }
             Minz_Request::bad($e->getMessage(), $target);
         }
     }
@@ -143,15 +153,25 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         $sourceKey = Minz_Request::param('source');
         $conf = $this->extension->getConfig();
         $endpoint = $conf['push_endpoint'];
+        $isSilent = Minz_Request::param('silent') === '1';
 
-        if (empty($endpoint)) Minz_Request::bad(_t('ext.error_no_endpoint'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+        if (empty($endpoint)) {
+            if ($isSilent) { header('Content-Type: application/json'); echo json_encode(['status' => 'error', 'message' => _t('ext.error_no_endpoint')]); exit; }
+            Minz_Request::bad(_t('ext.error_no_endpoint'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+        }
 
         $srcCfg = $this->getSourceConfig($sourceKey, $conf);
-        if (!$srcCfg) Minz_Request::bad(_t('ext.error_invalid_source'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+        if (!$srcCfg) {
+            if ($isSilent) { header('Content-Type: application/json'); echo json_encode(['status' => 'error', 'message' => _t('ext.error_invalid_source')]); exit; }
+            Minz_Request::bad(_t('ext.error_invalid_source'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+        }
 
         try {
             $path = $this->helper->generateSingle($sourceKey, $srcCfg);
-            if (!$path) Minz_Request::good(_t('ext.msg_no_articles'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+            if (!$path) {
+                if ($isSilent) { header('HTTP/1.1 204 No Content'); exit; }
+                Minz_Request::good(_t('ext.msg_no_articles'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+            }
 
             $sourceName = $sourceKey === 'favorites' ? _t('ext.source_favorites') : $sourceKey;
             if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], $conf['push_retryDelay'], $sourceName)) {
@@ -161,11 +181,14 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
                     $uconf->EinkPush_last_push_type = 'manual';
                     $uconf->save();
                 }
+                if ($isSilent) { header('Content-Type: application/json'); echo json_encode(['status' => 'ok', 'message' => _t('ext.msg_push_success_single')]); exit; }
                 Minz_Request::good(_t('ext.msg_push_success_single'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
             } else {
+                if ($isSilent) { header('Content-Type: application/json'); echo json_encode(['status' => 'error', 'message' => _t('ext.msg_push_failed_single')]); exit; }
                 Minz_Request::bad(_t('ext.msg_push_failed_single'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
             }
         } catch (Exception $e) {
+            if ($isSilent) { header('Content-Type: application/json'); echo json_encode(['status' => 'error', 'message' => $e->getMessage()]); exit; }
             Minz_Request::bad($e->getMessage(), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
         }
     }
@@ -187,8 +210,10 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
     public function testEndpointAction(): void {
         $conf = $this->extension->getConfig();
         $endpoint = $conf['push_endpoint'];
+        $isSilent = Minz_Request::param('silent') === '1';
         
         if (empty($endpoint)) {
+            if ($isSilent) { header('Content-Type: application/json'); echo json_encode(['status' => 'error', 'message' => _t('ext.error_no_endpoint')]); exit; }
             Minz_Request::bad(_t('ext.error_no_endpoint'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
         }
 
@@ -197,8 +222,10 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         file_put_contents($testPath, 'Test EPUB content');
 
         if ($this->helper->pushToEndpoint($testPath, $endpoint, 1, 1, 'Connection Test')) {
+            if ($isSilent) { header('Content-Type: application/json'); echo json_encode(['status' => 'ok', 'message' => _t('ext.push_test_sent')]); exit; }
             Minz_Request::good(_t('ext.push_test_sent'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
         } else {
+            if ($isSilent) { header('Content-Type: application/json'); echo json_encode(['status' => 'error', 'message' => _t('ext.push_test_failed', 'Check logs')]); exit; }
             Minz_Request::bad(_t('ext.push_test_failed', 'Check logs'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
         }
         @unlink($testPath);

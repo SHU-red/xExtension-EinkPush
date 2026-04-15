@@ -81,7 +81,7 @@ async function run() {
             method: 'POST',
             headers,
             body: JSON.stringify({
-                message: 'feat: Last Push Display Refinements\n\n- Added subtle last push info (time & type) below sidebar "Push Now" button\n- Updated settings header to show last push type (Manual vs Automatic)\n- Ensured last push info only updates on successful delivery\n- Added translations and styling for new info displays',
+                message: 'feat: Interactive Button Feedback\n\n- Replaced top notifications with direct button visual feedback\n- Added color-coded states: Orange (Loading), Green (Success), Gray (No Articles), Red (Error)\n- Implemented AJAX support with silent=1 parameter in controller\n- Updated sidebar "Push Now" button to follow the same interactive logic\n- Added localized labels for button states',
                 tree: treeData.sha,
                 parents: [latestCommitSha]
             })

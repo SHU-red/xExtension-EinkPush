@@ -310,6 +310,23 @@ body.theme-dark .ep-footer {
     font-size: 0.85rem !important;
 }
 
+/* Button Feedback States */
+.ep-btn-success {
+    background-color: #22c55e !important;
+    border-color: #22c55e !important;
+    color: #fff !important;
+}
+.ep-btn-error {
+    background-color: #ef4444 !important;
+    border-color: #ef4444 !important;
+    color: #fff !important;
+}
+.ep-btn-no-content {
+    background-color: #9ca3af !important;
+    border-color: #9ca3af !important;
+    color: #fff !important;
+}
+
 /* Inline style replacements */
 .ep-cron-cmd-wrapper { position: relative; }
 .ep-cron-cmd-input { font-family: monospace; font-size: 0.85rem; background: var(--ep-bg-hover); width: 100%; box-sizing: border-box; }

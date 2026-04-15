@@ -12,6 +12,7 @@
         const originalHtml = btn.innerHTML;
         const originalWidth = btn.style.width;
         const originalHeight = btn.style.height;
+        const originalClasses = Array.from(btn.classList);
         
         // Lock dimensions to prevent shape change
         btn.style.width = rect.width + 'px';
@@ -20,31 +21,61 @@
         btn.classList.add('ep-loading');
         btn.innerHTML = '<span class="ep-spinner-inline"></span>';
         
-        return { html: originalHtml, width: originalWidth, height: originalHeight };
+        return { html: originalHtml, width: originalWidth, height: originalHeight, classes: originalClasses };
+    }
+
+    function setButtonStatus(btn, status, text, originalState) {
+        if (!btn) return;
+        
+        btn.classList.remove('ep-loading', 'ep-btn-success', 'ep-btn-error', 'ep-btn-no-content');
+        btn.style.pointerEvents = 'none';
+        
+        if (status === 'success') btn.classList.add('ep-btn-success');
+        else if (status === 'error') btn.classList.add('ep-btn-error');
+        else if (status === 'no-content') btn.classList.add('ep-btn-no-content');
+        
+        if (text) btn.innerHTML = text;
+        
+        setTimeout(() => {
+            hideLoading(btn, originalState);
+        }, 3000);
     }
 
     function hideLoading(btn, originalState) {
         if (!btn) return;
-        btn.classList.remove('ep-loading');
+        btn.classList.remove('ep-loading', 'ep-btn-success', 'ep-btn-error', 'ep-btn-no-content');
         btn.style.pointerEvents = 'auto';
         btn.style.opacity = '1';
         if (originalState) {
             btn.innerHTML = originalState.html;
             btn.style.width = originalState.width;
             btn.style.height = originalState.height;
+            // Restore original classes if they were removed
+            originalState.classes.forEach(c => btn.classList.add(c));
         }
+    }
+
+    function getLabels() {
+        const script = document.querySelector('script[src*="EinkPush/static/script.js"]');
+        if (!script) return {};
+        const urlParams = new URLSearchParams(script.src.split('?')[1]);
+        return {
+            noArticles: urlParams.get('b_na') ? decodeURIComponent(urlParams.get('b_na')) : 'No articles',
+            success: urlParams.get('b_s') ? decodeURIComponent(urlParams.get('b_s')) : 'Success',
+            error: urlParams.get('b_e') ? decodeURIComponent(urlParams.get('b_e')) : 'Error'
+        };
     }
 
     function pollCookie(expectedSources = [], btn = null, originalState = null) {
         console.log('[EinkPush] Polling cookies for:', expectedSources);
+        const labels = getLabels();
         
         // Check for error cookie first
         const errorMatch = document.cookie.match(/ep_dl_error=([^;]+)/);
         if (errorMatch) {
             console.error('[EinkPush] Download error:', decodeURIComponent(errorMatch[1]));
             document.cookie = 'ep_dl_error=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-            hideLoading(btn, originalState);
-            alert('EinkPush Error:\n\n' + decodeURIComponent(errorMatch[1]));
+            setButtonStatus(btn, 'error', labels.error, originalState);
             return;
         }
 
@@ -60,7 +91,7 @@
                 expectedSources.forEach(src => {
                     document.cookie = 'ep_dl_' + src + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
                 });
-                hideLoading(btn, originalState);
+                setButtonStatus(btn, 'success', labels.success, originalState);
             } else {
                 setTimeout(() => pollCookie(expectedSources, btn, originalState), 1000);
             }
@@ -68,7 +99,7 @@
             if (document.cookie.indexOf('ep_dl_complete=1') !== -1) {
                 console.log('[EinkPush] Single download complete');
                 document.cookie = 'ep_dl_complete=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-                hideLoading(btn, originalState);
+                setButtonStatus(btn, 'success', labels.success, originalState);
             } else {
                 setTimeout(() => pollCookie([], btn, originalState), 1000);
             }
@@ -154,12 +185,16 @@
                 if (testBtn) {
                     e.preventDefault();
                     const orig = showLoading(testBtn);
-                    fetch(testBtn.href)
-                        .then(r => r.text())
-                        .then(() => window.location.reload())
+                    const labels = getLabels();
+                    fetch(testBtn.href + '&silent=1')
+                        .then(r => {
+                            if (!r.ok) throw new Error('HTTP ' + r.status);
+                            setButtonStatus(testBtn, 'success', labels.success, orig);
+                            setTimeout(() => window.location.reload(), 2000);
+                        })
                         .catch(err => {
-                            alert('Test failed: ' + err.message);
-                            hideLoading(testBtn, orig);
+                            setButtonStatus(testBtn, 'error', labels.error, orig);
+                            console.error('Test failed: ' + err.message);
                         });
                     return;
                 }
@@ -169,15 +204,19 @@
                 if (previewBtn) {
                     e.preventDefault();
                     const orig = showLoading(previewBtn);
+                    const labels = getLabels();
                     fetch(previewBtn.href)
-                        .then(r => r.text())
+                        .then(r => {
+                            if (!r.ok) throw new Error('HTTP ' + r.status);
+                            return r.text();
+                        })
                         .then(html => {
                             showPreview(html);
                             hideLoading(previewBtn, orig);
                         })
                         .catch(err => {
-                            alert('Preview failed: ' + err.message);
-                            hideLoading(previewBtn, orig);
+                            setButtonStatus(previewBtn, 'error', labels.error, orig);
+                            console.error('Preview failed: ' + err.message);
                         });
                     return;
                 }
@@ -187,6 +226,7 @@
                 if (pushAllBtn && !pushAllBtn.href.includes('source=')) {
                     e.preventDefault();
                     const orig = showLoading(pushAllBtn);
+                    const labels = getLabels();
                     
                     const sources = Array.from(document.querySelectorAll('.ep-source-item'))
                         .filter(item => item.querySelector('input[type="checkbox"]:checked'))
@@ -199,8 +239,7 @@
                         .filter(s => s !== null);
 
                     if (sources.length === 0) {
-                        alert('No sources enabled.');
-                        hideLoading(pushAllBtn, orig);
+                        setButtonStatus(pushAllBtn, 'no-content', labels.noArticles, orig);
                         return;
                     }
 
@@ -210,6 +249,7 @@
                     const processNext = () => {
                         if (completed >= sources.length) {
                             updateProgress(sources.length, sources.length, 'Finished!');
+                            setButtonStatus(pushAllBtn, 'success', labels.success, orig);
                             setTimeout(() => window.location.reload(), 1500);
                             return;
                         }
@@ -218,15 +258,19 @@
                         updateProgress(completed, sources.length, 'Pushing ' + source + '...');
                         
                         // Use pushSingleAction for each
-                        const url = pushAllBtn.href.replace('a=push', 'a=pushSingle') + '&source=' + encodeURIComponent(source);
+                        const url = pushAllBtn.href.replace('a=push', 'a=pushSingle') + '&source=' + encodeURIComponent(source) + '&silent=1';
                         
                         fetch(url)
-                            .then(() => {
+                            .then(r => {
+                                if (r.status === 204) {
+                                    // No content for this source, but we continue
+                                }
                                 completed++;
                                 processNext();
                             })
                             .catch(err => {
                                 updateProgress(completed, sources.length, 'Error: ' + err.message);
+                                setButtonStatus(pushAllBtn, 'error', labels.error, orig);
                                 setTimeout(() => window.location.reload(), 3000);
                             });
                     };
@@ -242,9 +286,11 @@
                 console.log('[EinkPush] Download All clicked:', dlAllBtn.href);
                 e.preventDefault();
                 e.stopPropagation();
+                const labels = getLabels();
                 const enabledSources = document.querySelectorAll('input[name^="sources["][name$="][enabled]"]:checked');
                 if (enabledSources.length === 0) {
-                    alert('No sources are currently enabled.');
+                    const orig = showLoading(dlAllBtn);
+                    setButtonStatus(dlAllBtn, 'no-content', labels.noArticles, orig);
                     return;
                 }
                 
@@ -301,11 +347,11 @@
                                 console.log('[EinkPush] Saved: ' + filename);
                                 downloadedCount++;
                             }
-                            hideLoading(dlAllBtn, origState);
+                            
                             if (downloadedCount > 0) {
-                                alert('Successfully saved ' + downloadedCount + ' EPUB(s) to the selected folder.');
+                                setButtonStatus(dlAllBtn, 'success', labels.success, origState);
                             } else {
-                                alert('No new articles found to download.');
+                                setButtonStatus(dlAllBtn, 'no-content', labels.noArticles, origState);
                             }
                         } else {
                             // Fallback approach: iframes
@@ -333,13 +379,14 @@
                             // Fallback timeout in case some downloads fail silently
                             setTimeout(() => {
                                 console.log('[EinkPush] Fallback timeout reached');
-                                hideLoading(dlAllBtn, origState);
+                                if (dlAllBtn.classList.contains('ep-loading')) {
+                                    hideLoading(dlAllBtn, origState);
+                                }
                             }, 120000); // 2 minutes timeout
                         }
                     } catch (err) {
                         console.error('[EinkPush] Error during Download All:', err);
-                        hideLoading(dlAllBtn, origState);
-                        alert('An error occurred during download: ' + err.message);
+                        setButtonStatus(dlAllBtn, 'error', labels.error, origState);
                     }
                 })();
                 
@@ -352,7 +399,8 @@
                 console.log('[EinkPush] Single action intercepted:', actionBtn.href);
                 e.preventDefault();
                 e.stopPropagation(); // Stop FreshRSS from hijacking
-                const origHtml = showLoading(actionBtn);
+                const origState = showLoading(actionBtn);
+                const labels = getLabels();
                 
                 // Force a reflow so the browser paints the spinner immediately
                 void actionBtn.offsetWidth;
@@ -361,7 +409,7 @@
                     console.log('[EinkPush] Single download mode');
                     // Clear cookie before polling
                     document.cookie = 'ep_dl_complete=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-                    pollCookie([], actionBtn, origHtml);
+                    pollCookie([], actionBtn, origState);
                     
                     // Trigger download via hidden iframe
                     const iframe = document.createElement('iframe');
@@ -372,19 +420,28 @@
                 } else {
                     console.log('[EinkPush] Push mode, fetching in background');
                     // For push, use fetch so the page doesn't navigate and the spinner keeps spinning
-                    fetch(actionBtn.href)
+                    fetch(actionBtn.href + '&silent=1')
                         .then(response => {
-                            console.log('[EinkPush] Push fetch complete, reloading page to show notification');
-                            window.location.reload();
+                            if (response.status === 204) {
+                                setButtonStatus(actionBtn, 'no-content', labels.noArticles, origState);
+                            } else if (response.ok) {
+                                setButtonStatus(actionBtn, 'success', labels.success, origState);
+                                // If it was the sidebar button, we might want to refresh to update the "Last Push" text
+                                if (actionBtn.id === 'ep-sidebar-push-now') {
+                                    setTimeout(() => window.location.reload(), 2000);
+                                }
+                            } else {
+                                setButtonStatus(actionBtn, 'error', labels.error, origState);
+                            }
                         })
                         .catch(err => {
                             console.error('[EinkPush] Push fetch failed:', err);
-                            hideLoading(actionBtn, origHtml);
-                            alert('Push failed: ' + err.message);
+                            setButtonStatus(actionBtn, 'error', labels.error, origState);
                         });
                 }
                 return;
-        } catch (err) {
+            }
+    } catch (err) {
             console.error('[EinkPush] Error in click handler:', err);
         }
 

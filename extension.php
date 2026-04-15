@@ -30,7 +30,10 @@ class EinkPushExtension extends Minz_Extension {
                      '&pn_l=' . urlencode(_t('ext.sidebar_push_now')) .
                      '&lp_l=' . urlencode(_t('ext.sidebar_last_push')) .
                      '&ty_m=' . urlencode(_t('ext.push_type_manual')) .
-                     '&ty_a=' . urlencode(_t('ext.push_type_auto'));
+                     '&ty_a=' . urlencode(_t('ext.push_type_auto')) .
+                     '&b_na=' . urlencode(_t('ext.btn_no_articles')) .
+                     '&b_s=' . urlencode(_t('ext.btn_success')) .
+                     '&b_e=' . urlencode(_t('ext.btn_error'));
         
         Minz_View::appendStyle($styleUrl . '&v=' . time());
         Minz_View::appendScript($scriptUrl);

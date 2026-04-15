@@ -123,8 +123,17 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
                 else $failed++;
             }
 
-            if ($failed === 0) Minz_Request::good(_t('ext.msg_push_success', $success), $target);
-            else Minz_Request::bad(_t('ext.msg_push_failed', $success, $failed), $target);
+            if ($failed === 0) {
+                $conf = FreshRSS_Context::$user_conf;
+                if ($conf) {
+                    $conf->EinkPush_last_push = time();
+                    $conf->EinkPush_last_push_type = 'manual';
+                    $conf->save();
+                }
+                Minz_Request::good(_t('ext.msg_push_success', $success), $target);
+            } else {
+                Minz_Request::bad(_t('ext.msg_push_failed', $success, $failed), $target);
+            }
         } catch (Exception $e) {
             Minz_Request::bad($e->getMessage(), $target);
         }
@@ -146,6 +155,12 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
 
             $sourceName = $sourceKey === 'favorites' ? _t('ext.source_favorites') : $sourceKey;
             if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], $conf['push_retryDelay'], $sourceName)) {
+                $uconf = FreshRSS_Context::$user_conf;
+                if ($uconf) {
+                    $uconf->EinkPush_last_push = time();
+                    $uconf->EinkPush_last_push_type = 'manual';
+                    $uconf->save();
+                }
                 Minz_Request::good(_t('ext.msg_push_success_single'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
             } else {
                 Minz_Request::bad(_t('ext.msg_push_failed_single'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
@@ -293,6 +308,14 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
                     if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], $conf['push_retryDelay'], $sourceName)) $success++;
                     else $failed++;
                 }
+                if ($success > 0) {
+                    $uconf = FreshRSS_Context::$user_conf;
+                    if ($uconf) {
+                        $uconf->EinkPush_last_push = time();
+                        $uconf->EinkPush_last_push_type = 'manual';
+                        $uconf->save();
+                    }
+                }
                 header('Content-Type: application/json');
                 echo json_encode(['status' => 'ok', 'success' => $success, 'failed' => $failed]);
                 exit;
@@ -311,6 +334,14 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
                 }
                 $sourceName = $sourceKey === 'favorites' ? _t('ext.source_favorites') : $sourceKey;
                 $res = $this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], $conf['push_retryDelay'], $sourceName);
+                if ($res) {
+                    $uconf = FreshRSS_Context::$user_conf;
+                    if ($uconf) {
+                        $uconf->EinkPush_last_push = time();
+                        $uconf->EinkPush_last_push_type = 'manual';
+                        $uconf->save();
+                    }
+                }
                 header('Content-Type: application/json');
                 echo json_encode(['status' => $res ? 'ok' : 'error']);
                 exit;

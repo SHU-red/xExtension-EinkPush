@@ -15,6 +15,8 @@ class EinkPushExtension extends Minz_Extension {
         $showSidebarVal = ($conf && $conf->EinkPush_showSidebarButton !== null) ? (int)$conf->EinkPush_showSidebarButton : 1;
         $showSidebar = ($showSidebarVal !== 0) ? '1' : '0';
         $showPushNow = ($conf && !empty($conf->EinkPush_show_push_now_button)) ? '1' : '0';
+        $lastPushTime = ($conf && !empty($conf->EinkPush_last_push)) ? (int)$conf->EinkPush_last_push : 0;
+        $lastPushType = ($conf && !empty($conf->EinkPush_last_push_type)) ? (string)$conf->EinkPush_last_push_type : '';
         
         $styleUrl = Minz_Url::display('/ext.php?f=xExtension-EinkPush/static/style.css', 'php');
         // Pass config via URL parameters to bypass strict CSP (Content Security Policy)
@@ -22,8 +24,13 @@ class EinkPushExtension extends Minz_Extension {
                      '&v=' . time() . 
                      '&sb=' . $showSidebar . 
                      '&spn=' . $showPushNow . 
+                     '&lpt=' . $lastPushTime .
+                     '&lpty=' . urlencode($lastPushType) .
                      '&l=' . urlencode(_t('ext.sidebar_push_all')) .
-                     '&pn_l=' . urlencode(_t('ext.sidebar_push_now'));
+                     '&pn_l=' . urlencode(_t('ext.sidebar_push_now')) .
+                     '&lp_l=' . urlencode(_t('ext.sidebar_last_push')) .
+                     '&ty_m=' . urlencode(_t('ext.push_type_manual')) .
+                     '&ty_a=' . urlencode(_t('ext.push_type_auto'));
         
         Minz_View::appendStyle($styleUrl . '&v=' . time());
         Minz_View::appendScript($scriptUrl);
@@ -134,6 +141,7 @@ class EinkPushExtension extends Minz_Extension {
             'auto_push_enabled' => $conf->EinkPush_auto_push_enabled,
             'device_info'     => $conf->EinkPush_device_info,
             'last_push'       => $conf->EinkPush_last_push,
+            'last_push_type'  => $conf->EinkPush_last_push_type,
             'sources'         => $conf->EinkPush_sources,
             'push_endpoint'   => $conf->EinkPush_push_endpoint,
             'ping_interval'   => $conf->EinkPush_ping_interval,
@@ -166,6 +174,7 @@ class EinkPushExtension extends Minz_Extension {
             'EinkPush_push_cooldown'  => 20,
             'EinkPush_last_ping'      => 0,
             'EinkPush_last_push'      => 0,
+            'EinkPush_last_push_type' => '',
             'EinkPush_push_retries'   => 3,
             'EinkPush_push_retryDelay'=> 10,
             'EinkPush_push_token'     => '',
@@ -254,6 +263,7 @@ class EinkPushExtension extends Minz_Extension {
                 
                 if ($success > 0) {
                     $conf->EinkPush_last_push = time();
+                    $conf->EinkPush_last_push_type = 'auto';
                     $conf->save();
                     error_log('[EinkPush] Auto-push completed. Success: ' . $success);
                 }

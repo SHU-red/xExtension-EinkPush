@@ -377,6 +377,15 @@ body.theme-dark .ep-footer {
     text-decoration: none !important;
 }
 
+.ep-sidebar-info-text {
+    font-size: 0.7rem;
+    color: var(--ep-text-muted);
+    margin-top: 4px;
+    text-align: center;
+    font-style: italic;
+    opacity: 0.8;
+}
+
 .ep-sidebar-container {
     display: block !important;
     clear: both !important;

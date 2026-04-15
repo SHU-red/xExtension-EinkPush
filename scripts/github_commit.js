@@ -81,7 +81,7 @@ async function run() {
             method: 'POST',
             headers,
             body: JSON.stringify({
-                message: 'feat: Auto-Push Refinements & Sidebar "Push Now" Button\n\n- Added master enabler for auto-delivery\n- Displayed last auto-push timestamp in header\n- Integrated optional "Push Now" button in sidebar\n- Enhanced device status display with rich data from /api/status\n- Updated translations and styling for new UI elements',
+                message: 'feat: Last Push Display Refinements\n\n- Added subtle last push info (time & type) below sidebar "Push Now" button\n- Updated settings header to show last push type (Manual vs Automatic)\n- Ensured last push info only updates on successful delivery\n- Added translations and styling for new info displays',
                 tree: treeData.sha,
                 parents: [latestCommitSha]
             })

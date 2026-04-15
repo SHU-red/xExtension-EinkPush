@@ -22,8 +22,12 @@ $history = $helper->getHistory();
         <div class="ep-header-info">
             <h2><?= _t('ext.title') ?> <span class="ep-version"><?= _t('ext.version') ?> <?= $this::VERSION ?></span></h2>
             <p><?= _t('ext.description') ?></p>
-            <?php if (!empty($cfg['auto_push_enabled']) && !empty($cfg['last_push'])): ?>
-                <p class="ep-last-push-header"><?= _t('ext.push_last_auto_push', date('Y-m-d H:i:s', $cfg['last_push'])) ?></p>
+            <?php if (!empty($cfg['last_push'])): ?>
+                <?php 
+                $typeKey = ($cfg['last_push_type'] === 'auto') ? 'ext.push_type_auto' : 'ext.push_type_manual';
+                $typeStr = _t($typeKey);
+                ?>
+                <p class="ep-last-push-header"><?= _t('ext.push_last_auto_push', date('Y-m-d H:i:s', $cfg['last_push'])) ?> (<?= $typeStr ?>)</p>
             <?php endif; ?>
         </div>
         <div class="ep-quick-actions">

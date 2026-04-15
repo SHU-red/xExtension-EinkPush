@@ -473,6 +473,11 @@
         const showPushNow = urlParams.get('spn') === '1';
         const label = urlParams.get('l') ? decodeURIComponent(urlParams.get('l')) : '📖 EinkPush';
         const pushNowLabel = urlParams.get('pn_l') ? decodeURIComponent(urlParams.get('pn_l')) : '🚀 Push Now';
+        const lastPushTime = parseInt(urlParams.get('lpt') || '0');
+        const lastPushType = urlParams.get('lpty') || '';
+        const lastPushLabel = urlParams.get('lp_l') ? decodeURIComponent(urlParams.get('lp_l')) : 'Last Push';
+        const typeManual = urlParams.get('ty_m') ? decodeURIComponent(urlParams.get('ty_m')) : 'Manual';
+        const typeAuto = urlParams.get('ty_a') ? decodeURIComponent(urlParams.get('ty_a')) : 'Auto';
         
         // Robust check: if explicitly false, remove and stop
         if (!showSidebar) {
@@ -500,6 +505,24 @@
             } else if (!showPushNow && existingPushNow) {
                 existingPushNow.remove();
             }
+
+            // Update last push info if exists
+            let infoEl = document.getElementById('ep-sidebar-last-push-info');
+            if (lastPushTime > 0) {
+                if (!infoEl) {
+                    infoEl = document.createElement('div');
+                    infoEl.id = 'ep-sidebar-last-push-info';
+                    infoEl.className = 'ep-sidebar-info-text';
+                    container.appendChild(infoEl);
+                }
+                const date = new Date(lastPushTime * 1000);
+                const timeStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
+                const typeStr = lastPushType === 'auto' ? typeAuto : typeManual;
+                infoEl.innerHTML = `${lastPushLabel}: ${timeStr} (${typeStr})`;
+            } else if (infoEl) {
+                infoEl.remove();
+            }
+
             return;
         }
 
@@ -525,6 +548,17 @@
                 aPush.className = 'btn ep-btn-push-now-orange ep-mt-5';
                 aPush.innerHTML = pushNowLabel;
                 container.appendChild(aPush);
+            }
+
+            if (lastPushTime > 0) {
+                const infoEl = document.createElement('div');
+                infoEl.id = 'ep-sidebar-last-push-info';
+                infoEl.className = 'ep-sidebar-info-text';
+                const date = new Date(lastPushTime * 1000);
+                const timeStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
+                const typeStr = lastPushType === 'auto' ? typeAuto : typeManual;
+                infoEl.innerHTML = `${lastPushLabel}: ${timeStr} (${typeStr})`;
+                container.appendChild(infoEl);
             }
 
             targetDiv.parentNode.insertBefore(container, targetDiv.nextSibling);
@@ -558,6 +592,17 @@
                     aPush.className = 'btn ep-btn-push-now-orange ep-mt-5';
                     aPush.innerHTML = pushNowLabel;
                     li.appendChild(aPush);
+                }
+
+                if (lastPushTime > 0) {
+                    const infoEl = document.createElement('div');
+                    infoEl.id = 'ep-sidebar-last-push-info';
+                    infoEl.className = 'ep-sidebar-info-text';
+                    const date = new Date(lastPushTime * 1000);
+                    const timeStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
+                    const typeStr = lastPushType === 'auto' ? typeAuto : typeManual;
+                    infoEl.innerHTML = `${lastPushLabel}: ${timeStr} (${typeStr})`;
+                    li.appendChild(infoEl);
                 }
 
                 parent.parentNode.insertBefore(li, parent.nextSibling);

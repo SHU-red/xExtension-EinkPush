@@ -412,6 +412,38 @@ body.theme-dark .ep-footer {
     box-sizing: border-box !important;
 }
 
+.ep-sidebar-box {
+    background: var(--ep-bg-card);
+    border: 1px solid var(--ep-border);
+    border-radius: 6px;
+    padding: 10px;
+    margin-top: 10px;
+}
+
+.ep-sidebar-box-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--ep-text-muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: center;
+}
+
+.ep-sidebar-btn-row {
+    display: flex;
+    gap: 8px;
+}
+
+.ep-sidebar-btn-row .btn {
+    flex: 1;
+    text-align: center;
+    padding: 6px 0;
+    font-size: 0.8rem;
+    margin: 0 !important;
+    justify-content: center;
+}
+
 .ep-select-small {
     padding: 4px 8px;
     font-size: 0.75rem;

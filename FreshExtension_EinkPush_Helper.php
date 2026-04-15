@@ -242,7 +242,7 @@ class EinkPushHelper {
 
     // ── private helpers ─────────────────────────────────────────────
 
-    private function collectForSource(string $sourceKey, int $historyDays, bool $unreadOnly): array {
+    public function collectForSource(string $sourceKey, int $historyDays, bool $unreadOnly): array {
         $entryDAO = FreshRSS_Factory::createEntryDao();
         $limit = 500;
         $idMin = '';
@@ -358,7 +358,7 @@ class EinkPushHelper {
                                 $fetchError = $result['error'];
                                 $fetchDebug = $result['debug'] ?? '';
                                 $fetchSkipped = false;
-                                throw new Exception('Readability API failed for "' . $rawTitle . '": ' . $fetchError);
+                                error_log('Readability API failed for "' . $rawTitle . '": ' . $fetchError);
                             }
                         }
                     }
@@ -368,7 +368,7 @@ class EinkPushHelper {
                     error_log('[EinkPush] Fetch content is enabled but no Readability API URL configured');
                 }
                 $fetchError = 'No Readability API URL configured in extension settings.';
-                throw new Exception('Readability API URL is not configured, but "Extract full article text" is enabled.');
+                // throw new Exception('Readability API URL is not configured, but "Extract full article text" is enabled.');
             }
 
             // If fetch failed and we are skipping, log it and continue to next article

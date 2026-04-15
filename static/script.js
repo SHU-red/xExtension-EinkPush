@@ -187,8 +187,18 @@
                     const orig = showLoading(testBtn);
                     const labels = getLabels();
                     fetch(testBtn.href + '&silent=1')
-                        .then(r => {
-                            if (!r.ok) throw new Error('HTTP ' + r.status);
+                        .then(async r => {
+                            let isError = !r.ok;
+                            try {
+                                const data = await r.clone().json();
+                                if (data && data.status === 'error') {
+                                    isError = true;
+                                    throw new Error(data.message || 'Test failed');
+                                }
+                            } catch (e) {
+                                if (isError) throw new Error('HTTP Error ' + r.status);
+                            }
+                            
                             setButtonStatus(testBtn, 'success', labels.success, orig);
                             setTimeout(() => window.location.reload(), 2000);
                         })
@@ -261,9 +271,20 @@
                         const url = pushAllBtn.href.replace('a=push', 'a=pushSingle') + '&source=' + encodeURIComponent(source) + '&silent=1';
                         
                         fetch(url)
-                            .then(r => {
+                            .then(async r => {
                                 if (r.status === 204) {
                                     // No content for this source, but we continue
+                                } else {
+                                    let isError = !r.ok;
+                                    try {
+                                        const data = await r.clone().json();
+                                        if (data && data.status === 'error') {
+                                            isError = true;
+                                            throw new Error(data.message || 'Push failed');
+                                        }
+                                    } catch (e) {
+                                        if (isError) throw new Error('HTTP Error ' + r.status);
+                                    }
                                 }
                                 completed++;
                                 processNext();
@@ -326,6 +347,14 @@
                                 const url = dlAllBtn.href + '&source=' + encodeURIComponent(sourceKey) + '&silent=1';
                                 console.log('[EinkPush] Fetching download for: ' + sourceKey);
                                 const response = await fetch(url);
+                                
+                                // Check for error cookie
+                                const errorMatch = document.cookie.match(/ep_dl_error=([^;]+)/);
+                                if (errorMatch) {
+                                    document.cookie = 'ep_dl_error=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                                    throw new Error(decodeURIComponent(errorMatch[1]));
+                                }
+
                                 if (response.status === 204) {
                                     console.log('[EinkPush] No content for: ' + sourceKey);
                                     continue; // No articles
@@ -421,10 +450,23 @@
                     console.log('[EinkPush] Push mode, fetching in background');
                     // For push, use fetch so the page doesn't navigate and the spinner keeps spinning
                     fetch(actionBtn.href + '&silent=1')
-                        .then(response => {
+                        .then(async response => {
                             if (response.status === 204) {
                                 setButtonStatus(actionBtn, 'no-content', labels.noArticles, origState);
-                            } else if (response.ok) {
+                                return;
+                            }
+                            
+                            let isError = !response.ok;
+                            try {
+                                const data = await response.clone().json();
+                                if (data && data.status === 'error') {
+                                    isError = true;
+                                }
+                            } catch (e) {
+                                // Not JSON, rely on response.ok
+                            }
+
+                            if (!isError) {
                                 setButtonStatus(actionBtn, 'success', labels.success, origState);
                                 // If it was the sidebar button, we might want to refresh to update the "Last Push" text
                                 if (actionBtn.id === 'ep-sidebar-push-now') {
@@ -527,9 +569,8 @@
         
         const urlParams = new URLSearchParams(script.src.split('?')[1]);
         const showSidebar = urlParams.get('sb') === '1';
-        const showPushNow = urlParams.get('spn') === '1';
-        const label = urlParams.get('l') ? decodeURIComponent(urlParams.get('l')) : '📖 EinkPush';
-        const pushNowLabel = urlParams.get('pn_l') ? decodeURIComponent(urlParams.get('pn_l')) : '🚀 Push Now';
+        const label = urlParams.get('l') ? decodeURIComponent(urlParams.get('l')) : '⚙️ Settings';
+        const pushNowLabel = urlParams.get('pn_l') ? decodeURIComponent(urlParams.get('pn_l')) : '🚀 Push All';
         const lastPushTime = parseInt(urlParams.get('lpt') || '0');
         const lastPushType = urlParams.get('lpty') || '';
         const lastPushLabel = urlParams.get('lp_l') ? decodeURIComponent(urlParams.get('lp_l')) : 'Last Push';
@@ -537,7 +578,7 @@
         const typeAuto = urlParams.get('ty_a') ? decodeURIComponent(urlParams.get('ty_a')) : 'Auto';
         
         // Robust check: if explicitly false, remove and stop
-        if (!showSidebar && !showPushNow) {
+        if (!showSidebar) {
             const existingBtn = document.getElementById('ep-sidebar-btn-main');
             if (existingBtn) {
                 console.log('[EinkPush] Removing sidebar buttons per settings');
@@ -546,39 +587,11 @@
             return;
         }
         
-        // If already exists, stop
+        // If already exists, just update the last push info
         if (document.getElementById('ep-sidebar-btn-main')) {
-            // Check if we need to add/remove the buttons
             const container = document.getElementById('ep-sidebar-btn-main');
-            const existingSettings = container.querySelector('a[href*="a=configure"]');
-            const existingPushNow = document.getElementById('ep-sidebar-push-now');
-            
-            if (showSidebar && !existingSettings) {
-                const a = document.createElement('a');
-                a.href = './?c=extension&a=configure&e=EinkPush';
-                a.className = 'btn ep-btn-settings-orange';
-                a.innerHTML = label; 
-                container.insertBefore(a, container.firstChild);
-            } else if (!showSidebar && existingSettings) {
-                existingSettings.remove();
-            }
-
-            if (showPushNow && !existingPushNow) {
-                const a = document.createElement('a');
-                a.id = 'ep-sidebar-push-now';
-                a.href = './?c=EinkPush&a=push&r=main';
-                a.className = 'btn ep-btn-push-now-orange ep-mt-5';
-                a.innerHTML = pushNowLabel;
-                // Insert after settings button if it exists, otherwise at the beginning
-                const settingsBtn = container.querySelector('a[href*="a=configure"]');
-                if (settingsBtn) {
-                    settingsBtn.insertAdjacentElement('afterend', a);
-                } else {
-                    container.insertBefore(a, container.firstChild);
-                }
-            } else if (!showPushNow && existingPushNow) {
-                existingPushNow.remove();
-            }
+            const box = container.querySelector('.ep-sidebar-box');
+            if (!box) return; // Something is wrong with the structure, let it be
 
             // Update last push info if exists
             let infoEl = document.getElementById('ep-sidebar-last-push-info');
@@ -587,7 +600,7 @@
                     infoEl = document.createElement('div');
                     infoEl.id = 'ep-sidebar-last-push-info';
                     infoEl.className = 'ep-sidebar-info-text';
-                    container.appendChild(infoEl);
+                    box.appendChild(infoEl);
                 }
                 const date = new Date(lastPushTime * 1000);
                 const timeStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
@@ -600,30 +613,33 @@
             return;
         }
 
-        // Target the specific FreshRSS 1.28.1 sidebar structure
-        const targetDiv = document.querySelector('.configure-feeds');
-        if (targetDiv) {
-            const container = document.createElement('div');
-            // Remove 'stick' to avoid flex-horizontal behavior
-            container.className = 'ep-sidebar-container';
-            container.id = 'ep-sidebar-btn-main';
-            
-            if (showSidebar) {
-                const a = document.createElement('a');
-                a.href = './?c=extension&a=configure&e=EinkPush';
-                a.className = 'btn ep-btn-settings-orange';
-                a.innerHTML = label; 
-                container.appendChild(a);
-            }
+        function createSidebarContent() {
+            const box = document.createElement('div');
+            box.className = 'ep-sidebar-box';
 
-            if (showPushNow) {
-                const aPush = document.createElement('a');
-                aPush.id = 'ep-sidebar-push-now';
-                aPush.href = './?c=EinkPush&a=push&r=main';
-                aPush.className = 'btn ep-btn-push-now-orange ep-mt-5';
-                aPush.innerHTML = pushNowLabel;
-                container.appendChild(aPush);
-            }
+            const title = document.createElement('div');
+            title.className = 'ep-sidebar-box-title';
+            title.innerText = 'E-Ink Push';
+            box.appendChild(title);
+
+            const btnRow = document.createElement('div');
+            btnRow.className = 'ep-sidebar-btn-row';
+
+            const aSettings = document.createElement('a');
+            aSettings.href = './?c=extension&a=configure&e=EinkPush';
+            aSettings.className = 'btn ep-btn-settings-orange';
+            aSettings.innerHTML = '⚙️'; // Or use label if preferred, but icons fit better in split row
+            aSettings.title = label;
+            btnRow.appendChild(aSettings);
+
+            const aPush = document.createElement('a');
+            aPush.id = 'ep-sidebar-push-now';
+            aPush.href = './?c=EinkPush&a=push&r=main';
+            aPush.className = 'btn ep-btn-push-now-orange';
+            aPush.innerHTML = pushNowLabel;
+            btnRow.appendChild(aPush);
+
+            box.appendChild(btnRow);
 
             if (lastPushTime > 0) {
                 const infoEl = document.createElement('div');
@@ -633,9 +649,19 @@
                 const timeStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
                 const typeStr = lastPushType === 'auto' ? typeAuto : typeManual;
                 infoEl.innerHTML = `${lastPushLabel}: ${timeStr} (${typeStr})`;
-                container.appendChild(infoEl);
+                box.appendChild(infoEl);
             }
 
+            return box;
+        }
+
+        // Target the specific FreshRSS 1.28.1 sidebar structure
+        const targetDiv = document.querySelector('.configure-feeds');
+        if (targetDiv) {
+            const container = document.createElement('div');
+            container.className = 'ep-sidebar-container';
+            container.id = 'ep-sidebar-btn-main';
+            container.appendChild(createSidebarContent());
             targetDiv.parentNode.insertBefore(container, targetDiv.nextSibling);
             return;
         }
@@ -652,42 +678,12 @@
                 const li = document.createElement('li');
                 li.className = 'item ep-sidebar-container';
                 li.id = 'ep-sidebar-btn-main';
-                
-                if (showSidebar) {
-                    const a = document.createElement('a');
-                    a.href = './?c=extension&a=configure&e=EinkPush';
-                    a.className = 'btn ep-btn-settings-orange';
-                    a.innerHTML = label; 
-                    li.appendChild(a);
-                }
-
-                if (showPushNow) {
-                    const aPush = document.createElement('a');
-                    aPush.id = 'ep-sidebar-push-now';
-                    aPush.href = './?c=EinkPush&a=push&r=main';
-                    aPush.className = 'btn ep-btn-push-now-orange ep-mt-5';
-                    aPush.innerHTML = pushNowLabel;
-                    li.appendChild(aPush);
-                }
-
-                if (lastPushTime > 0) {
-                    const infoEl = document.createElement('div');
-                    infoEl.id = 'ep-sidebar-last-push-info';
-                    infoEl.className = 'ep-sidebar-info-text';
-                    const date = new Date(lastPushTime * 1000);
-                    const timeStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
-                    const typeStr = lastPushType === 'auto' ? typeAuto : typeManual;
-                    infoEl.innerHTML = `${lastPushLabel}: ${timeStr} (${typeStr})`;
-                    li.appendChild(infoEl);
-                }
-
+                li.appendChild(createSidebarContent());
                 parent.parentNode.insertBefore(li, parent.nextSibling);
             }
         }
-
     }
 
-    
     // Survival in AJAX environment
     const epObserver = new MutationObserver(() => injectSidebarButton());
     

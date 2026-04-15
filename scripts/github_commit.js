@@ -77,11 +77,12 @@ async function run() {
         });
         const treeData = await treeRes.json();
 
+        const commitMessage = process.argv[2] || 'Update extension';
         const newCommitRes = await fetch(`https://api.github.com/repos/${REPO}/git/commits`, {
             method: 'POST',
             headers,
             body: JSON.stringify({
-                message: 'fix: Push Now button visibility in sidebar\n\n- Fixed logic to allow showing Push Now button even if the main Settings button is disabled\n- Made Push Now button enabled by default for new installations',
+                message: commitMessage,
                 tree: treeData.sha,
                 parents: [latestCommitSha]
             })

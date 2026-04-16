@@ -168,6 +168,32 @@
         console.log('[EinkPush] Click detected in capture phase. Target:', e.target);
         
         try {
+            // Tab Switching
+            const navItem = e.target.closest('.ep-nav-item');
+            if (navItem) {
+                console.log('[EinkPush] Tab click detected');
+                e.preventDefault();
+                e.stopPropagation();
+
+                const target = navItem.getAttribute('data-target');
+                const wrapper = navItem.closest('.ep-wrapper');
+                if (!wrapper) return;
+
+                const navItems = wrapper.querySelectorAll('.ep-nav-item');
+                const sections = wrapper.querySelectorAll('.ep-section');
+                
+                navItems.forEach(n => n.classList.remove('active'));
+                sections.forEach(s => s.classList.remove('active'));
+                
+                navItem.classList.add('active');
+                const targetSection = wrapper.querySelector('#' + target);
+                if (targetSection) targetSection.classList.add('active');
+                
+                // Save active tab to localStorage
+                localStorage.setItem('ep_active_tab', target);
+                return;
+            }
+
             const wrapper = e.target.closest('.ep-wrapper');
             if (wrapper) {
                 // Regenerate Token
@@ -513,6 +539,7 @@
         // Accordion for Source Details
         const sourceMain = e.target.closest('.ep-source-main');
         if (sourceMain) {
+            console.log('[EinkPush] Source main click detected');
             // Prevent toggle when clicking actions or switch
             if (e.target.closest('.ep-source-actions') || e.target.closest('.ep-switch')) return;
             
@@ -534,7 +561,19 @@
         if (savedTab) {
             const tabBtn = document.querySelector(`.ep-nav-item[data-target="${savedTab}"]`);
             if (tabBtn && !tabBtn.classList.contains('active')) {
-                tabBtn.click();
+                // Find all items and sections in the same wrapper
+                const wrapper = tabBtn.closest('.ep-wrapper');
+                if (!wrapper) return;
+                
+                const navItems = wrapper.querySelectorAll('.ep-nav-item');
+                const sections = wrapper.querySelectorAll('.ep-section');
+                
+                navItems.forEach(n => n.classList.remove('active'));
+                sections.forEach(s => s.classList.remove('active'));
+                
+                tabBtn.classList.add('active');
+                const targetSection = wrapper.querySelector('#' + savedTab);
+                if (targetSection) targetSection.classList.add('active');
             }
         }
     }
@@ -563,6 +602,7 @@
 
     // Inject sidebar button in Main UI
     function injectSidebarButton() {
+        console.log('[EinkPush] injectSidebarButton called');
         // Read config from script URL parameters (CSP-friendly)
         const script = document.querySelector('script[src*="EinkPush/static/script.js"]');
         if (!script) return;
@@ -657,12 +697,32 @@
 
         // Target the specific FreshRSS 1.28.1 sidebar structure
         const targetDiv = document.querySelector('.configure-feeds');
+        console.log('[EinkPush] targetDiv .configure-feeds:', targetDiv);
         if (targetDiv) {
             const container = document.createElement('div');
             container.className = 'ep-sidebar-container';
             container.id = 'ep-sidebar-btn-main';
             container.appendChild(createSidebarContent());
             targetDiv.parentNode.insertBefore(container, targetDiv.nextSibling);
+            return;
+        }
+
+        // FreshRSS Default theme (and others) often use #aside_feed
+        const asideFeed = document.querySelector('#aside_feed');
+        console.log('[EinkPush] target #aside_feed:', asideFeed);
+        if (asideFeed) {
+            const container = document.createElement('div');
+            container.className = 'ep-sidebar-container';
+            container.id = 'ep-sidebar-btn-main';
+            container.appendChild(createSidebarContent());
+            
+            // Try to find a good spot inside aside_feed
+            const tree = asideFeed.querySelector('.tree');
+            if (tree) {
+                tree.parentNode.insertBefore(container, tree);
+            } else {
+                asideFeed.appendChild(container);
+            }
             return;
         }
 
@@ -685,7 +745,13 @@
     }
 
     // Survival in AJAX environment
-    const epObserver = new MutationObserver(() => injectSidebarButton());
+    const epObserver = new MutationObserver((mutations) => {
+        for (let mutation of mutations) {
+            if (mutation.type === 'childList') {
+                injectSidebarButton();
+            }
+        }
+    });
     
     function startInjection() {
         injectSidebarButton();

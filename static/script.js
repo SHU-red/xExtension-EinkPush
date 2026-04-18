@@ -696,8 +696,10 @@
         }
 
         // Only inject in main UI, not in settings sidebar
-        if (window.location.href.includes('c=entry') || window.location.href.includes('c=index') || 
-            (window.location.href.includes('freshrss') && !window.location.href.includes('c=extension'))) {
+        if (window.location.hostname.includes('freshrss') && 
+            !window.location.href.includes('c=extension') && 
+            !window.location.href.includes('c=userquery') &&
+            !window.location.href.includes('c=pref')) {
             const targetDiv = document.querySelector('.configure-feeds');
             console.log('[EinkPush] targetDiv .configure-feeds:', targetDiv);
             if (targetDiv) {

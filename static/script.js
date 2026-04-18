@@ -171,42 +171,26 @@
             // Tab Switching
             const navItem = e.target.closest('.ep-nav-item');
             if (navItem) {
-                console.log('[EinkPush] Tab click detected', navItem);
+                console.log('[EinkPush] Tab click detected');
                 e.preventDefault();
                 e.stopPropagation();
 
                 const target = navItem.getAttribute('data-target');
-                console.log('[EinkPush] Target section:', target);
                 const wrapper = navItem.closest('.ep-wrapper');
-                console.log('[EinkPush] Wrapper found:', wrapper);
                 if (!wrapper) return;
 
                 const navItems = wrapper.querySelectorAll('.ep-nav-item');
                 const sections = wrapper.querySelectorAll('.ep-section');
-                console.log('[EinkPush] Found nav items:', navItems.length, 'sections:', sections.length);
                 
-                navItems.forEach(n => {
-                    console.log('[EinkPush] Removing active from nav item:', n);
-                    n.classList.remove('active');
-                });
-                sections.forEach(s => {
-                    console.log('[EinkPush] Removing active from section:', s);
-                    s.classList.remove('active');
-                });
+                navItems.forEach(n => n.classList.remove('active'));
+                sections.forEach(s => s.classList.remove('active'));
                 
                 navItem.classList.add('active');
-                console.log('[EinkPush] Added active to clicked nav item');
-                
                 const targetSection = wrapper.querySelector('#' + target);
-                console.log('[EinkPush] Target section element:', targetSection);
-                if (targetSection) {
-                    targetSection.classList.add('active');
-                    console.log('[EinkPush] Added active to target section');
-                }
+                if (targetSection) targetSection.classList.add('active');
                 
                 // Save active tab to localStorage
                 localStorage.setItem('ep_active_tab', target);
-                console.log('[EinkPush] Saved active tab to localStorage');
                 return;
             }
 

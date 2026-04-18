@@ -69,6 +69,23 @@ class EinkPushExtension extends Minz_Extension {
             $conf->EinkPush_push_retries = max(0, min(20, (int) Minz_Request::param('push_retries', 3, true)));
             $conf->EinkPush_push_retryDelay = max(1, min(300, (int) Minz_Request::param('push_retryDelay', 10, true)));
 
+            // Device address and folder name for push endpoint
+            $deviceAddress = trim((string) Minz_Request::param('device_address', 'http://crosspoint.local', true));
+            if ($deviceAddress !== '' && !preg_match('#^https?://#i', $deviceAddress)) {
+                $deviceAddress = 'http://crosspoint.local';
+            }
+            $conf->EinkPush_device_address = rtrim($deviceAddress, '/');
+            
+            $folderName = trim((string) Minz_Request::param('folder_name', 'RSSFeeds', true));
+            if ($folderName === '') {
+                $folderName = 'RSSFeeds';
+            }
+            $conf->EinkPush_folder_name = $folderName;
+            
+            // Auto-generate push endpoint
+            $pushEndpoint = rtrim($deviceAddress, '/') . '/upload?path=/' . ltrim($folderName, '/');
+            $conf->EinkPush_push_endpoint = $pushEndpoint;
+
             // Readability API
             $readaUrl = trim((string) Minz_Request::param('readability_url', '', true));
             if ($readaUrl !== '' && !preg_match('#^https?://#i', $readaUrl)) {
@@ -167,6 +184,8 @@ class EinkPushExtension extends Minz_Extension {
             'EinkPush_sources'        => [
                 'favorites' => ['enabled' => false, 'historyDays' => 7, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 50, 'removeFromFavorites' => false],
             ],
+            'EinkPush_device_address' => 'http://crosspoint.local',
+            'EinkPush_folder_name'    => 'RSSFeeds',
             'EinkPush_push_endpoint'  => 'http://crosspoint.local/upload?path=/RSSFeeds',
             'EinkPush_ping_interval'  => 5,
             'EinkPush_push_cooldown'  => 20,

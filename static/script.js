@@ -213,6 +213,10 @@
                     const orig = showLoading(testBtn);
                     const labels = getLabels();
                     
+                    // Get device address from input
+                    const deviceAddressInput = document.querySelector('input[name="device_address"]');
+                    const deviceAddress = deviceAddressInput ? deviceAddressInput.value.trim() : 'http://crosspoint.local';
+                    
                     // First, try the test endpoint
                     fetch(testBtn.href + '&silent=1')
                         .then(async r => {
@@ -239,7 +243,8 @@
                             // On success, also fetch device status
                             if (!isError) {
                                 try {
-                                    const statusResponse = await fetch('/api/status');
+                                    const statusUrl = deviceAddress.replace(/\/?$/, '') + '/api/status';
+                                    const statusResponse = await fetch(statusUrl);
                                     if (statusResponse.ok) {
                                         const deviceData = await statusResponse.json();
                                         // Update UI with status data
@@ -818,10 +823,47 @@
         }
     }
 
+    // Auto-update push endpoint when device address or folder name changes
+    function updatePushEndpoint() {
+        const deviceAddressInput = document.querySelector('input[name="device_address"]');
+        const folderNameInput = document.querySelector('input[name="folder_name"]');
+        const pushEndpointInput = document.querySelector('input[name="push_endpoint"]');
+        
+        if (deviceAddressInput && folderNameInput && pushEndpointInput) {
+            const deviceAddress = deviceAddressInput.value.trim() || 'http://crosspoint.local';
+            const folderName = folderNameInput.value.trim() || 'RSSFeeds';
+            
+            // Clean up the address and folder name
+            const cleanAddress = deviceAddress.replace(/\/?$/, ''); // Remove trailing slash
+            const cleanFolder = folderName.replace(/^\/*/, '').replace(/\/*$/, ''); // Remove leading/trailing slashes
+            
+            const newEndpoint = `${cleanAddress}/upload?path=/${cleanFolder}`;
+            pushEndpointInput.value = newEndpoint;
+        }
+    }
+    
+    // Set up event listeners for auto-updating push endpoint
+    function setupEndpointUpdater() {
+        const deviceAddressInput = document.querySelector('input[name="device_address"]');
+        const folderNameInput = document.querySelector('input[name="folder_name"]');
+        
+        if (deviceAddressInput && folderNameInput) {
+            deviceAddressInput.addEventListener('input', updatePushEndpoint);
+            folderNameInput.addEventListener('input', updatePushEndpoint);
+            
+            // Initial update
+            updatePushEndpoint();
+        }
+    }
+    
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', startInjection);
+        document.addEventListener('DOMContentLoaded', function() {
+            startInjection();
+            setupEndpointUpdater();
+        });
     } else {
         startInjection();
+        setupEndpointUpdater();
     }
     
     setInterval(injectSidebarButton, 2000);

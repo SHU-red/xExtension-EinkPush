@@ -43,7 +43,7 @@ $history = $helper->getHistory();
     <!-- Navigation -->
     <nav class="ep-nav">
         <button type="button" class="ep-nav-item active" data-target="sources"><?= _t('ext.nav_sources') ?></button>
-        <button type="button" class="ep-nav-item" data-target="push"><?= _t('ext.nav_push') ?></button>
+        <button type="button" class="ep-nav-item" data-target="push"><?= _t('ext.nav_auto_push') ?></button>
         <button type="button" class="ep-nav-item" data-target="api"><?= _t('ext.nav_api') ?></button>
         <button type="button" class="ep-nav-item" data-target="ep-global"><?= _t('ext.nav_global') ?></button>
         <button type="button" class="ep-nav-item" data-target="history"><?= _t('ext.nav_history') ?></button>
@@ -88,13 +88,26 @@ $history = $helper->getHistory();
         <div id="push" class="ep-section">
             <div class="ep-card-form">
                 <h3 class="ep-card-form-title"><?= _t('ext.push_auto_title') ?></h3>
-                <p class="ep-card-form-desc ep-mb-25"><?= _t('ext.push_auto_desc') ?></p>
+                <p class="ep-card-form-desc ep-mb-15"><?= _t('ext.push_auto_desc') ?></p>
+                <div class="ep-info-box ep-mb-25">
+                    <p><?= _t('ext.crosspoint_firmware_hint') ?></p>
+                </div>
                 
-                <!-- Test Connection Cluster -->
+                <!-- Device Connection Cluster -->
                 <div class="ep-settings-cluster ep-mb-25">
-                    <h4><?= _t('ext.test_connection') ?></h4>
-                    <p class="ep-mt-10" style="margin-bottom: 15px;"><?= _t('ext.test_connection_desc') ?></p>
-                    <a href="<?= _url('EinkPush', 'testEndpoint') ?>" class="ep-btn ep-btn-test" style="margin-bottom: 15px; display:inline-block"><?= _t('ext.push_test') ?></a>
+                    <h4><?= _t('ext.device_connection') ?></h4>
+                    <p class="ep-mt-10" style="margin-bottom: 15px;"><?= _t('ext.device_connection_desc') ?></p>
+                    
+                    <div class="ep-flex-center-gap-8 ep-mb-15">
+                        <div class="ep-form-group" style="flex: 1;">
+                            <label><?= _t('ext.device_address') ?></label>
+                            <input type="url" name="device_address" value="<?= htmlspecialchars($cfg['device_address'] ?? 'http://crosspoint.local', ENT_QUOTES) ?>" placeholder="http://crosspoint.local" style="width: 100%;">
+                            <p class="help"><?= _t('ext.device_address_help') ?></p>
+                        </div>
+                        <div style="align-self: flex-end;">
+                            <a href="<?= _url('EinkPush', 'testEndpoint') ?>" class="ep-btn ep-btn-test"><?= _t('ext.test_connection') ?></a>
+                        </div>
+                    </div>
                     
                     <!-- Device Status Information -->
                     <div class="ep-device-status ep-mt-10">
@@ -151,16 +164,31 @@ $history = $helper->getHistory();
                     </div>
                 </div>
                 
-                <!-- Auto Push Settings Cluster -->
+                <!-- Upload Settings Cluster -->
                 <div class="ep-settings-cluster ep-mt-25">
-                    <h4><?= _t('ext.settings_for_auto_push') ?></h4>
-                    <p class="ep-mt-10" style="margin-bottom: 20px;"><?= _t('ext.settings_for_auto_push_desc') ?></p>
+                    <h4><?= _t('ext.upload_settings') ?></h4>
+                    <p class="ep-mt-10" style="margin-bottom: 20px;"><?= _t('ext.upload_settings_desc') ?></p>
                     
                     <div class="ep-form-group ep-mb-20">
-                        <label class="ep-checkbox-group ep-flex-center-gap-8">
-                            <input type="checkbox" name="auto_push_enabled" value="1" <?= !empty($cfg['auto_push_enabled']) ? 'checked' : '' ?>>
-                            <span class="ep-label-bold-small"><?= _t('ext.push_auto_enabled') ?></span>
-                        </label>
+                        <label><?= _t('ext.folder_name') ?></label>
+                        <input type="text" name="folder_name" value="<?= htmlspecialchars($cfg['folder_name'] ?? 'RSSFeeds', ENT_QUOTES) ?>" placeholder="RSSFeeds" style="width: 100%;">
+                        <p class="help"><?= _t('ext.folder_name_help') ?></p>
+                    </div>
+                    
+                    <div class="ep-form-group ep-mb-20">
+                        <label><?= _t('ext.push_endpoint') ?></label>
+                        <input type="url" name="push_endpoint" value="<?= htmlspecialchars($cfg['push_endpoint'] ?? '', ENT_QUOTES) ?>" placeholder="http://crosspoint.local/upload?path=/RSSFeeds" style="width: 100%;" readonly>
+                        <p class="help"><?= _t('ext.push_endpoint_auto_help') ?></p>
+                    </div>
+                    
+                    <div class="ep-form-group ep-mb-20">
+                        <div class="ep-source-info" style="display: flex; align-items: center; gap: 10px;">
+                            <label class="ep-switch" title="<?= _t('ext.push_auto_enabled') ?>">
+                                <input type="checkbox" name="auto_push_enabled" value="1" <?= !empty($cfg['auto_push_enabled']) ? 'checked' : '' ?>>
+                                <span class="ep-slider"></span>
+                            </label>
+                            <span class="ep-source-name"><?= _t('ext.push_auto_enabled') ?></span>
+                        </div>
                         <p class="help"><?= _t('ext.push_auto_enabled_help') ?></p>
                     </div>
 

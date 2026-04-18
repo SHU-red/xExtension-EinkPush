@@ -696,8 +696,8 @@
         }
 
         // Only inject in main UI, not in settings sidebar
-        if (window.location.hostname.includes('freshrss') && 
-            !window.location.href.includes('c=extension') && 
+        if (window.location.pathname.includes('/i/') &&
+            !window.location.href.includes('c=extension') &&
             !window.location.href.includes('c=userquery') &&
             !window.location.href.includes('c=pref')) {
             const targetDiv = document.querySelector('.configure-feeds');

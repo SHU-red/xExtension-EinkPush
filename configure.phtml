@@ -87,19 +87,82 @@ $history = $helper->getHistory();
         <!-- Push Settings Section -->
         <div id="push" class="ep-section">
             <div class="ep-card-form">
-                <div class="ep-section-header">
-                    <h3><?= _t('ext.push_auto_title') ?></h3>
-                    <a href="<?= _url('EinkPush', 'testEndpoint') ?>" class="ep-btn ep-btn-test"><?= _t('ext.push_test') ?></a>
+                <h3 class="ep-card-form-title"><?= _t('ext.push_auto_title') ?></h3>
+                <p class="ep-card-form-desc ep-mb-25"><?= _t('ext.push_auto_desc') ?></p>
+                
+                <!-- Test Connection Cluster -->
+                <div class="ep-settings-cluster ep-mb-25">
+                    <h4><?= _t('ext.test_connection') ?></h4>
+                    <p class="ep-mt-10" style="margin-bottom: 15px;"><?= _t('ext.test_connection_desc') ?></p>
+                    <a href="<?= _url('EinkPush', 'testEndpoint') ?>" class="ep-btn ep-btn-test" style="margin-bottom: 15px; display:inline-block"><?= _t('ext.push_test') ?></a>
+                    
+                    <!-- Device Status Information -->
+                    <div class="ep-device-status ep-mt-10">
+                        <?php if (!empty($cfg['device_info'])): ?>
+                            <?php 
+                            $info = json_decode($cfg['device_info'], true);
+                            if ($info && is_array($info)): 
+                            ?>
+                                <div class="ep-device-info-grid">
+                                    <div class="ep-status-item">
+                                        <span class="ep-status-label">Version:</span>
+                                        <span class="ep-status-value"><?= htmlspecialchars($info['version'] ?? _t('ext.device_info_unknown')) ?></span>
+                                    </div>
+                                    <div class="ep-status-item">
+                                        <span class="ep-status-label">IP:</span>
+                                        <span class="ep-status-value"><?= htmlspecialchars($info['ip'] ?? _t('ext.device_info_unknown')) ?></span>
+                                    </div>
+                                    <div class="ep-status-item">
+                                        <span class="ep-status-label">Mode:</span>
+                                        <span class="ep-status-value"><?= htmlspecialchars($info['mode'] ?? _t('ext.device_info_unknown')) ?></span>
+                                    </div>
+                                    <div class="ep-status-item">
+                                        <span class="ep-status-label">RSSI:</span>
+                                        <span class="ep-status-value"><?= $info['rssi'] ?? _t('ext.device_info_unknown') ?> dBm</span>
+                                    </div>
+                                    <div class="ep-status-item">
+                                        <span class="ep-status-label">Free Heap:</span>
+                                        <span class="ep-status-value"><?= $info['freeHeap'] ?? _t('ext.device_info_unknown') ?> bytes</span>
+                                    </div>
+                                    <div class="ep-status-item">
+                                        <span class="ep-status-label">Uptime:</span>
+                                        <span class="ep-status-value">
+                                            <?php 
+                                            $uptime = $info['uptime'] ?? null;
+                                            if ($uptime !== null && is_numeric($uptime)):
+                                                $hours = floor($uptime / 3600);
+                                                $minutes = floor(($uptime % 3600) / 60);
+                                                echo $hours . "h " . $minutes . "m";
+                                            else:
+                                                echo _t('ext.device_info_unknown');
+                                            endif;
+                                            ?>
+                                        </span>
+                                    </div>
+                                </div>
+                            <?php else: ?>
+                                <pre class="ep-device-info-raw" style="padding:10px; background:#f5f5f5; border-radius:4px;"><?= htmlspecialchars($cfg['device_info']) ?></pre>
+                            <?php endif; ?>
+                        <?php else: ?>
+                            <div id="device-status-placeholder" class="ep-inactive-help">
+                                <?= _t('ext.device_status_not_available_yet') ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 </div>
-                <p class="ep-mb-20"><?= _t('ext.push_auto_desc') ?></p>
-
-                <div class="ep-form-group ep-mb-20">
-                    <label class="ep-checkbox-group ep-flex-center-gap-8">
-                        <input type="checkbox" name="auto_push_enabled" value="1" <?= !empty($cfg['auto_push_enabled']) ? 'checked' : '' ?>>
-                        <span class="ep-label-bold-small"><?= _t('ext.push_auto_enabled') ?></span>
-                    </label>
-                    <p class="help"><?= _t('ext.push_auto_enabled_help') ?></p>
-                </div>
+                
+                <!-- Auto Push Settings Cluster -->
+                <div class="ep-settings-cluster ep-mt-25">
+                    <h4><?= _t('ext.settings_for_auto_push') ?></h4>
+                    <p class="ep-mt-10" style="margin-bottom: 20px;"><?= _t('ext.settings_for_auto_push_desc') ?></p>
+                    
+                    <div class="ep-form-group ep-mb-20">
+                        <label class="ep-checkbox-group ep-flex-center-gap-8">
+                            <input type="checkbox" name="auto_push_enabled" value="1" <?= !empty($cfg['auto_push_enabled']) ? 'checked' : '' ?>>
+                            <span class="ep-label-bold-small"><?= _t('ext.push_auto_enabled') ?></span>
+                        </label>
+                        <p class="help"><?= _t('ext.push_auto_enabled_help') ?></p>
+                    </div>
 
                 <div class="ep-form-group">
                     <label><?= _t('ext.push_endpoint') ?></label>
@@ -133,30 +196,7 @@ $history = $helper->getHistory();
                     </div>
                 </div>
 
-                <div class="ep-device-info-section ep-mt-20">
-                    <h4><?= _t('ext.device_info_title') ?></h4>
-                    <?php if (empty($cfg['device_info'])): ?>
-                        <p class="help"><?= _t('ext.device_info_unknown') ?></p>
-                    <?php else: ?>
-                        <?php 
-                        $info = json_decode($cfg['device_info'], true);
-                        if ($info): 
-                        ?>
-                            <div class="ep-device-info-grid">
-                                <?php foreach ($info as $k => $v): ?>
-                                    <?php if (is_scalar($v)): ?>
-                                        <div class="ep-device-info-item">
-                                            <span class="ep-device-info-key"><?= htmlspecialchars($k) ?>:</span>
-                                            <span class="ep-device-info-val"><?= htmlspecialchars((string)$v) ?></span>
-                                        </div>
-                                    <?php endif; ?>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php else: ?>
-                            <pre class="ep-device-info-raw"><?= htmlspecialchars($cfg['device_info']) ?></pre>
-                        <?php endif; ?>
-                    <?php endif; ?>
-                </div>
+
             </div>
         </div>
 

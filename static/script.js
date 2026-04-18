@@ -212,20 +212,73 @@
                     e.preventDefault();
                     const orig = showLoading(testBtn);
                     const labels = getLabels();
+                    
+                    // First, try the test endpoint
                     fetch(testBtn.href + '&silent=1')
                         .then(async r => {
-                            let isError = !r.ok;
+                            let isError = !r.ok;  
+                            let testMessage = '';
                             try {
                                 const data = await r.clone().json();
                                 if (data && data.status === 'error') {
                                     isError = true;
-                                    throw new Error(data.message || 'Test failed');
+                                    testMessage = data.message || 'Test failed';
+                                    throw new Error(testMessage);
+                                } else {
+                                    testMessage = data.message || labels.success;
                                 }
                             } catch (e) {
-                                if (isError) throw new Error('HTTP Error ' + r.status);
+                                if (isError) {
+                                    testMessage = 'HTTP ' + r.status;
+                                    throw new Error(testMessage);
+                                }
+                                // If it's a parsing error, might be a successful test returning non-JSON
+                                testMessage = labels.success;
                             }
                             
-                            setButtonStatus(testBtn, 'success', labels.success, orig);
+                            // On success, also fetch device status
+                            if (!isError) {
+                                try {
+                                    const statusResponse = await fetch('/api/status');
+                                    if (statusResponse.ok) {
+                                        const deviceData = await statusResponse.json();
+                                        // Update UI with status data
+                                        const statusDiv = document.querySelector('.ep-device-status');
+                                        if (statusDiv) {
+                                            statusDiv.innerHTML = `
+                                                <div class="ep-status-item">
+                                                    <span class="ep-status-label">Version:</span>
+                                                    <span class="ep-status-value">${deviceData.version || 'N/A'}</span>
+                                                </div>
+                                                <div class="ep-status-item">
+                                                    <span class="ep-status-label">IP:</span>
+                                                    <span class="ep-status-value">${deviceData.ip || 'N/A'}</span>
+                                                </div>
+                                                <div class="ep-status-item">
+                                                    <span class="ep-status-label">Mode:</span>
+                                                    <span class="ep-status-value">${deviceData.mode || 'N/A'}</span>
+                                                </div>
+                                                <div class="ep-status-item">
+                                                    <span class="ep-status-label">RSSI:</span>
+                                                    <span class="ep-status-value">${deviceData.rssi !== undefined ? deviceData.rssi + ' dBm' : 'N/A'}</span>
+                                                </div>
+                                                <div class="ep-status-item">
+                                                    <span class="ep-status-label">Free Heap:</span>
+                                                    <span class="ep-status-value">${deviceData.freeHeap !== undefined ? deviceData.freeHeap + ' bytes' : 'N/A'}</span>
+                                                </div>
+                                                <div class="ep-status-item">
+                                                    <span class="ep-status-label">Uptime:</span>
+                                                    <span class="ep-status-value">${deviceData.uptime !== undefined ? Math.floor(deviceData.uptime/3600) + 'h ' + Math.floor((deviceData.uptime%3600)/60) + 'm' : 'N/A'}</span>
+                                                </div>`;
+                                        }
+                                    }
+                                } catch (statusErr) {
+                                    console.warn('[EinkPush] Could not fetch device status:', statusErr);
+                                    // Continue anyway even if status fetch fails
+                                }
+                            }
+                            
+                            setButtonStatus(testBtn, isError ? 'error' : 'success', testMessage, orig);
                             setTimeout(() => window.location.reload(), 2000);
                         })
                         .catch(err => {

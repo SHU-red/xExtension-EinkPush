@@ -167,6 +167,10 @@
     document.addEventListener('click', function(e) {
         console.log('[EinkPush] Click detected in capture phase. Target:', e.target);
         
+        // Always process clicks for EinkPush elements
+        // if (window._epScriptLoaded) return;
+        // window._epScriptLoaded = true;
+        
         try {
             // Tab Switching
             const navItem = e.target.closest('.ep-nav-item');

@@ -3,7 +3,7 @@
 return [
     'title' => 'EinkPush',
     'description' => 'Ihr persönlicher E-Ink Zustelldienst.',
-    'nav_sources' => 'Inhaltsauswahl',
+    'nav_sources' => 'Feeds',
     'nav_push' => 'Auto Push',
     'nav_api' => 'REST API',
     'nav_global' => 'Gerät & Anzeige',
@@ -98,10 +98,7 @@ return [
     'push_test' => 'Verbindung testen',
     'push_test_sent' => 'Test-EPUB gesendet!',
     'push_test_failed' => 'Test fehlgeschlagen: %s',
-    'card_preview' => 'Vorschau (Neueste)',
-    'preview_title' => 'Readability-Vorschau',
-    'preview_loading' => 'Bereinigter Inhalt wird geladen...',
-    'preview_close' => 'Schließen',
+
     'progress_starting' => 'Starte...',
     'progress_generating' => 'Generiere %s...',
     'progress_pushing' => 'Sende %s...',

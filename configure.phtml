@@ -350,9 +350,6 @@ function renderSourceItem($key, $name, $cfg, $isFav) {
                 <span class="ep-source-name"><?= htmlspecialchars($name) ?></span>
             </div>
             <div class="ep-source-actions">
-                <a class="ep-btn ep-btn-preview" href="<?= _url('EinkPush', 'preview', 'source', $key) ?>" title="<?= _t('ext.card_preview') ?>">
-                    <span>👁️</span>
-                </a>
                 <a class="ep-btn" href="<?= _url('EinkPush', 'generate', 'source', $key) ?>">
                     <span>📥</span> <?= _t('ext.card_download') ?>
                 </a>

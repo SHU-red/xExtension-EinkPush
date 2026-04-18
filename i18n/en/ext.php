@@ -3,7 +3,7 @@
 $trans = [
     'title' => 'EinkPush',
     'description' => 'Your personal E-ink delivery service.',
-    'nav_sources' => 'Content Selection',
+    'nav_sources' => 'Feeds',
     'nav_push' => 'Auto Push',
     'nav_api' => 'REST API',
     'nav_global' => 'Device & Display',
@@ -100,10 +100,7 @@ $trans = [
     'push_test' => 'Test Connection',
     'push_test_sent' => 'Test EPUB sent!',
     'push_test_failed' => 'Test failed: %s',
-    'card_preview' => 'Preview Latest',
-    'preview_title' => 'Readability Preview',
-    'preview_loading' => 'Fetching cleaned content...',
-    'preview_close' => 'Close',
+
     'progress_starting' => 'Starting...',
     'progress_generating' => 'Generating %s...',
     'progress_pushing' => 'Pushing %s...',

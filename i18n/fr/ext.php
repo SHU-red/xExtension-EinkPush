@@ -3,7 +3,7 @@
 return [
     'title' => 'EinkPush',
     'description' => 'Votre service de livraison E-ink personnel.',
-    'nav_sources' => 'Sélection de contenu',
+    'nav_sources' => 'Feeds',
     'nav_push' => 'Auto Push',
     'nav_api' => 'REST API',
     'nav_global' => 'Appareil & Affichage',

@@ -599,19 +599,6 @@
             console.error('[EinkPush] Error in click handler:', err);
         }
 
-        // Tab Switching
-        const navItem = e.target.closest('.ep-nav-item');
-        if (navItem) {
-            const activeTab = activateTab(navItem);
-            if (activeTab) {
-                localStorage.setItem('ep_active_tab', activeTab);
-            } else {
-                const target = navItem.getAttribute('data-target');
-                console.warn('[EinkPush] Target section not found during fallback:', target);
-            }
-            return;
-        }
-
         // Accordion for Source Details
         const sourceMain = e.target.closest('.ep-source-main');
         if (sourceMain) {

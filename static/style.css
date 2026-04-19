@@ -83,8 +83,8 @@
 .ep-nav-item.active { background: var(--ep-primary) !important; color: #fff !important; }
 
 /* Content Sections */
-.ep-section { display: none; border: 2px solid red; } /* Debug: red border for hidden sections */
-.ep-section.active { display: block; border: 2px solid green; } /* Debug: green border for active sections */
+.ep-wrapper .ep-section { display: none !important; }
+.ep-wrapper .ep-section.active { display: block !important; }
 
 .ep-welcome-banner {
     background: rgba(242, 125, 38, 0.1);

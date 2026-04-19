@@ -186,17 +186,11 @@
                 const sections = wrapper.querySelectorAll('.ep-section');
                 
                 navItems.forEach(n => n.classList.remove('active'));
-                sections.forEach(s => {
-                    s.classList.remove('active');
-                    console.log('[EinkPush] Hiding section:', s.id);
-                });
+                sections.forEach(s => s.classList.remove('active'));
                 
                 navItem.classList.add('active');
                 const targetSection = wrapper.querySelector('#' + target);
-                if (targetSection) {
-                    targetSection.classList.add('active');
-                    console.log('[EinkPush] Showing section:', targetSection.id);
-                }
+                if (targetSection) targetSection.classList.add('active');
                 
                 // Save active tab to localStorage
                 localStorage.setItem('ep_active_tab', target);

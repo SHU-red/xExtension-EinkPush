@@ -175,7 +175,6 @@
             // Tab Switching
             const navItem = e.target.closest('.ep-nav-item');
             if (navItem) {
-                console.log('[EinkPush] Tab click detected');
                 e.preventDefault();
                 e.stopPropagation();
 
@@ -187,11 +186,17 @@
                 const sections = wrapper.querySelectorAll('.ep-section');
                 
                 navItems.forEach(n => n.classList.remove('active'));
-                sections.forEach(s => s.classList.remove('active'));
+                sections.forEach(s => {
+                    s.classList.remove('active');
+                    console.log('[EinkPush] Hiding section:', s.id);
+                });
                 
                 navItem.classList.add('active');
                 const targetSection = wrapper.querySelector('#' + target);
-                if (targetSection) targetSection.classList.add('active');
+                if (targetSection) {
+                    targetSection.classList.add('active');
+                    console.log('[EinkPush] Showing section:', targetSection.id);
+                }
                 
                 // Save active tab to localStorage
                 localStorage.setItem('ep_active_tab', target);

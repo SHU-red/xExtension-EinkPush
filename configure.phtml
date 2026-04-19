@@ -87,27 +87,76 @@ $history = $helper->getHistory();
         <!-- Push Settings Section -->
         <div id="push" class="ep-section">
             <div class="ep-card-form">
-                <h3 class="ep-card-form-title"><?= _t('ext.push_auto_title') ?></h3>
-                <p class="ep-card-form-desc ep-mb-15"><?= _t('ext.push_auto_desc') ?></p>
-                <div class="ep-info-box ep-mb-25">
-                    <p><?= _t('ext.crosspoint_firmware_hint') ?></p>
-                </div>
+                <h3 class="ep-card-form-title">Connection</h3>
                 
                 <!-- Device Connection Cluster -->
                 <div class="ep-settings-cluster ep-mb-25">
                     <h4><?= _t('ext.device_connection') ?></h4>
-                    <p class="ep-mt-10" style="margin-bottom: 15px;"><?= _t('ext.device_connection_desc') ?></p>
+                    <p class="ep-mt-10" style="margin-bottom: 15px;">Connect to readers using CrossPoint firmware</p>
                     
-                    <div class="ep-form-group ep-mb-15">
-                        <label><?= _t('ext.device_address') ?></label>
-                        <input type="url" name="device_address" value="<?= htmlspecialchars($cfg['device_address'] ?? 'http://crosspoint.local', ENT_QUOTES) ?>" placeholder="http://crosspoint.local" style="width: 100%;">
-                        <p class="help"><?= _t('ext.device_address_help') ?></p>
+                    <div class="ep-form-group ep-flex-center-gap-10 ep-mb-15">
+                        <div style="flex:1;">
+                            <label><?= _t('ext.device_address') ?></label>
+                            <input type="url" name="device_address" value="<?= htmlspecialchars($cfg['device_address'] ?? 'http://crosspoint.local', ENT_QUOTES) ?>" placeholder="http://crosspoint.local" style="width: 100%;">
+                            <p class="help"><?= _t('ext.device_address_help') ?></p>
+                        </div>
+                        <div>
+                            <a href="<?= _url('EinkPush', 'testEndpoint') ?>" class="ep-btn ep-btn-test"><?= _t('ext.test_connection') ?></a>
+                        </div>
                     </div>
-                    
-                    <a href="<?= _url('EinkPush', 'testEndpoint') ?>" class="ep-btn ep-btn-test"><?= _t('ext.test_connection') ?></a>
                     
                     <!-- Device Status Information -->
                     <div class="ep-device-status ep-mt-15">
+                        <?php if (!empty($cfg['device_info'])): ?>
+                            <?php 
+                            $info = json_decode($cfg['device_info'], true);
+                            if ($info && is_array($info)): 
+                            ?>
+                                <div class="ep-device-info-row">
+                                    <span class="ep-device-info-key">Version:</span>
+                                    <span class="ep-device-info-value"><?= htmlspecialchars($info['version'] ?? _t('ext.device_info_unknown')) ?></span>
+                                </div>
+                                <div class="ep-device-info-row">
+                                    <span class="ep-device-info-key">IP:</span>
+                                    <span class="ep-device-info-value"><?= htmlspecialchars($info['ip'] ?? _t('ext.device_info_unknown')) ?></span>
+                                </div>
+                                <div class="ep-device-info-row">
+                                    <span class="ep-device-info-key">Mode:</span>
+                                    <span class="ep-device-info-value"><?= htmlspecialchars($info['mode'] ?? _t('ext.device_info_unknown')) ?></span>
+                                </div>
+                                <div class="ep-device-info-row">
+                                    <span class="ep-device-info-key">RSSI:</span>
+                                    <span class="ep-device-info-value"><?= $info['rssi'] ?? _t('ext.device_info_unknown') ?> dBm</span>
+                                </div>
+                                <div class="ep-device-info-row">
+                                    <span class="ep-device-info-key">Free Heap:</span>
+                                    <span class="ep-device-info-value"><?= $info['freeHeap'] ?? _t('ext.device_info_unknown') ?> bytes</span>
+                                </div>
+                                <div class="ep-device-info-row">
+                                    <span class="ep-device-info-key">Uptime:</span>
+                                    <span class="ep-device-info-value">
+                                        <?php 
+                                        $uptime = $info['uptime'] ?? null;
+                                        if ($uptime !== null && is_numeric($uptime)):
+                                            $hours = floor($uptime / 3600);
+                                            $minutes = floor(($uptime % 3600) / 60);
+                                            echo $hours . "h " . $minutes . "m";
+                                        else:
+                                            echo _t('ext.device_info_unknown');
+                                        endif;
+                                        ?>
+                                    </span>
+                                </div>
+                            <?php else: ?>
+                                <pre class="ep-device-info-raw" style="padding:10px; background:#f5f5f5; border-radius:4px;"><?= htmlspecialchars($cfg['device_info']) ?></pre>
+                            <?php endif; ?>
+                        <?php else: ?>
+                            <div id="device-status-placeholder" class="ep-inactive-help">
+                                <?= _t('ext.device_status_not_available_yet') ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
                         <?php if (!empty($cfg['device_info'])): ?>
                             <?php 
                             $info = json_decode($cfg['device_info'], true);

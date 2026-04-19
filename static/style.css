@@ -117,6 +117,23 @@
     gap: 10px;
 }
 
+.ep-device-info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.ep-device-info-key {
+    font-weight: 600;
+    color: var(--ep-text-muted);
+}
+
+.ep-device-info-value {
+    font-weight: 500;
+    color: var(--ep-text);
+}
+
 
 .ep-welcome-banner {
     background: rgba(242, 125, 38, 0.1);

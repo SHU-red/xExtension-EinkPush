@@ -66,6 +66,31 @@
         };
     }
 
+    function activateTab(navItem) {
+        if (!navItem) return null;
+        const wrapper = navItem.closest('.ep-wrapper');
+        if (!wrapper) return null;
+        const target = navItem.getAttribute('data-target');
+        if (!target) return null;
+
+        const navItems = wrapper.querySelectorAll('.ep-nav-item');
+        const sections = wrapper.querySelectorAll('.ep-section');
+
+        let sectionFound = false;
+        sections.forEach(section => {
+            const isTarget = section.id === target;
+            section.classList.toggle('active', isTarget);
+            section.style.display = isTarget ? 'block' : 'none';
+            if (isTarget) sectionFound = true;
+        });
+
+        navItems.forEach(item => {
+            item.classList.toggle('active', item === navItem);
+        });
+
+        return sectionFound ? target : null;
+    }
+
     function pollCookie(expectedSources = [], btn = null, originalState = null) {
         console.log('[EinkPush] Polling cookies for:', expectedSources);
         const labels = getLabels();
@@ -185,34 +210,16 @@
                     return;
                 }
 
-                const navItems = wrapper.querySelectorAll('.ep-nav-item');
-                const sections = wrapper.querySelectorAll('.ep-section');
-                
-                // Remove active class from all nav items and sections
-                navItems.forEach(n => {
-                    n.classList.remove('active');
-                });
-                sections.forEach(s => {
-                    s.classList.remove('active');
-                    s.style.display = 'none';
-                });
-                
-                // Add active class to clicked nav item
-                navItem.classList.add('active');
-                
-                // Show target section
-                const targetSection = wrapper.querySelector('#' + target);
-                if (targetSection) {
-                    targetSection.classList.add('active');
-                    targetSection.style.display = 'block';
-                    console.log('[EinkPush] Activated section:', target);
+                const activeTab = activateTab(navItem);
+                if (activeTab) {
+                    console.log('[EinkPush] Activated section:', activeTab);
                 } else {
                     console.warn('[EinkPush] Target section not found:', target);
                 }
                 
                 // Save active tab to localStorage
                 try {
-                    localStorage.setItem('ep_active_tab', target);
+                    localStorage.setItem('ep_active_tab', activeTab || target);
                 } catch (err) {
                     console.warn('[EinkPush] Could not save active tab to localStorage:', err);
                 }
@@ -595,23 +602,13 @@
         // Tab Switching
         const navItem = e.target.closest('.ep-nav-item');
         if (navItem) {
-            const target = navItem.getAttribute('data-target');
-            
-            const wrapper = navItem.closest('.ep-wrapper');
-            if (!wrapper) return;
-
-            const navItems = wrapper.querySelectorAll('.ep-nav-item');
-            const sections = wrapper.querySelectorAll('.ep-section');
-            
-            navItems.forEach(n => n.classList.remove('active'));
-            sections.forEach(s => s.classList.remove('active'));
-            
-            navItem.classList.add('active');
-            const targetSection = wrapper.querySelector('#' + target);
-            if (targetSection) targetSection.classList.add('active');
-            
-            // Save active tab to localStorage
-            localStorage.setItem('ep_active_tab', target);
+            const activeTab = activateTab(navItem);
+            if (activeTab) {
+                localStorage.setItem('ep_active_tab', activeTab);
+            } else {
+                const target = navItem.getAttribute('data-target');
+                console.warn('[EinkPush] Target section not found during fallback:', target);
+            }
             return;
         }
 
@@ -640,20 +637,11 @@
             const savedTab = localStorage.getItem('ep_active_tab');
             if (savedTab) {
                 const tabBtn = document.querySelector(`.ep-nav-item[data-target="${savedTab}"]`);
-                if (tabBtn && !tabBtn.classList.contains('active')) {
-                    // Find all items and sections in the same wrapper
-                    const wrapper = tabBtn.closest('.ep-wrapper');
-                    if (!wrapper) return;
-                    
-                    const navItems = wrapper.querySelectorAll('.ep-nav-item');
-                    const sections = wrapper.querySelectorAll('.ep-section');
-                    
-                    navItems.forEach(n => n.classList.remove('active'));
-                    sections.forEach(s => s.classList.remove('active'));
-                    
-                    tabBtn.classList.add('active');
-                    const targetSection = wrapper.querySelector('#' + savedTab);
-                    if (targetSection) targetSection.classList.add('active');
+                if (tabBtn) {
+                    const activeTab = activateTab(tabBtn);
+                    if (!activeTab) {
+                        console.warn('[EinkPush] Failed to restore saved tab:', savedTab);
+                    }
                 }
             }
         } catch (err) {

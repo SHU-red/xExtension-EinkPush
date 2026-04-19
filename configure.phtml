@@ -98,19 +98,16 @@ $history = $helper->getHistory();
                     <h4><?= _t('ext.device_connection') ?></h4>
                     <p class="ep-mt-10" style="margin-bottom: 15px;"><?= _t('ext.device_connection_desc') ?></p>
                     
-                    <div class="ep-flex-center-gap-8 ep-mb-15">
-                        <div class="ep-form-group" style="flex: 1;">
-                            <label><?= _t('ext.device_address') ?></label>
-                            <input type="url" name="device_address" value="<?= htmlspecialchars($cfg['device_address'] ?? 'http://crosspoint.local', ENT_QUOTES) ?>" placeholder="http://crosspoint.local" style="width: 100%;">
-                            <p class="help"><?= _t('ext.device_address_help') ?></p>
-                        </div>
-                        <div style="align-self: flex-end;">
-                            <a href="<?= _url('EinkPush', 'testEndpoint') ?>" class="ep-btn ep-btn-test"><?= _t('ext.test_connection') ?></a>
-                        </div>
+                    <div class="ep-form-group ep-mb-15">
+                        <label><?= _t('ext.device_address') ?></label>
+                        <input type="url" name="device_address" value="<?= htmlspecialchars($cfg['device_address'] ?? 'http://crosspoint.local', ENT_QUOTES) ?>" placeholder="http://crosspoint.local" style="width: 100%;">
+                        <p class="help"><?= _t('ext.device_address_help') ?></p>
                     </div>
                     
+                    <a href="<?= _url('EinkPush', 'testEndpoint') ?>" class="ep-btn ep-btn-test"><?= _t('ext.test_connection') ?></a>
+                    
                     <!-- Device Status Information -->
-                    <div class="ep-device-status ep-mt-10">
+                    <div class="ep-device-status ep-mt-15">
                         <?php if (!empty($cfg['device_info'])): ?>
                             <?php 
                             $info = json_decode($cfg['device_info'], true);
@@ -173,12 +170,6 @@ $history = $helper->getHistory();
                         <label><?= _t('ext.folder_name') ?></label>
                         <input type="text" name="folder_name" value="<?= htmlspecialchars($cfg['folder_name'] ?? 'RSSFeeds', ENT_QUOTES) ?>" placeholder="RSSFeeds" style="width: 100%;">
                         <p class="help"><?= _t('ext.folder_name_help') ?></p>
-                    </div>
-                    
-                    <div class="ep-form-group ep-mb-20">
-                        <label><?= _t('ext.push_endpoint') ?></label>
-                        <input type="url" name="push_endpoint" value="<?= htmlspecialchars($cfg['push_endpoint'] ?? '', ENT_QUOTES) ?>" placeholder="http://crosspoint.local/upload?path=/RSSFeeds" style="width: 100%;" readonly>
-                        <p class="help"><?= _t('ext.push_endpoint_auto_help') ?></p>
                     </div>
                     
                     <div class="ep-form-group ep-mb-20">

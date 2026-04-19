@@ -68,3 +68,20 @@ return [
     'api_url_help' => 'Gardez ce jeton secret. Il permet à quiconque de déclencher des exportations pour votre compte.',
     'api_examples' => 'Exemples d\'utilisation'
 ];
+    'push_auto_title' => 'Paramètres Auto Push',
+    'push_auto_desc' => 'Configurez la livraison automatique vers votre liseuse e-ink.',
+    'test_connection' => 'Tester la connexion',
+    'test_connection_desc' => 'Testez la connectivité de l\'appareil et affichez le statut.',
+    'settings_for_auto_push' => 'Configuration Auto Push',
+    'settings_for_auto_push_desc' => 'Configurez comment et quand le contenu est livré.',
+    'device_status_not_available_yet' => 'Statut de l\'appareil non disponible. Cliquez sur "Tester la connexion" pour récupérer le statut.',
+    'crosspoint_firmware_hint' => 'Pour les appareils avec firmware CrossPoint.',
+    'device_connection' => 'Connexion de l\'appareil',
+    'device_connection_desc' => 'Connectez-vous à votre liseuse e-ink.',
+    'device_address' => 'Adresse de l\'appareil',
+    'device_address_help' => 'Adresse IP ou nom d\'hôte de votre liseuse e-ink.',
+    'upload_settings' => 'Paramètres d\'upload',
+    'upload_settings_desc' => 'Configurez où le contenu est téléchargé.',
+    'folder_name' => 'Nom du dossier',
+    'folder_name_help' => 'Dossier sur votre appareil pour les fichiers EPUB.',
+];

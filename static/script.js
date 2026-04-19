@@ -308,8 +308,7 @@
                             }
                             
                             setButtonStatus(testBtn, isError ? 'error' : 'success', testMessage, orig);
-                            // Reload the page to show updated device info
-                            setTimeout(() => window.location.reload(), 1500);
+                            // Don't reload the page - keep the user on the same view to see device status
                         })
                         .catch(err => {
                             setButtonStatus(testBtn, 'error', labels.error, orig);

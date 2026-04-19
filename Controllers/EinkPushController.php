@@ -222,35 +222,6 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         file_put_contents($testPath, 'Test EPUB content');
 
         if ($this->helper->pushToEndpoint($testPath, $endpoint, 1, 1, 'Connection Test')) {
-            // On successful push, also fetch and save device status
-            $deviceAddress = $conf['device_address'] ?? 'http://crosspoint.local';
-            $statusUrl = rtrim($deviceAddress, '/') . '/api/status';
-            
-            $deviceInfo = null;
-            try {
-                $context = stream_context_create([
-                    'http' => [
-                        'timeout' => 5,
-                        'method' => 'GET',
-                        'header' => 'User-Agent: EinkPush/1.0\r\n'
-                    ]
-                ]);
-                
-                $statusResponse = @file_get_contents($statusUrl, false, $context);
-                if ($statusResponse !== false) {
-                    $deviceInfo = $statusResponse;
-                    
-                    // Save device info to user configuration
-                    $uconf = FreshRSS_Context::$user_conf;
-                    if ($uconf) {
-                        $uconf->EinkPush_device_info = $deviceInfo;
-                        $uconf->save();
-                    }
-                }
-            } catch (Exception $e) {
-                error_log('[EinkPush] Failed to fetch device status: ' . $e->getMessage());
-            }
-            
             if ($isSilent) { header('Content-Type: application/json'); echo json_encode(['status' => 'ok', 'message' => _t('ext.push_test_sent')]); exit; }
             Minz_Request::good(_t('ext.push_test_sent'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
         } else {

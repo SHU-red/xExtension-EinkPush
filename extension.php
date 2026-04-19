@@ -187,7 +187,6 @@ class EinkPushExtension extends Minz_Extension {
             'EinkPush_device_address' => 'http://crosspoint.local',
             'EinkPush_folder_name'    => 'RSSFeeds',
             'EinkPush_push_endpoint'  => 'http://crosspoint.local/upload?path=/RSSFeeds',
-            'EinkPush_device_info'    => '',
             'EinkPush_ping_interval'  => 5,
             'EinkPush_push_cooldown'  => 20,
             'EinkPush_last_ping'      => 0,

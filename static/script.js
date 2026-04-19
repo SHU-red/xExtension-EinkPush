@@ -194,6 +194,7 @@
                 });
                 sections.forEach(s => {
                     s.classList.remove('active');
+                    s.style.display = 'none';
                 });
                 
                 // Add active class to clicked nav item
@@ -203,6 +204,7 @@
                 const targetSection = wrapper.querySelector('#' + target);
                 if (targetSection) {
                     targetSection.classList.add('active');
+                    targetSection.style.display = 'block';
                     console.log('[EinkPush] Activated section:', target);
                 } else {
                     console.warn('[EinkPush] Target section not found:', target);

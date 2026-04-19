@@ -107,6 +107,17 @@
     overflow: hidden;
 }
 
+.ep-full-width {
+    width: 100%;
+}
+
+.ep-flex-center-gap-10 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+
 .ep-welcome-banner {
     background: rgba(242, 125, 38, 0.1);
     border: 1px solid #f27d26;

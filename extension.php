@@ -82,8 +82,8 @@ class EinkPushExtension extends Minz_Extension {
             }
             $conf->EinkPush_folder_name = $folderName;
             
-            // Auto-generate push endpoint
-            $pushEndpoint = rtrim($deviceAddress, '/') . '/upload?path=/' . ltrim($folderName, '/');
+            // Auto-generate push endpoint from saved address + folder
+            $pushEndpoint = rtrim($conf->EinkPush_device_address, '/') . '/upload?path=/' . ltrim($conf->EinkPush_folder_name, '/');
             $conf->EinkPush_push_endpoint = $pushEndpoint;
 
             // Readability API
@@ -166,6 +166,8 @@ class EinkPushExtension extends Minz_Extension {
             'push_retryDelay' => $conf->EinkPush_push_retryDelay,
             'push_token'      => $conf->EinkPush_push_token,
             'readability_url' => $conf->EinkPush_readability_url,
+            'device_address' => $conf->EinkPush_device_address,
+            'folder_name' => $conf->EinkPush_folder_name,
         ];
     }
 

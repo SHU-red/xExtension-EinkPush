@@ -180,20 +180,41 @@
 
                 const target = navItem.getAttribute('data-target');
                 const wrapper = navItem.closest('.ep-wrapper');
-                if (!wrapper) return;
+                if (!wrapper) {
+                    console.warn('[EinkPush] No wrapper found for tab navigation');
+                    return;
+                }
 
                 const navItems = wrapper.querySelectorAll('.ep-nav-item');
                 const sections = wrapper.querySelectorAll('.ep-section');
                 
-                navItems.forEach(n => n.classList.remove('active'));
-                sections.forEach(s => s.classList.remove('active'));
+                // Remove active class from all nav items and sections
+                navItems.forEach(n => {
+                    n.classList.remove('active');
+                });
+                sections.forEach(s => {
+                    s.classList.remove('active');
+                });
                 
+                // Add active class to clicked nav item
                 navItem.classList.add('active');
+                
+                // Show target section
                 const targetSection = wrapper.querySelector('#' + target);
-                if (targetSection) targetSection.classList.add('active');
+                if (targetSection) {
+                    targetSection.classList.add('active');
+                    console.log('[EinkPush] Activated section:', target);
+                } else {
+                    console.warn('[EinkPush] Target section not found:', target);
+                }
                 
                 // Save active tab to localStorage
-                localStorage.setItem('ep_active_tab', target);
+                try {
+                    localStorage.setItem('ep_active_tab', target);
+                } catch (err) {
+                    console.warn('[EinkPush] Could not save active tab to localStorage:', err);
+                }
+                
                 return;
             }
 
@@ -287,7 +308,8 @@
                             }
                             
                             setButtonStatus(testBtn, isError ? 'error' : 'success', testMessage, orig);
-                            setTimeout(() => window.location.reload(), 2000);
+                            // Reload the page to show updated device info
+                            setTimeout(() => window.location.reload(), 1500);
                         })
                         .catch(err => {
                             setButtonStatus(testBtn, 'error', labels.error, orig);
@@ -618,24 +640,28 @@
 
     // Restore active tab on load/ajax-load
     function restoreTab() {
-        const savedTab = localStorage.getItem('ep_active_tab');
-        if (savedTab) {
-            const tabBtn = document.querySelector(`.ep-nav-item[data-target="${savedTab}"]`);
-            if (tabBtn && !tabBtn.classList.contains('active')) {
-                // Find all items and sections in the same wrapper
-                const wrapper = tabBtn.closest('.ep-wrapper');
-                if (!wrapper) return;
-                
-                const navItems = wrapper.querySelectorAll('.ep-nav-item');
-                const sections = wrapper.querySelectorAll('.ep-section');
-                
-                navItems.forEach(n => n.classList.remove('active'));
-                sections.forEach(s => s.classList.remove('active'));
-                
-                tabBtn.classList.add('active');
-                const targetSection = wrapper.querySelector('#' + savedTab);
-                if (targetSection) targetSection.classList.add('active');
+        try {
+            const savedTab = localStorage.getItem('ep_active_tab');
+            if (savedTab) {
+                const tabBtn = document.querySelector(`.ep-nav-item[data-target="${savedTab}"]`);
+                if (tabBtn && !tabBtn.classList.contains('active')) {
+                    // Find all items and sections in the same wrapper
+                    const wrapper = tabBtn.closest('.ep-wrapper');
+                    if (!wrapper) return;
+                    
+                    const navItems = wrapper.querySelectorAll('.ep-nav-item');
+                    const sections = wrapper.querySelectorAll('.ep-section');
+                    
+                    navItems.forEach(n => n.classList.remove('active'));
+                    sections.forEach(s => s.classList.remove('active'));
+                    
+                    tabBtn.classList.add('active');
+                    const targetSection = wrapper.querySelector('#' + savedTab);
+                    if (targetSection) targetSection.classList.add('active');
+                }
             }
+        } catch (err) {
+            console.warn('[EinkPush] Error in restoreTab:', err);
         }
     }
 
@@ -659,7 +685,7 @@
     // Run on initial load
     document.addEventListener('DOMContentLoaded', restoreTab);
     // Run periodically in case of AJAX load (FreshRSS doesn't always fire a clean event)
-    setInterval(restoreTab, 500);
+    // setInterval(restoreTab, 500);
 
     // Inject sidebar button in Main UI
     function injectSidebarButton() {

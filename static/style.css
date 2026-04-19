@@ -83,8 +83,29 @@
 .ep-nav-item.active { background: var(--ep-primary) !important; color: #fff !important; }
 
 /* Content Sections */
-.ep-wrapper .ep-section { display: none !important; }
-.ep-wrapper .ep-section.active { display: block !important; }
+.ep-wrapper .ep-section { display: none; }
+.ep-wrapper .ep-section.active { display: block; }
+
+/* Ensure sections display correctly when active */
+.ep-section.active {
+    visibility: visible;
+    opacity: 1;
+    position: relative;
+    z-index: 1;
+}
+
+/* Section separator */
+.ep-section-separator {
+    margin: 30px 0;
+    border: 0;
+    border-top: 1px solid #ddd;
+}
+
+/* Ensure sections have proper spacing */
+.ep-section {
+    clear: both;
+    overflow: hidden;
+}
 
 .ep-welcome-banner {
     background: rgba(242, 125, 38, 0.1);

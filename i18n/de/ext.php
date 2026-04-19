@@ -42,7 +42,7 @@ return [
     'section_push' => 'Auto Push',
     'push_help' => 'Konfigurieren Sie, wie EPUBs an Ihren E-Reader gesendet werden.',
     'push_endpoint' => 'Push Endpunkt URL',
-    'push_endpoint_help' => 'Die URL, die POST-Anfragen mit der EPUB-Datei akzeptiert. Zielordner werden automatisch erstellt.',
+
     'push_auto_enabled' => 'Auto-Zustellung aktivieren',
     'push_auto_enabled_help' => 'Wenn aktiv, prüft die Erweiterung regelmäßig, ob Ihr Gerät online ist, und sendet neue Inhalte.',
     'push_last_auto_push' => 'Letzter Push: %s',

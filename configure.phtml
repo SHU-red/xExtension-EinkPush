@@ -183,14 +183,6 @@ $history = $helper->getHistory();
                         <p class="help"><?= _t('ext.push_auto_enabled_help') ?></p>
                     </div>
 
-                <div class="ep-form-group">
-                    <label><?= _t('ext.push_endpoint') ?></label>
-                    <div class="ep-flex-center-gap-8">
-                        <input type="url" name="push_endpoint" value="<?= htmlspecialchars($cfg['push_endpoint'] ?: 'http://crosspoint.local/upload?path=/RSSFeeds', ENT_QUOTES) ?>" placeholder="http://crosspoint.local/upload?path=/RSSFeeds" style="flex:1;">
-                    </div>
-                    <p class="help"><?= _t('ext.push_endpoint_help') ?></p>
-                </div>
-
                 <div class="ep-flex-center-gap-8 ep-mb-15">
                     <div class="ep-form-group" style="flex:1;">
                         <label><?= _t('ext.push_ping_interval') ?></label>

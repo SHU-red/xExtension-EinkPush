@@ -246,6 +246,7 @@
                         .then(async r => {
                             let isError = !r.ok;  
                             let testMessage = '';
+                            let deviceInfo = null;
                             try {
                                 const data = await r.clone().json();
                                 if (data && data.status === 'error') {
@@ -254,6 +255,10 @@
                                     throw new Error(testMessage);
                                 } else {
                                     testMessage = data.message || labels.success;
+                                    // Check if device info was returned from server
+                                    if (data.deviceInfo) {
+                                        deviceInfo = data.deviceInfo;
+                                    }
                                 }
                             } catch (e) {
                                 if (isError) {
@@ -264,46 +269,36 @@
                                 testMessage = labels.success;
                             }
                             
-                            // On success, also fetch device status
-                            if (!isError) {
-                                try {
-                                    const statusUrl = deviceAddress.replace(/\/?$/, '') + '/api/status';
-                                    const statusResponse = await fetch(statusUrl);
-                                    if (statusResponse.ok) {
-                                        const deviceData = await statusResponse.json();
-                                        // Update UI with status data
-                                        const statusDiv = document.querySelector('.ep-device-status');
-                                        if (statusDiv) {
-                                            statusDiv.innerHTML = `
-                                                <div class="ep-status-item">
-                                                    <span class="ep-status-label">Version:</span>
-                                                    <span class="ep-status-value">${deviceData.version || 'N/A'}</span>
-                                                </div>
-                                                <div class="ep-status-item">
-                                                    <span class="ep-status-label">IP:</span>
-                                                    <span class="ep-status-value">${deviceData.ip || 'N/A'}</span>
-                                                </div>
-                                                <div class="ep-status-item">
-                                                    <span class="ep-status-label">Mode:</span>
-                                                    <span class="ep-status-value">${deviceData.mode || 'N/A'}</span>
-                                                </div>
-                                                <div class="ep-status-item">
-                                                    <span class="ep-status-label">RSSI:</span>
-                                                    <span class="ep-status-value">${deviceData.rssi !== undefined ? deviceData.rssi + ' dBm' : 'N/A'}</span>
-                                                </div>
-                                                <div class="ep-status-item">
-                                                    <span class="ep-status-label">Free Heap:</span>
-                                                    <span class="ep-status-value">${deviceData.freeHeap !== undefined ? deviceData.freeHeap + ' bytes' : 'N/A'}</span>
-                                                </div>
-                                                <div class="ep-status-item">
-                                                    <span class="ep-status-label">Uptime:</span>
-                                                    <span class="ep-status-value">${deviceData.uptime !== undefined ? Math.floor(deviceData.uptime/3600) + 'h ' + Math.floor((deviceData.uptime%3600)/60) + 'm' : 'N/A'}</span>
-                                                </div>`;
-                                        }
-                                    }
-                                } catch (statusErr) {
-                                    console.warn('[EinkPush] Could not fetch device status:', statusErr);
-                                    // Continue anyway even if status fetch fails
+                            // Display device status if available
+                            if (!isError && deviceInfo) {
+                                // Update UI with status data
+                                const statusDiv = document.querySelector('.ep-device-status');
+                                if (statusDiv) {
+                                    statusDiv.innerHTML = `
+                                        <div class="ep-status-item">
+                                            <span class="ep-status-label">Version:</span>
+                                            <span class="ep-status-value">${deviceInfo.version || 'N/A'}</span>
+                                        </div>
+                                        <div class="ep-status-item">
+                                            <span class="ep-status-label">IP:</span>
+                                            <span class="ep-status-value">${deviceInfo.ip || 'N/A'}</span>
+                                        </div>
+                                        <div class="ep-status-item">
+                                            <span class="ep-status-label">Mode:</span>
+                                            <span class="ep-status-value">${deviceInfo.mode || 'N/A'}</span>
+                                        </div>
+                                        <div class="ep-status-item">
+                                            <span class="ep-status-label">RSSI:</span>
+                                            <span class="ep-status-value">${deviceInfo.rssi !== undefined ? deviceInfo.rssi + ' dBm' : 'N/A'}</span>
+                                        </div>
+                                        <div class="ep-status-item">
+                                            <span class="ep-status-label">Free Heap:</span>
+                                            <span class="ep-status-value">${deviceInfo.freeHeap !== undefined ? deviceInfo.freeHeap + ' bytes' : 'N/A'}</span>
+                                        </div>
+                                        <div class="ep-status-item">
+                                            <span class="ep-status-label">Uptime:</span>
+                                            <span class="ep-status-value">${deviceInfo.uptime !== undefined ? Math.floor(deviceInfo.uptime/3600) + 'h ' + Math.floor((deviceInfo.uptime%3600)/60) + 'm' : 'N/A'}</span>
+                                        </div>`;
                                 }
                             }
                             

@@ -222,7 +222,41 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         file_put_contents($testPath, 'Test EPUB content');
 
         if ($this->helper->pushToEndpoint($testPath, $endpoint, 1, 1, 'Connection Test')) {
-            if ($isSilent) { header('Content-Type: application/json'); echo json_encode(['status' => 'ok', 'message' => _t('ext.push_test_sent')]); exit; }
+            // On successful push, also fetch device status
+            $deviceAddress = $conf['device_address'] ?? 'http://crosspoint.local';
+            $statusUrl = rtrim($deviceAddress, '/') . '/api/status';
+            
+            $deviceInfo = null;
+            try {
+                // Use cURL for better error handling and CSP compliance
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $statusUrl);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+                curl_setopt($ch, CURLOPT_USERAGENT, 'EinkPush/1.0');
+                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/json']);
+                
+                $statusResponse = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+                
+                if ($statusResponse !== false && $httpCode === 200) {
+                    $deviceInfo = json_decode($statusResponse, true);
+                }
+            } catch (Exception $e) {
+                error_log('[EinkPush] Failed to fetch device status: ' . $e->getMessage());
+            }
+            
+            if ($isSilent) { 
+                header('Content-Type: application/json'); 
+                $response = ['status' => 'ok', 'message' => _t('ext.push_test_sent')];
+                if ($deviceInfo) {
+                    $response['deviceInfo'] = $deviceInfo;
+                }
+                echo json_encode($response);
+                exit; 
+            }
             Minz_Request::good(_t('ext.push_test_sent'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
         } else {
             if ($isSilent) { header('Content-Type: application/json'); echo json_encode(['status' => 'error', 'message' => _t('ext.push_test_failed', 'Check logs')]); exit; }

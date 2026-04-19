@@ -12,3 +12,9 @@ document.addEventListener('click', e => {
         activateTab(e.target.closest('.ep-nav-item'));
     }
 });
+
+// Initialize active tab on load
+document.addEventListener('DOMContentLoaded', () => {
+    const activeBtn = document.querySelector('.ep-nav-item.active');
+    if (activeBtn) activateTab(activeBtn);
+});

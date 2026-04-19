@@ -54,6 +54,7 @@ $history = $helper->getHistory();
 
         <!-- Sources Section -->
         <div id="sources" class="ep-section active">
+            <div class="ep-section-body">
             <?php
             $hasEnabledSources = false;
             if (!empty($sources['favorites']['enabled'])) $hasEnabledSources = true;
@@ -86,7 +87,7 @@ $history = $helper->getHistory();
 
         <!-- Push Settings Section -->
         <div id="push" class="ep-section">
-            <div class="ep-card-form">
+            <div class="ep-section-body ep-card-form">
                 <h3 class="ep-card-form-title">Connection</h3>
                 
                 <!-- Device Connection Cluster -->
@@ -265,7 +266,7 @@ $history = $helper->getHistory();
 
         <!-- REST API Section -->
         <div id="api" class="ep-section">
-            <div class="ep-card-form">
+            <div class="ep-section-body ep-card-form">
                 <p class="help ep-mb-20"><?= _t('ext.api_help') ?></p>
                 
                 <?php 
@@ -300,7 +301,7 @@ $history = $helper->getHistory();
 
         <!-- Global Settings Section -->
         <div id="ep-global" class="ep-section">
-            <div class="ep-card-form">
+            <div class="ep-section-body ep-card-form">
                 <div class="ep-form-group">
                     <label><?= _t('ext.screen_size') ?></label>
                     <div class="ep-screen-size-grid">
@@ -336,7 +337,7 @@ $history = $helper->getHistory();
 
         <!-- History Section -->
         <div id="history" class="ep-section">
-            <div class="ep-card-form">
+            <div class="ep-section-body ep-card-form">
                 <?php if (empty($history)): ?>
                     <div class="ep-history-empty">
                         <span class="ep-history-icon">📜</span>

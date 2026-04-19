@@ -80,7 +80,6 @@
         sections.forEach(section => {
             const isTarget = section.id === target;
             section.classList.toggle('active', isTarget);
-            section.style.display = isTarget ? 'block' : 'none';
             if (isTarget) sectionFound = true;
         });
 
@@ -597,6 +596,21 @@
             }
     } catch (err) {
             console.error('[EinkPush] Error in click handler:', err);
+        }
+
+        // Tab Switching
+        const navItem = e.target.closest('.ep-nav-item');
+        if (navItem) {
+            e.preventDefault();
+            e.stopPropagation();
+            const activeTab = activateTab(navItem);
+            if (activeTab) {
+                localStorage.setItem('ep_active_tab', activeTab);
+            } else {
+                const target = navItem.getAttribute('data-target');
+                console.warn('[EinkPush] Target section not found during fallback:', target);
+            }
+            return;
         }
 
         // Accordion for Source Details

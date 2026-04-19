@@ -672,7 +672,7 @@
         const urlParams = new URLSearchParams(script.src.split('?')[1]);
         const showSidebar = urlParams.get('sb') === '1';
         const label = urlParams.get('l') ? decodeURIComponent(urlParams.get('l')) : '⚙️ Settings';
-        const pushNowLabel = urlParams.get('pn_l') ? decodeURIComponent(urlParams.get('pn_l')) : '🚀 Push All';
+        const pushNowLabel = urlParams.get('pn_l') ? decodeURIComponent(urlParams.get('pn_l')) : '🚀 Push';
         const lastPushTime = parseInt(urlParams.get('lpt') || '0');
         const lastPushType = urlParams.get('lpty') || '';
         const lastPushLabel = urlParams.get('lp_l') ? decodeURIComponent(urlParams.get('lp_l')) : 'Last Push';
@@ -721,7 +721,8 @@
 
             const title = document.createElement('div');
             title.className = 'ep-sidebar-box-title';
-            title.innerText = 'E-Ink Push';
+            title.innerText = 'E-INK PUSH';
+            title.style.textAlign = 'center';
             box.appendChild(title);
 
             const btnRow = document.createElement('div');
@@ -740,7 +741,7 @@
             aPush.href = './?c=EinkPush&a=push&r=main';
             aPush.className = 'btn ep-btn-push-now-orange';
             aPush.innerHTML = pushNowLabel;
-            aPush.style.width = '100%';
+            aPush.style.width = '100%'; // Make button full width like subscription management
             btnRow.appendChild(aPush);
 
             box.appendChild(btnRow);

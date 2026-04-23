@@ -446,7 +446,7 @@ body.theme-dark .ep-footer {
 .ep-sidebar-info-text {
     font-size: 0.7rem;
     color: var(--ep-text-muted);
-    margin-top: 4px;
+    margin-top: 2px;
     text-align: center;
     font-style: italic;
     opacity: 0.8;
@@ -456,45 +456,44 @@ body.theme-dark .ep-footer {
     display: block !important;
     clear: both !important;
     width: 100% !important;
-    max-width: 220px; /* Match the width of subscription management button */
-    padding: 0 10px !important; /* Match native sidebar padding */
-    margin: 8px 0 15px 0 !important; /* Added 8px top spacing */
-    box-sizing: border-box !important;
+    max-width: 220px;
+    margin: 4px 0 10px 0 !important;
 }
 
 .ep-sidebar-box {
     background: var(--ep-bg-card);
     border: 1px solid var(--ep-border);
     border-radius: 6px;
-    padding: 10px;
-    margin-top: 10px;
+    padding: 0 !important;
+    margin: 0;
+    text-align: center;
 }
 
 .ep-sidebar-box-title {
-    font-size: 0.8rem;
-    font-weight: 600;
+    font-size: 0.75rem;
+    font-weight: 700;
     color: var(--ep-text-muted);
-    margin-bottom: 8px;
+    margin: 6px 0 4px 0 !important;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     text-align: center;
 }
 
 .ep-sidebar-btn-row {
-    display: flex;
-    gap: 8px;
-    width: 100%;
-    max-width: 220px; /* Match the width of subscription management button */
+    display: flex !important;
+    gap: 6px;
+    width: 100% !important;
+    margin: 0 6px 3px 6px !important;
+    text-align: center !important;
 }
 
 .ep-sidebar-btn-row .btn {
-    flex: 1;
-    text-align: center;
-    padding: 6px 0;
-    font-size: 0.8rem;
+    flex: 1 !important;
+    text-align: center !important;
+    padding: 5px 0 !important;
     margin: 0 !important;
-    justify-content: center;
-    min-width: 0; /* Allow buttons to shrink properly */
+    justify-content: center !important;
+    font-size: 0.75rem !important;
 }
 
 .ep-select-small {

@@ -682,7 +682,7 @@
         const urlParams = new URLSearchParams(script.src.split('?')[1]);
         const showSidebar = urlParams.get('sb') === '1';
         const label = urlParams.get('l') ? decodeURIComponent(urlParams.get('l')) : '⚙️ Settings';
-        const pushNowLabel = urlParams.get('pn_l') ? decodeURIComponent(urlParams.get('pn_l')) : '🚀 Push';
+        const pushNowLabel = urlParams.get('pn_l') ? decodeURIComponent(urlParams.get('pn_l')) : 'Push';
         const lastPushTime = parseInt(urlParams.get('lpt') || '0');
         const lastPushType = urlParams.get('lpty') || '';
         const lastPushLabel = urlParams.get('lp_l') ? decodeURIComponent(urlParams.get('lp_l')) : 'Last Push';

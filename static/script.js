@@ -245,12 +245,15 @@
                     const orig = showLoading(testBtn);
                     const labels = getLabels();
                     
+                    // Get URL from data-url attribute or href
+                    const testUrl = testBtn.getAttribute('data-url') || testBtn.href;
+                    
                     // Get device address from input
                     const deviceAddressInput = document.querySelector('input[name="device_address"]');
                     const deviceAddress = deviceAddressInput ? deviceAddressInput.value.trim() : 'http://crosspoint.local';
                     
                     // First, try the test endpoint
-                    fetch(testBtn.href + '&silent=1')
+                    fetch(testUrl + (testUrl.includes('?') ? '&' : '?') + 'silent=1')
                         .then(async r => {
                             let isError = !r.ok;  
                             let testMessage = '';
@@ -669,48 +672,6 @@
 
     // Run on initial load
     document.addEventListener('DOMContentLoaded', restoreTab);
-    // Test connection button (AJAX)
-    document.addEventListener('DOMContentLoaded', function() {
-        var btn = document.getElementById('ep-test-conn-btn');
-        if (!btn) return;
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            btn.disabled = true;
-            var url = btn.getAttribute('data-url');
-            fetch(url, { credentials: 'same-origin' })
-                .then(function(r) { return r.json(); })
-                .then(function(d) {
-                    if (d.status === 'ok') {
-                        btn.textContent = '\u2713';
-                        btn.classList.add('ep-btn-success');
-                        btn.classList.remove('ep-btn-test');
-                        setTimeout(function() { window.location.reload(); }, 1200);
-                    } else {
-                        btn.textContent = '\u2717';
-                        btn.classList.add('ep-btn-error');
-                        btn.classList.remove('ep-btn-test');
-                        setTimeout(function() {
-                            btn.textContent = 'Test Connection';
-                            btn.disabled = false;
-                            btn.classList.remove('ep-btn-error');
-                            btn.classList.add('ep-btn-test');
-                        }, 2000);
-                    }
-                })
-                .catch(function() {
-                    btn.textContent = '\u2717';
-                    btn.classList.add('ep-btn-error');
-                    btn.classList.remove('ep-btn-test');
-                    setTimeout(function() {
-                        btn.textContent = 'Test Connection';
-                        btn.disabled = false;
-                        btn.classList.remove('ep-btn-error');
-                        btn.classList.add('ep-btn-test');
-                    }, 2000);
-                });
-        });
-    });
     // Run periodically in case of AJAX load (FreshRSS doesn't always fire a clean event)
     // setInterval(restoreTab, 500);
 

@@ -797,32 +797,33 @@
             return;
         }
 
-        const targetDiv = document.querySelector('.configure-feeds');
-            console.log('[EinkPush] targetDiv .configure-feeds:', targetDiv);
+        const targetDiv = document.querySelector('.tree');
+            console.log('[EinkPush] target tree:', targetDiv);
             if (targetDiv) {
-                const container = document.createElement('div');
-                container.className = 'ep-sidebar-container';
-                container.id = 'ep-sidebar-btn-main';
-                container.appendChild(createSidebarContent());
-                targetDiv.parentNode.insertBefore(container, targetDiv.nextSibling);
-                return;
+                const subManage = Array.from(document.querySelectorAll('a')).find(a =>
+                    (a.getAttribute('href') || '').includes('a=subscription')
+                );
+                const parent = (subManage || targetDiv.querySelector('a'))?.closest('li, .item');
+                if (parent) {
+                    const clone = parent.cloneNode(false);
+                    clone.id = 'ep-sidebar-btn-main';
+                    clone.appendChild(createSidebarContent());
+                    targetDiv.appendChild(clone);
+                    return;
+                }
             }
 
             // FreshRSS Default theme (and others) often use #aside_feed
             const asideFeed = document.querySelector('#aside_feed');
-            console.log('[EinkPush] target #aside_feed:', asideFeed);
             if (asideFeed) {
-                const container = document.createElement('div');
-                container.className = 'ep-sidebar-container';
-                container.id = 'ep-sidebar-btn-main';
-                container.appendChild(createSidebarContent());
-                
-                // Try to find a good spot inside aside_feed
-                const tree = asideFeed.querySelector('.tree');
-                if (tree) {
-                    tree.parentNode.insertBefore(container, tree);
-                } else {
-                    asideFeed.appendChild(container);
+                const subLi = asideFeed.querySelector('li.item') || asideFeed.querySelector('li');
+                if (subLi) {
+                    const clone = subLi.cloneNode(false);
+                    clone.id = 'ep-sidebar-btn-main';
+                    clone.appendChild(createSidebarContent());
+                    const tree = asideFeed.querySelector('.tree');
+                    if (tree) tree.parentNode.insertBefore(clone, tree);
+                    else asideFeed.insertBefore(clone, asideFeed.firstChild);
                 }
                 return;
             }

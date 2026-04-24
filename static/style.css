@@ -155,14 +155,14 @@
 
 /* Inline test button — same height as input */
 .ep-inline-test-btn {
-    min-height: 0 !important;
+    min-height: 30px !important;
+    height: 30px !important;
     min-width: 130px !important;
     max-width: 130px !important;
-    height: auto !important;
-    padding: 4px 14px !important;
-    font-size: 13px !important;
-    white-space: nowrap !important;
-    flex-shrink: 0;
+    line-height: 30px !important;
+    box-sizing: border-box !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
     border-radius: 4px !important;
 }
 

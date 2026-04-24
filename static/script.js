@@ -14,9 +14,14 @@
         const originalHeight = btn.style.height;
         const originalClasses = Array.from(btn.classList);
         
-        // Lock dimensions to prevent shape change
-        btn.style.width = rect.width + 'px';
-        btn.style.height = rect.height + 'px';
+        if (btn.id === 'ep-test-conn-btn' || btn.classList.contains('ep-inline-test-btn')) {
+            btn.style.flexShrink = '0';
+            btn.style.flexBasis = '130px';
+        } else {
+            // Lock dimensions to prevent shape change
+            btn.style.width = rect.width + 'px';
+            btn.style.height = rect.height + 'px';
+        }
         
         btn.classList.add('ep-loading');
         btn.innerHTML = '<span class="ep-spinner-inline"></span>';
@@ -50,6 +55,8 @@
             btn.innerHTML = originalState.html;
             btn.style.width = originalState.width;
             btn.style.height = originalState.height;
+            btn.style.flexShrink = '';
+            btn.style.flexBasis = '';
             // Restore original classes if they were removed
             originalState.classes.forEach(c => btn.classList.add(c));
         }

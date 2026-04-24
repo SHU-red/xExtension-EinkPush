@@ -179,17 +179,14 @@ $history = $helper->getHistory();
                     <h3 class="ep-card-form-title"><?= _t('ext.device_connection') ?></h3>
                     <p class="ep-mt-10 ep-mb-15">Connect to readers using CrossPoint firmware</p>
                     
-                    <!-- Device address + Test button on one line -->
-                    <div class="ep-flex-center-gap-10 ep-mb-10" style="align-items: flex-end;">
-                        <div class="ep-form-group" style="flex:1;">
-                            <label><?= _t('ext.device_address') ?></label>
-                            <input type="url" name="device_address" value="<?= htmlspecialchars($cfg['device_address'] ?? 'http://crosspoint.local', ENT_QUOTES) ?>" placeholder="http://crosspoint.local" style="width: 100%;">
-                            <p class="help"><?= _t('ext.device_address_help') ?></p>
+                    <!-- Device address + Test button -->
+                    <div class="ep-form-group ep-mb-10">
+                        <label><?= _t('ext.device_address') ?></label>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <input type="url" name="device_address" value="<?= htmlspecialchars($cfg['device_address'] ?? 'http://crosspoint.local', ENT_QUOTES) ?>" placeholder="http://crosspoint.local" style="width: 100%; flex:1;">
+                            <a href="<?= _url('EinkPush', 'testEndpoint') ?>" class="ep-btn ep-btn-test ep-inline-test-btn"><?= _t('ext.test_connection') ?></a>
                         </div>
-                        <div class="ep-form-group" style="width: auto;">
-                            <label>&nbsp;</label>
-                            <a href="<?= _url('EinkPush', 'testEndpoint') ?>" class="ep-btn ep-btn-test ep-compact-btn"><?= _t('ext.test_connection') ?></a>
-                        </div>
+                        <p class="help"><?= _t('ext.device_address_help') ?></p>
                     </div>
 
                     <!-- Device Status Information -->

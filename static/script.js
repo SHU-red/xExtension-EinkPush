@@ -781,6 +781,7 @@
             document.querySelector('input[name="title_feed"]') ||
             document.querySelector('fieldset[data-formname="feed"]') ||
             document.querySelector('#feeds') ||
+            document.querySelector('.configure-feeds') ||
             location.hash.includes('settings') ||
             href.includes('c=extension') ||
             href.includes('c=userquery') ||

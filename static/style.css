@@ -488,7 +488,7 @@ body.theme-dark .ep-footer {
     display: block !important;
     clear: both !important;
     width: 100% !important;
-    max-width: 220px;
+    max-width: none !important;
     margin: 4px auto 10px auto !important;
     text-align: center !important;
 }
@@ -501,7 +501,7 @@ body.theme-dark .ep-footer {
     margin: 0 auto;
     text-align: center;
     display: inline-block;
-    width: calc(100% - 12px);
+    width: 100%;
     vertical-align: middle;
 }
 

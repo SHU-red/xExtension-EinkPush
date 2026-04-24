@@ -699,16 +699,6 @@
         const typeManual = urlParams.get('ty_m') ? decodeURIComponent(urlParams.get('ty_m')) : 'Manual';
         const typeAuto = urlParams.get('ty_a') ? decodeURIComponent(urlParams.get('ty_a')) : 'Auto';
         
-        // Robust check: if explicitly false, remove and stop
-        if (!showSidebar) {
-            const existingBtn = document.getElementById('ep-sidebar-btn-main');
-            if (existingBtn) {
-                console.log('[EinkPush] Removing sidebar buttons per settings');
-                existingBtn.remove();
-            }
-            return;
-        }
-        
         // If already exists, just update the last push info
         if (document.getElementById('ep-sidebar-btn-main')) {
             const container = document.getElementById('ep-sidebar-btn-main');
@@ -780,12 +770,33 @@
             return box;
         }
 
-        // Only inject in main UI, not in settings sidebar
-        if (window.location.pathname.includes('/i/') &&
-            !window.location.href.includes('c=extension') &&
-            !window.location.href.includes('c=userquery') &&
-            !window.location.href.includes('c=pref')) {
-            const targetDiv = document.querySelector('.configure-feeds');
+        // Check URL params
+        const href = window.location.href;
+        
+        // Check DOM for settings page markers
+        const hasSettingNav = document.querySelector('.setting-nav') ||
+            document.querySelector('#settings-menu') ||
+            document.querySelector('#extensions-container') ||
+            document.querySelector('.extensions-list') ||
+            document.querySelector('input[name="title_feed"]') ||
+            document.querySelector('fieldset[data-formname="feed"]') ||
+            document.querySelector('#feeds') ||
+            location.hash.includes('settings') ||
+            href.includes('c=extension') ||
+            href.includes('c=userquery') ||
+            href.includes('c=pref') ||
+            href.includes('c=subscription') ||
+            href.includes('c=feed') ||
+            href.includes('p=login');
+
+        // Only inject on main reading page
+        if (hasSettingNav || !showSidebar) {
+            const existingBtn = document.getElementById('ep-sidebar-btn-main');
+            if (existingBtn) existingBtn.remove();
+            return;
+        }
+
+        const targetDiv = document.querySelector('.configure-feeds');
             console.log('[EinkPush] targetDiv .configure-feeds:', targetDiv);
             if (targetDiv) {
                 const container = document.createElement('div');
@@ -824,11 +835,12 @@
             if (subManage) {
                 const parent = subManage.closest('li') || subManage.parentNode;
                 if (parent && parent.parentNode) {
-                    const li = document.createElement('li');
-                    li.className = 'item ep-sidebar-container';
-                    li.id = 'ep-sidebar-btn-main';
-                    li.appendChild(createSidebarContent());
-                    parent.parentNode.insertBefore(li, parent.nextSibling);
+                    const clone = parent.cloneNode(false);
+                    clone.className = parent.className;
+                    clone.id = '';
+                    clone.appendChild(createSidebarContent());
+                    parent.parentNode.insertBefore(clone, parent.nextSibling);
+                    return;
                 }
             }
         }

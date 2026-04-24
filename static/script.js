@@ -673,10 +673,12 @@
     document.addEventListener('DOMContentLoaded', function() {
         var btn = document.getElementById('ep-test-conn-btn');
         if (!btn) return;
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
             btn.disabled = true;
-            btn.textContent = 'Testing...';
-            fetch(window.location.origin + '/i.php?c=EinkPush&a=testEndpoint&silent=1', { credentials: 'same-origin' })
+            var url = btn.getAttribute('data-url');
+            fetch(url, { credentials: 'same-origin' })
                 .then(function(r) { return r.json(); })
                 .then(function(d) {
                     if (d.status === 'ok') {

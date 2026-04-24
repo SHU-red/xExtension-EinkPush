@@ -179,47 +179,33 @@ $history = $helper->getHistory();
                     <h3 class="ep-card-form-title"><?= _t('ext.device_connection') ?></h3>
                     <p class="ep-mt-10 ep-mb-15">Connect to readers using CrossPoint firmware</p>
                     
-                    <div class="ep-form-group ep-flex-center-gap-10 ep-mb-15">
-                        <div style="flex:1;">
+                    <!-- Device address + Test button on one line -->
+                    <div class="ep-flex-center-gap-10 ep-mb-10" style="align-items: flex-end;">
+                        <div class="ep-form-group" style="flex:1;">
                             <label><?= _t('ext.device_address') ?></label>
                             <input type="url" name="device_address" value="<?= htmlspecialchars($cfg['device_address'] ?? 'http://crosspoint.local', ENT_QUOTES) ?>" placeholder="http://crosspoint.local" style="width: 100%;">
                             <p class="help"><?= _t('ext.device_address_help') ?></p>
                         </div>
-                        <div>
-                            <a href="<?= _url('EinkPush', 'testEndpoint') ?>" class="ep-btn ep-btn-test"><?= _t('ext.test_connection') ?></a>
+                        <div class="ep-form-group" style="width: auto;">
+                            <label>&nbsp;</label>
+                            <a href="<?= _url('EinkPush', 'testEndpoint') ?>" class="ep-btn ep-btn-test ep-compact-btn"><?= _t('ext.test_connection') ?></a>
                         </div>
                     </div>
-                    
+
                     <!-- Device Status Information -->
-                    <div class="ep-device-status ep-mt-15">
+                    <div class="ep-device-status ep-mt-10">
                         <?php if (!empty($cfg['device_info'])): ?>
                             <?php 
                             $info = json_decode($cfg['device_info'], true);
                             if ($info && is_array($info)): 
                             ?>
-                                <div class="ep-device-info-row">
-                                    <span class="ep-device-info-key">Version:</span>
-                                    <span class="ep-device-info-value"><?= htmlspecialchars($info['version'] ?? _t('ext.device_info_unknown')) ?></span>
-                                </div>
-                                <div class="ep-device-info-row">
-                                    <span class="ep-device-info-key">IP:</span>
-                                    <span class="ep-device-info-value"><?= htmlspecialchars($info['ip'] ?? _t('ext.device_info_unknown')) ?></span>
-                                </div>
-                                <div class="ep-device-info-row">
-                                    <span class="ep-device-info-key">Mode:</span>
-                                    <span class="ep-device-info-value"><?= htmlspecialchars($info['mode'] ?? _t('ext.device_info_unknown')) ?></span>
-                                </div>
-                                <div class="ep-device-info-row">
-                                    <span class="ep-device-info-key">RSSI:</span>
-                                    <span class="ep-device-info-value"><?= $info['rssi'] ?? _t('ext.device_info_unknown') ?> dBm</span>
-                                </div>
-                                <div class="ep-device-info-row">
-                                    <span class="ep-device-info-key">Free Heap:</span>
-                                    <span class="ep-device-info-value"><?= $info['freeHeap'] ?? _t('ext.device_info_unknown') ?> bytes</span>
-                                </div>
-                                <div class="ep-device-info-row">
-                                    <span class="ep-device-info-key">Uptime:</span>
-                                    <span class="ep-device-info-value">
+                                <div class="ep-device-badges">
+                                    <span class="ep-badge">📦 <?= htmlspecialchars($info['version'] ?? _t('ext.device_info_unknown')) ?></span>
+                                    <span class="ep-badge">📡 <?= htmlspecialchars($info['ip'] ?? _t('ext.device_info_unknown')) ?></span>
+                                    <span class="ep-badge">⚡ <?= htmlspecialchars($info['mode'] ?? _t('ext.device_info_unknown')) ?></span>
+                                    <span class="ep-badge">📶 <?= $info['rssi'] ?? _t('ext.device_info_unknown') ?> dBm</span>
+                                    <span class="ep-badge">💾 <?= $info['freeHeap'] ?? _t('ext.device_info_unknown') ?> B</span>
+                                    <span class="ep-badge">⏱
                                         <?php 
                                         $uptime = $info['uptime'] ?? null;
                                         if ($uptime !== null && is_numeric($uptime)):

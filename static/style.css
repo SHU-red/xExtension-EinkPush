@@ -130,6 +130,35 @@
     color: var(--ep-text);
 }
 
+/* Badge grid for device info */
+.ep-device-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 4px 0;
+}
+
+.ep-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: rgba(144, 85, 24, 0.12);
+    border: 1px solid rgba(144, 85, 24, 0.25);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ep-text, #1e1e1f);
+    white-space: nowrap;
+}
+
+/* Compact test button */
+.ep-compact-btn {
+    padding: 8px 14px;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
 
 .ep-welcome-banner {
     background: rgba(242, 125, 38, 0.1);

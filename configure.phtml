@@ -85,15 +85,98 @@ $history = $helper->getHistory();
             </div>
         </div>
 
-        <!-- Push Settings Section -->
+        <!-- Auto Push Settings Section -->
         <div id="push" class="ep-section">
             <div class="ep-section-body ep-card-form">
-                <h3 class="ep-card-form-title">Connection</h3>
+                <h3 class="ep-card-form-title"><?= _t('ext.upload_settings') ?></h3>
+                <p class="ep-mt-10 ep-mb-20"><?= _t('ext.upload_settings_desc') ?></p>
+                
+                <div class="ep-form-group ep-mb-20">
+                    <label><?= _t('ext.folder_name') ?></label>
+                    <input type="text" name="folder_name" value="<?= htmlspecialchars($cfg['folder_name'] ?? 'RSSFeeds', ENT_QUOTES) ?>" placeholder="RSSFeeds" style="width: 100%;">
+                    <p class="help"><?= _t('ext.folder_name_help') ?></p>
+                </div>
+                
+                <div class="ep-form-group ep-mb-20">
+                    <div class="ep-source-info" style="display: flex; align-items: center; gap: 10px;">
+                        <label class="ep-switch" title="<?= _t('ext.push_auto_enabled') ?>">
+                            <input type="checkbox" name="auto_push_enabled" value="1" <?= !empty($cfg['auto_push_enabled']) ? 'checked' : '' ?>>
+                            <span class="ep-slider"></span>
+                        </label>
+                        <span class="ep-source-name"><?= _t('ext.push_auto_enabled') ?></span>
+                    </div>
+                    <p class="help"><?= _t('ext.push_auto_enabled_help') ?></p>
+                </div>
+
+                <div class="ep-flex-center-gap-8 ep-mb-15">
+                    <div class="ep-form-group" style="flex:1;">
+                        <label><?= _t('ext.push_ping_interval') ?></label>
+                        <input type="number" name="ping_interval" value="<?= (int)($cfg['ping_interval'] ?? 5) ?>" min="1">
+                        <p class="help"><?= _t('ext.push_ping_interval_help') ?></p>
+                    </div>
+                    <div class="ep-form-group" style="flex:1;">
+                        <label><?= _t('ext.push_cooldown') ?></label>
+                        <input type="number" name="push_cooldown" value="<?= (int)($cfg['push_cooldown'] ?? 20) ?>" min="1">
+                        <p class="help"><?= _t('ext.push_cooldown_help') ?></p>
+                    </div>
+                </div>
+
+                <div class="ep-flex-center-gap-8">
+                    <div class="ep-form-group" style="flex:1;">
+                        <label><?= _t('ext.push_retries') ?></label>
+                        <input type="number" name="push_retries" value="<?= (int)$cfg['push_retries'] ?>" min="0" max="20">
+                    </div>
+                    <div class="ep-form-group" style="flex:1;">
+                        <label><?= _t('ext.push_retryDelay') ?> (s)</label>
+                        <input type="number" name="push_retryDelay" value="<?= (int)$cfg['push_retryDelay'] ?>" min="1" max="300">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- REST API Section -->
+        <div id="api" class="ep-section">
+            <div class="ep-section-body ep-card-form">
+                <p class="help ep-mb-20"><?= _t('ext.api_help') ?></p>
+                
+                <?php 
+                $apiUrl = Minz_Url::display(['c' => 'EinkPush', 'a' => 'api'], 'php', true);
+                $fullUrl = $apiUrl . '&token=' . $cfg['push_token'];
+                ?>
+
+                <div class="ep-form-group">
+                    <label><?= _t('ext.api_url') ?></label>
+                    <div class="ep-cron-cmd-wrapper">
+                        <input type="text" readonly value="<?= htmlspecialchars($fullUrl, ENT_QUOTES) ?>" class="ep-cron-cmd-input">
+                    </div>
+                    <p class="help"><?= _t('ext.api_url_help') ?></p>
+                    <a href="<?= _url('EinkPush', 'regenerateToken') ?>" class="ep-btn ep-btn-danger ep-mt-10 ep-btn-regenerate"><?= _t('ext.api_regenerate') ?></a>
+                </div>
+
+                <div class="ep-experimental-section">
+                    <h3 class="ep-experimental-title">🛠️ <?= _t('ext.api_examples') ?></h3>
+                    <div class="ep-api-examples">
+                        <p><strong>Push all enabled sources:</strong><br>
+                        <code>...&action=push&source=all</code></p>
+                        
+                        <p><strong>Push specific category (e.g. ID 5):</strong><br>
+                        <code>...&action=push&source=cat_5</code></p>
+                        
+                        <p><strong>Download favorites EPUB:</strong><br>
+                        <code>...&action=download&source=favorites</code></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Device & Display Settings Section -->
+        <div id="ep-global" class="ep-section">
+            <div class="ep-section-body ep-card-form">
                 
                 <!-- Device Connection Cluster -->
                 <div class="ep-settings-cluster ep-mb-25">
-                    <h4><?= _t('ext.device_connection') ?></h4>
-                    <p class="ep-mt-10" style="margin-bottom: 15px;">Connect to readers using CrossPoint firmware</p>
+                    <h3 class="ep-card-form-title"><?= _t('ext.device_connection') ?></h3>
+                    <p class="ep-mt-10 ep-mb-15">Connect to readers using CrossPoint firmware</p>
                     
                     <div class="ep-form-group ep-flex-center-gap-10 ep-mb-15">
                         <div style="flex:1;">
@@ -158,150 +241,12 @@ $history = $helper->getHistory();
                         <?php endif; ?>
                     </div>
                 </div>
-                        <?php if (!empty($cfg['device_info'])): ?>
-                            <?php 
-                            $info = json_decode($cfg['device_info'], true);
-                            if ($info && is_array($info)): 
-                            ?>
-                                <div class="ep-device-info-grid">
-                                    <div class="ep-status-item">
-                                        <span class="ep-status-label">Version:</span>
-                                        <span class="ep-status-value"><?= htmlspecialchars($info['version'] ?? _t('ext.device_info_unknown')) ?></span>
-                                    </div>
-                                    <div class="ep-status-item">
-                                        <span class="ep-status-label">IP:</span>
-                                        <span class="ep-status-value"><?= htmlspecialchars($info['ip'] ?? _t('ext.device_info_unknown')) ?></span>
-                                    </div>
-                                    <div class="ep-status-item">
-                                        <span class="ep-status-label">Mode:</span>
-                                        <span class="ep-status-value"><?= htmlspecialchars($info['mode'] ?? _t('ext.device_info_unknown')) ?></span>
-                                    </div>
-                                    <div class="ep-status-item">
-                                        <span class="ep-status-label">RSSI:</span>
-                                        <span class="ep-status-value"><?= $info['rssi'] ?? _t('ext.device_info_unknown') ?> dBm</span>
-                                    </div>
-                                    <div class="ep-status-item">
-                                        <span class="ep-status-label">Free Heap:</span>
-                                        <span class="ep-status-value"><?= $info['freeHeap'] ?? _t('ext.device_info_unknown') ?> bytes</span>
-                                    </div>
-                                    <div class="ep-status-item">
-                                        <span class="ep-status-label">Uptime:</span>
-                                        <span class="ep-status-value">
-                                            <?php 
-                                            $uptime = $info['uptime'] ?? null;
-                                            if ($uptime !== null && is_numeric($uptime)):
-                                                $hours = floor($uptime / 3600);
-                                                $minutes = floor(($uptime % 3600) / 60);
-                                                echo $hours . "h " . $minutes . "m";
-                                            else:
-                                                echo _t('ext.device_info_unknown');
-                                            endif;
-                                            ?>
-                                        </span>
-                                    </div>
-                                </div>
-                            <?php else: ?>
-                                <pre class="ep-device-info-raw" style="padding:10px; background:#f5f5f5; border-radius:4px;"><?= htmlspecialchars($cfg['device_info']) ?></pre>
-                            <?php endif; ?>
-                        <?php else: ?>
-                            <div id="device-status-placeholder" class="ep-inactive-help">
-                                <?= _t('ext.device_status_not_available_yet') ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
-                
-                <!-- Visual separator between test and settings -->
-                <hr class="ep-section-separator" style="margin: 30px 0; border: 0; border-top: 1px solid #ddd;">
-                
-                <!-- Upload Settings Cluster -->
-                <div class="ep-settings-cluster ep-mt-25">
-                    <h4><?= _t('ext.upload_settings') ?></h4>
-                    <p class="ep-mt-10" style="margin-bottom: 20px;"><?= _t('ext.upload_settings_desc') ?></p>
-                    
-                    <div class="ep-form-group ep-mb-20">
-                        <label><?= _t('ext.folder_name') ?></label>
-                        <input type="text" name="folder_name" value="<?= htmlspecialchars($cfg['folder_name'] ?? 'RSSFeeds', ENT_QUOTES) ?>" placeholder="RSSFeeds" style="width: 100%;">
-                        <p class="help"><?= _t('ext.folder_name_help') ?></p>
-                    </div>
-                    
-                    <div class="ep-form-group ep-mb-20">
-                        <div class="ep-source-info" style="display: flex; align-items: center; gap: 10px;">
-                            <label class="ep-switch" title="<?= _t('ext.push_auto_enabled') ?>">
-                                <input type="checkbox" name="auto_push_enabled" value="1" <?= !empty($cfg['auto_push_enabled']) ? 'checked' : '' ?>>
-                                <span class="ep-slider"></span>
-                            </label>
-                            <span class="ep-source-name"><?= _t('ext.push_auto_enabled') ?></span>
-                        </div>
-                        <p class="help"><?= _t('ext.push_auto_enabled_help') ?></p>
-                    </div>
 
-                <div class="ep-flex-center-gap-8 ep-mb-15">
-                    <div class="ep-form-group" style="flex:1;">
-                        <label><?= _t('ext.push_ping_interval') ?></label>
-                        <input type="number" name="ping_interval" value="<?= (int)($cfg['ping_interval'] ?? 5) ?>" min="1">
-                        <p class="help"><?= _t('ext.push_ping_interval_help') ?></p>
-                    </div>
-                    <div class="ep-form-group" style="flex:1;">
-                        <label><?= _t('ext.push_cooldown') ?></label>
-                        <input type="number" name="push_cooldown" value="<?= (int)($cfg['push_cooldown'] ?? 20) ?>" min="1">
-                        <p class="help"><?= _t('ext.push_cooldown_help') ?></p>
-                    </div>
-                </div>
+                <!-- Visual separator between device and display settings -->
+                <hr class="ep-section-separator" style="margin: 25px 0; border: 0; border-top: 1px solid #ddd;">
 
-                <div class="ep-flex-center-gap-8">
-                    <div class="ep-form-group" style="flex:1;">
-                        <label><?= _t('ext.push_retries') ?></label>
-                        <input type="number" name="push_retries" value="<?= (int)$cfg['push_retries'] ?>" min="0" max="20">
-                    </div>
-                    <div class="ep-form-group" style="flex:1;">
-                        <label><?= _t('ext.push_retryDelay') ?> (s)</label>
-                        <input type="number" name="push_retryDelay" value="<?= (int)$cfg['push_retryDelay'] ?>" min="1" max="300">
-                    </div>
-                </div>
-
-
-            </div>
-        </div>
-
-        <!-- REST API Section -->
-        <div id="api" class="ep-section">
-            <div class="ep-section-body ep-card-form">
-                <p class="help ep-mb-20"><?= _t('ext.api_help') ?></p>
-                
-                <?php 
-                $apiUrl = Minz_Url::display(['c' => 'EinkPush', 'a' => 'api'], 'php', true);
-                $fullUrl = $apiUrl . '&token=' . $cfg['push_token'];
-                ?>
-
-                <div class="ep-form-group">
-                    <label><?= _t('ext.api_url') ?></label>
-                    <div class="ep-cron-cmd-wrapper">
-                        <input type="text" readonly value="<?= htmlspecialchars($fullUrl, ENT_QUOTES) ?>" class="ep-cron-cmd-input">
-                    </div>
-                    <p class="help"><?= _t('ext.api_url_help') ?></p>
-                    <a href="<?= _url('EinkPush', 'regenerateToken') ?>" class="ep-btn ep-btn-danger ep-mt-10 ep-btn-regenerate"><?= _t('ext.api_regenerate') ?></a>
-                </div>
-
-                <div class="ep-experimental-section">
-                    <h3 class="ep-experimental-title">🛠️ <?= _t('ext.api_examples') ?></h3>
-                    <div class="ep-api-examples">
-                        <p><strong>Push all enabled sources:</strong><br>
-                        <code>...&action=push&source=all</code></p>
-                        
-                        <p><strong>Push specific category (e.g. ID 5):</strong><br>
-                        <code>...&action=push&source=cat_5</code></p>
-                        
-                        <p><strong>Download favorites EPUB:</strong><br>
-                        <code>...&action=download&source=favorites</code></p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Global Settings Section -->
-        <div id="ep-global" class="ep-section">
-            <div class="ep-section-body ep-card-form">
+                <!-- Display Settings Cluster -->
+                <div class="ep-settings-cluster">
                 <div class="ep-form-group">
                     <label><?= _t('ext.screen_size') ?></label>
                     <div class="ep-screen-size-grid">

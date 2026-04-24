@@ -156,6 +156,9 @@
 /* Inline test button — same height as input */
 .ep-inline-test-btn {
     min-height: 0 !important;
+    min-width: 130px !important;
+    max-width: 130px !important;
+    height: auto !important;
     padding: 4px 14px !important;
     font-size: 13px !important;
     white-space: nowrap !important;

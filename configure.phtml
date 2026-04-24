@@ -184,7 +184,7 @@ $history = $helper->getHistory();
                         <label><?= _t('ext.device_address') ?></label>
                         <div style="display:flex; gap:10px; align-items:center;">
                             <input type="url" name="device_address" value="<?= htmlspecialchars($cfg['device_address'] ?? 'http://crosspoint.local', ENT_QUOTES) ?>" placeholder="http://crosspoint.local" style="width: 100%; flex:1;">
-                            <a href="<?= _url('EinkPush', 'testEndpoint') ?>" class="ep-btn ep-btn-test ep-inline-test-btn"><?= _t('ext.test_connection') ?></a>
+                            <button type="button" class="ep-btn ep-btn-test ep-inline-test-btn" id="ep-test-conn-btn"><?= _t('ext.test_connection') ?></button>
                         </div>
                         <p class="help"><?= _t('ext.device_address_help') ?></p>
                     </div>

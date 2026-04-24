@@ -669,6 +669,46 @@
 
     // Run on initial load
     document.addEventListener('DOMContentLoaded', restoreTab);
+    // Test connection button (AJAX)
+    document.addEventListener('DOMContentLoaded', function() {
+        var btn = document.getElementById('ep-test-conn-btn');
+        if (!btn) return;
+        btn.addEventListener('click', function() {
+            btn.disabled = true;
+            btn.textContent = 'Testing...';
+            fetch(window.location.origin + '/i.php?c=EinkPush&a=testEndpoint&silent=1', { credentials: 'same-origin' })
+                .then(function(r) { return r.json(); })
+                .then(function(d) {
+                    if (d.status === 'ok') {
+                        btn.textContent = '\u2713';
+                        btn.classList.add('ep-btn-success');
+                        btn.classList.remove('ep-btn-test');
+                        setTimeout(function() { window.location.reload(); }, 1200);
+                    } else {
+                        btn.textContent = '\u2717';
+                        btn.classList.add('ep-btn-error');
+                        btn.classList.remove('ep-btn-test');
+                        setTimeout(function() {
+                            btn.textContent = 'Test Connection';
+                            btn.disabled = false;
+                            btn.classList.remove('ep-btn-error');
+                            btn.classList.add('ep-btn-test');
+                        }, 2000);
+                    }
+                })
+                .catch(function() {
+                    btn.textContent = '\u2717';
+                    btn.classList.add('ep-btn-error');
+                    btn.classList.remove('ep-btn-test');
+                    setTimeout(function() {
+                        btn.textContent = 'Test Connection';
+                        btn.disabled = false;
+                        btn.classList.remove('ep-btn-error');
+                        btn.classList.add('ep-btn-test');
+                    }, 2000);
+                });
+        });
+    });
     // Run periodically in case of AJAX load (FreshRSS doesn't always fire a clean event)
     // setInterval(restoreTab, 500);
 

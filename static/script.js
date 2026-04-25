@@ -716,7 +716,10 @@
 
         function createSidebarContent() {
             // Find Subscription management button to match its style
+            console.log('[EinkPush] Searching for sub button...');
             const subBtn = document.querySelector('#btn-subscription, a[href*="c=subscription"]');
+            console.log('[EinkPush] subBtn:', subBtn);
+            console.log('[EinkPush] all sidebar links:', Array.from(document.querySelectorAll('.aside-feed a, .feed-tree-btn')).map(a => a.id || a.href).join(' | '));
             const btnWidth = subBtn ? subBtn.getBoundingClientRect().width + 'px' : '100%';
             const btnFontSize = subBtn ? window.getComputedStyle(subBtn).fontSize : '0.75rem';
             const btnPadding = subBtn ? window.getComputedStyle(subBtn).padding : '5px 0';

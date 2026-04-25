@@ -269,6 +269,16 @@ class EinkPushHelper {
                     $entries[] = $entry;
                 }
             }
+        } elseif ($sourceKey === 'main') {
+            $result = $entryDAO->listWhere(
+                type: 'A', id: 0, state: $state,
+                filters: null, id_min: $idMin, order: 'DESC', limit: $limit
+            );
+            if ($result) {
+                foreach ($result as $entry) {
+                    $entries[] = $entry;
+                }
+            }
         } elseif (strpos($sourceKey, 'cat_') === 0) {
             $catId = (int) substr($sourceKey, 4);
             if ($catId > 0) {
@@ -925,6 +935,9 @@ CSS;
     private function sourceLabel(string $key): string {
         if ($key === 'favorites') {
             return _t('ext.source_favorites');
+        }
+        if ($key === 'main') {
+            return _t('ext.source_main_stream');
         }
         if (strpos($key, 'cat_') === 0) {
             $catId = (int) substr($key, 4);

@@ -23,7 +23,7 @@ $history = $helper->getHistory();
             <h2><?= _t('ext.title') ?> <span class="ep-version"><?= _t('ext.version') ?> <?= $this::VERSION ?></span></h2>
             <p><?= _t('ext.description') ?></p>
             <?php if (!empty($cfg['last_push'])): ?>
-                <?php 
+                <?php
                 $typeKey = ($cfg['last_push_type'] === 'auto') ? 'ext.push_type_auto' : 'ext.push_type_manual';
                 $typeStr = _t($typeKey);
                 ?>
@@ -57,6 +57,7 @@ $history = $helper->getHistory();
             <div class="ep-section-body">
             <?php
             $hasEnabledSources = false;
+            if (!empty($sources['main']['enabled'])) $hasEnabledSources = true;
             if (!empty($sources['favorites']['enabled'])) $hasEnabledSources = true;
             foreach ($categories as $cat) {
                 if (!empty($sources['cat_' . $cat->id()]['enabled'])) {
@@ -72,8 +73,11 @@ $history = $helper->getHistory();
             <?php endif; ?>
 
             <div class="ep-source-list">
-                <?php 
-                $favCfg = array_merge($favDefaults, ($sources['favorites'] ?? [])); 
+                <?php
+                $mainCfg = array_merge($catDefaults, ($sources['main'] ?? []));
+                renderSourceItem('main', '☰ ' . _t('ext.source_main_stream'), $mainCfg, false);
+
+                $favCfg = array_merge($favDefaults, ($sources['favorites'] ?? []));
                 renderSourceItem('favorites', '⭐ ' . _t('ext.source_favorites'), $favCfg, true);
 
                 foreach ($categories as $cat) {
@@ -91,13 +95,13 @@ $history = $helper->getHistory();
             <div class="ep-section-body ep-card-form">
                 <h3 class="ep-card-form-title"><?= _t('ext.upload_settings') ?></h3>
                 <p class="ep-mt-10 ep-mb-20"><?= _t('ext.upload_settings_desc') ?></p>
-                
+
                 <div class="ep-form-group ep-mb-20">
                     <label><?= _t('ext.folder_name') ?></label>
                     <input type="text" name="folder_name" value="<?= htmlspecialchars($cfg['folder_name'] ?? 'RSSFeeds', ENT_QUOTES) ?>" placeholder="RSSFeeds" style="width: 100%;">
                     <p class="help"><?= _t('ext.folder_name_help') ?></p>
                 </div>
-                
+
                 <div class="ep-form-group ep-mb-20">
                     <div class="ep-source-info" style="display: flex; align-items: center; gap: 10px;">
                         <label class="ep-switch" title="<?= _t('ext.push_auto_enabled') ?>">
@@ -139,8 +143,8 @@ $history = $helper->getHistory();
         <div id="api" class="ep-section">
             <div class="ep-section-body ep-card-form">
                 <p class="help ep-mb-20"><?= _t('ext.api_help') ?></p>
-                
-                <?php 
+
+                <?php
                 $apiUrl = Minz_Url::display(['c' => 'EinkPush', 'a' => 'api'], 'php', true);
                 $fullUrl = $apiUrl . '&token=' . $cfg['push_token'];
                 ?>
@@ -159,10 +163,10 @@ $history = $helper->getHistory();
                     <div class="ep-api-examples">
                         <p><strong>Push all enabled sources:</strong><br>
                         <code>...&action=push&source=all</code></p>
-                        
+
                         <p><strong>Push specific category (e.g. ID 5):</strong><br>
                         <code>...&action=push&source=cat_5</code></p>
-                        
+
                         <p><strong>Download favorites EPUB:</strong><br>
                         <code>...&action=download&source=favorites</code></p>
                     </div>
@@ -173,12 +177,12 @@ $history = $helper->getHistory();
         <!-- Device & Display Settings Section -->
         <div id="ep-global" class="ep-section">
             <div class="ep-section-body ep-card-form">
-                
+
                 <!-- Device Connection Cluster -->
                 <div class="ep-settings-cluster ep-mb-25">
                     <h3 class="ep-card-form-title"><?= _t('ext.device_connection') ?></h3>
                     <p class="ep-mt-10 ep-mb-15">Connect to readers using CrossPoint firmware</p>
-                    
+
                     <!-- Device address + Test button -->
                     <div class="ep-form-group ep-mb-10">
                         <label><?= _t('ext.device_address') ?></label>
@@ -192,9 +196,9 @@ $history = $helper->getHistory();
                     <!-- Device Status Information -->
                     <div class="ep-device-status ep-mt-10">
                         <?php if (!empty($cfg['device_info'])): ?>
-                            <?php 
+                            <?php
                             $info = json_decode($cfg['device_info'], true);
-                            if ($info && is_array($info)): 
+                            if ($info && is_array($info)):
                             ?>
                                 <div class="ep-device-badges">
                                     <span class="ep-badge">📦 <?= htmlspecialchars($info['version'] ?? _t('ext.device_info_unknown')) ?></span>
@@ -203,7 +207,7 @@ $history = $helper->getHistory();
                                     <span class="ep-badge">📶 <?= $info['rssi'] ?? _t('ext.device_info_unknown') ?> dBm</span>
                                     <span class="ep-badge">💾 <?= $info['freeHeap'] ?? _t('ext.device_info_unknown') ?> B</span>
                                     <span class="ep-badge">⏱
-                                        <?php 
+                                        <?php
                                         $uptime = $info['uptime'] ?? null;
                                         if ($uptime !== null && is_numeric($uptime)):
                                             $hours = floor($uptime / 3600);
@@ -325,7 +329,7 @@ function renderSourceItem($key, $name, $cfg, $isFav) {
                 <span class="ep-source-chevron">▾</span>
             </div>
         </div>
-        
+
         <div id="details-<?= $key ?>" class="ep-source-details">
             <div class="ep-settings-row-2">
                 <div class="ep-field">

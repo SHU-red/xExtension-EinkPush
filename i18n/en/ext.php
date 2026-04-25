@@ -39,6 +39,7 @@ $trans = [
     'col_timestamp' => 'Append date to title',
     'col_remove_fav' => 'Unstar after export',
     'source_favorites' => 'Favorites',
+    'source_main_stream' => 'Main stream',
     'section_push' => 'Push',
     'push_help' => 'Configure how EPUBs are sent to your e-reader.',
     'push_endpoint' => 'Push Endpoint URL',

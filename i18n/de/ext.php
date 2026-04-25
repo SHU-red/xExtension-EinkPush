@@ -39,6 +39,7 @@ return [
     'col_timestamp' => 'Datum an Titel anhängen',
     'col_remove_fav' => 'Nach Export entsternen',
     'source_favorites' => 'Favoriten',
+    'source_main_stream' => 'Alle Feeds',
     'section_push' => 'Auto Push',
     'push_help' => 'Konfigurieren Sie, wie EPUBs an Ihren E-Reader gesendet werden.',
     'push_endpoint' => 'Push Endpunkt URL',

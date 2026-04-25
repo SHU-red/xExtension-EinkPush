@@ -784,19 +784,21 @@
         const href = window.location.href;
         
         // Check DOM for settings page markers (FreshRSS uses AJAX, URL stays same)
-        const hasSettingNav = document.querySelector('.setting-nav') ||
+        const isOnSettingsPage =
+            document.querySelector('.setting-nav') ||
             document.querySelector('#settings-menu') ||
             document.querySelector('#extensions-container') ||
             document.querySelector('.extensions-list') ||
             document.querySelector('input[name="title_feed"]') ||
-            document.querySelector('fieldset[data-formname="feed"]') ||
-            document.querySelector('#feeds') ||
-            document.querySelector('.configure-feeds') ||
+            document.querySelector('fieldset[data-formname="feed"]');
+
+        const isSettingsUrl =
             href.includes('c=extension') ||
-            href.includes('c=userquery') ||
             href.includes('c=pref') ||
             href.includes('c=subscription') ||
             href.includes('p=login');
+
+        const hasSettingNav = isOnSettingsPage || isSettingsUrl;
 
         // Remove button from settings pages
         if (hasSettingNav || !showSidebar) {

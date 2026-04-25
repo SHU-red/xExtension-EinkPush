@@ -725,6 +725,11 @@
             const box = document.createElement('div');
             box.className = 'ep-sidebar-box';
 
+            const btnContainer = document.createElement('div');
+            btnContainer.style.width = '100%';
+            btnContainer.style.display = 'flex';
+            btnContainer.style.justifyContent = 'center';
+
             // Split button: left=Settings, right=Push
             const btn = document.createElement('div');
             btn.className = 'ep-split-container';
@@ -740,7 +745,7 @@
             const left = document.createElement('a');
             left.href = './?c=extension&a=configure&e=EinkPush';
             left.className = 'ep-split-left';
-            left.textContent = 'E-INK PUSH';
+            left.textContent = '⚙️';
             left.style.flex = '1';
             left.style.display = 'flex';
             left.style.alignItems = 'center';

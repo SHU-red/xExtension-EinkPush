@@ -715,9 +715,12 @@
         }
 
         function createSidebarContent() {
-            // Find Subscription management button to copy its width
+            // Find Subscription button and use its PARENT element width
             let subBtn = document.querySelector('#btn-subscription, .feed-tree-btn[href*="a=subscription"]');
-            let btnWidth = subBtn ? subBtn.getBoundingClientRect().width + 'px' : '200px';
+            let subLi = subBtn ? subBtn.closest('li, .item') : null;
+            let btnWidth = subLi
+                ? subLi.getBoundingClientRect().width + 'px'
+                : '100%';
             const btnFontSize = subBtn ? window.getComputedStyle(subBtn).fontSize : '0.75rem';
             const btnPadding = subBtn ? window.getComputedStyle(subBtn).padding : '5px 0';
             const btnBorderRadius = subBtn ? window.getComputedStyle(subBtn).borderRadius : '4px';

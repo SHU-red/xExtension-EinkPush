@@ -709,83 +709,74 @@
             return;
         }
         
-        // If already exists, just update the last push info
+        // If already exists, do nothing on re-run (AJAX navigation)
         if (document.getElementById('ep-sidebar-btn-main')) {
-            const container = document.getElementById('ep-sidebar-btn-main');
-            const box = container.querySelector('.ep-sidebar-box');
-            if (!box) return; // Something is wrong with the structure, let it be
-
-            // Update last push info if exists
-            let infoEl = document.getElementById('ep-sidebar-last-push-info');
-            if (lastPushTime > 0) {
-                if (!infoEl) {
-                    infoEl = document.createElement('div');
-                    infoEl.id = 'ep-sidebar-last-push-info';
-                    infoEl.className = 'ep-sidebar-info-text';
-                    box.appendChild(infoEl);
-                }
-                const date = new Date(lastPushTime * 1000);
-                const timeStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
-                const typeStr = lastPushType === 'auto' ? typeAuto : typeManual;
-                infoEl.innerHTML = `${lastPushLabel}: ${timeStr} (${typeStr})`;
-            } else if (infoEl) {
-                infoEl.remove();
-            }
-
             return;
         }
 
         function createSidebarContent() {
+            // Find Subscription management button to match its style
+            const subBtn = document.querySelector('#btn-subscription, a[href*="c=subscription"]');
+            const btnWidth = subBtn ? subBtn.getBoundingClientRect().width + 'px' : '100%';
+            const btnFontSize = subBtn ? window.getComputedStyle(subBtn).fontSize : '0.75rem';
+            const btnPadding = subBtn ? window.getComputedStyle(subBtn).padding : '5px 0';
+            const btnBorderRadius = subBtn ? window.getComputedStyle(subBtn).borderRadius : '4px';
+
             const box = document.createElement('div');
             box.className = 'ep-sidebar-box';
 
-            const title = document.createElement('div');
-            title.className = 'ep-sidebar-box-title';
-            title.innerText = 'E-INK PUSH';
-            title.style.textAlign = 'center';
-            box.appendChild(title);
+            // Split button: left=Settings, right=Push
+            const btn = document.createElement('div');
+            btn.className = 'ep-split-container';
+            btn.style.width = btnWidth;
+            btn.style.maxWidth = '100%';
+            btn.style.display = 'flex';
 
-            const btnRow = document.createElement('div');
-            btnRow.className = 'ep-sidebar-btn-row';
+            // LEFT - open settings
+            const left = document.createElement('a');
+            left.href = './?c=extension&a=configure&e=EinkPush';
+            left.className = 'ep-split-left';
+            left.textContent = 'E-INK PUSH';
+            left.style.flex = '1';
+            left.style.display = 'flex';
+            left.style.alignItems = 'center';
+            left.style.justifyContent = 'center';
+            left.style.color = '#fff';
+            left.style.textDecoration = 'none';
+            left.style.fontSize = btnFontSize;
+            left.style.padding = btnPadding;
+            left.style.fontWeight = '700';
+            left.style.backgroundColor = '#343a40';
+            left.style.borderRadius = btnBorderRadius + ' 0 0 ' + btnBorderRadius;
+            left.style.borderRight = '1px solid rgba(0,0,0,0.2)';
+            left.style.transition = 'background-color 0.15s ease';
+            left.onmouseover = () => left.style.backgroundColor = '#e66a19';
+            left.onmouseout = () => left.style.backgroundColor = '#343a40';
 
-            const aPush = document.createElement('a');
-            aPush.id = 'ep-sidebar-push-now';
-            aPush.href = './?c=EinkPush&a=push&r=main';
-            aPush.className = 'btn ep-btn-split-push';
-            aPush.title = pushNowLabel;
+            // RIGHT - push feeds
+            const right = document.createElement('a');
+            right.id = 'ep-sidebar-push-now';
+            right.href = './?c=EinkPush&a=push&r=main';
+            right.className = 'ep-split-right';
+            right.textContent = 'Push';
+            right.style.flex = '1';
+            right.style.display = 'flex';
+            right.style.alignItems = 'center';
+            right.style.justifyContent = 'center';
+            right.style.color = '#fff';
+            right.style.textDecoration = 'none';
+            right.style.fontSize = btnFontSize;
+            right.style.padding = btnPadding;
+            right.style.fontWeight = '700';
+            right.style.backgroundColor = '#e66a19';
+            right.style.borderRadius = '0 ' + btnBorderRadius + ' ' + btnBorderRadius + ' 0';
+            right.style.transition = 'background-color 0.15s ease';
+            right.onmouseover = () => right.style.backgroundColor = '#d45d15';
+            right.onmouseout = () => right.style.backgroundColor = '#e66a19';
 
-            const leftHalf = document.createElement('span');
-            leftHalf.className = 'ep-split-left';
-            leftHalf.textContent = 'E-INK PUSH';
-            aPush.appendChild(leftHalf);
-
-            const rightHalf = document.createElement('span');
-            rightHalf.className = 'ep-split-right';
-            rightHalf.textContent = 'Push';
-            aPush.appendChild(rightHalf);
-
-            btnRow.appendChild(aPush);
-
-            // Settings icon sits alone to the right of the split button
-            const aSettings = document.createElement('a');
-            aSettings.href = './?c=extension&a=configure&e=EinkPush';
-            aSettings.className = 'btn ep-btn-settings-orange';
-            aSettings.innerHTML = '⚙️';
-            aSettings.title = label;
-            btnRow.appendChild(aSettings);
-
-            box.appendChild(btnRow);
-
-            if (lastPushTime > 0) {
-                const infoEl = document.createElement('div');
-                infoEl.id = 'ep-sidebar-last-push-info';
-                infoEl.className = 'ep-sidebar-info-text';
-                const date = new Date(lastPushTime * 1000);
-                const timeStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
-                const typeStr = lastPushType === 'auto' ? typeAuto : typeManual;
-                infoEl.innerHTML = `${lastPushLabel}: ${timeStr} (${typeStr})`;
-                box.appendChild(infoEl);
-            }
+            btn.appendChild(left);
+            btn.appendChild(right);
+            box.appendChild(btn);
 
             return box;
         }

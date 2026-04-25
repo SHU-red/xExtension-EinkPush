@@ -785,7 +785,8 @@
 
             btn.appendChild(left);
             btn.appendChild(right);
-            box.appendChild(btn);
+            btnContainer.appendChild(btn);
+            box.appendChild(btnContainer);
 
             return box;
         }

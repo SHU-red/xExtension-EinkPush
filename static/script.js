@@ -699,6 +699,16 @@
         const typeManual = urlParams.get('ty_m') ? decodeURIComponent(urlParams.get('ty_m')) : 'Manual';
         const typeAuto = urlParams.get('ty_a') ? decodeURIComponent(urlParams.get('ty_a')) : 'Auto';
         
+        // Robust check: if explicitly false, remove and stop
+        if (!showSidebar) {
+            const existingBtn = document.getElementById('ep-sidebar-btn-main');
+            if (existingBtn) {
+                console.log('[EinkPush] Removing sidebar buttons per settings');
+                existingBtn.remove();
+            }
+            return;
+        }
+        
         // If already exists, just update the last push info
         if (document.getElementById('ep-sidebar-btn-main')) {
             const container = document.getElementById('ep-sidebar-btn-main');
@@ -773,7 +783,7 @@
         // Check URL params
         const href = window.location.href;
         
-        // Check DOM for settings page markers
+        // Check DOM for settings page markers (FreshRSS uses AJAX, URL stays same)
         const hasSettingNav = document.querySelector('.setting-nav') ||
             document.querySelector('#settings-menu') ||
             document.querySelector('#extensions-container') ||
@@ -782,68 +792,46 @@
             document.querySelector('fieldset[data-formname="feed"]') ||
             document.querySelector('#feeds') ||
             document.querySelector('.configure-feeds') ||
-            location.hash.includes('settings') ||
             href.includes('c=extension') ||
             href.includes('c=userquery') ||
             href.includes('c=pref') ||
             href.includes('c=subscription') ||
-            href.includes('c=feed') ||
             href.includes('p=login');
 
-        // Only inject on main reading page
+        // Remove button from settings pages
         if (hasSettingNav || !showSidebar) {
             const existingBtn = document.getElementById('ep-sidebar-btn-main');
             if (existingBtn) existingBtn.remove();
             return;
         }
 
-        const targetDiv = document.querySelector('.tree');
-            console.log('[EinkPush] target tree:', targetDiv);
-            if (targetDiv) {
-                const subManage = Array.from(document.querySelectorAll('a')).find(a =>
-                    (a.getAttribute('href') || '').includes('a=subscription')
-                );
-                const parent = (subManage || targetDiv.querySelector('a'))?.closest('li, .item');
-                if (parent) {
-                    const clone = parent.cloneNode(false);
-                    clone.id = 'ep-sidebar-btn-main';
-                    clone.appendChild(createSidebarContent());
-                    targetDiv.appendChild(clone);
-                    return;
-                }
+        // FreshRSS Default theme (and others) often use #aside_feed
+        const asideFeed = document.querySelector('#aside_feed');
+        if (asideFeed) {
+            const subLi = asideFeed.querySelector('li.item') || asideFeed.querySelector('li');
+            if (subLi) {
+                const clone = subLi.cloneNode(false);
+                clone.id = 'ep-sidebar-btn-main';
+                clone.appendChild(createSidebarContent());
+                const tree = asideFeed.querySelector('.tree');
+                if (tree) tree.parentNode.insertBefore(clone, tree);
+                else asideFeed.insertBefore(clone, asideFeed.firstChild);
             }
+            return;
+        }
 
-            // FreshRSS Default theme (and others) often use #aside_feed
-            const asideFeed = document.querySelector('#aside_feed');
-            if (asideFeed) {
-                const subLi = asideFeed.querySelector('li.item') || asideFeed.querySelector('li');
-                if (subLi) {
-                    const clone = subLi.cloneNode(false);
-                    clone.id = 'ep-sidebar-btn-main';
-                    clone.appendChild(createSidebarContent());
-                    const tree = asideFeed.querySelector('.tree');
-                    if (tree) tree.parentNode.insertBefore(clone, tree);
-                    else asideFeed.insertBefore(clone, asideFeed.firstChild);
-                }
+        // Fallback: find subscription link and clone its li
+        const subManage = Array.from(document.querySelectorAll('a')).find(a =>
+            (a.getAttribute('href') || '').includes('a=subscription')
+        );
+        if (subManage) {
+            const parent = subManage.closest('li, .item');
+            if (parent) {
+                const clone = parent.cloneNode(false);
+                clone.id = 'ep-sidebar-btn-main';
+                clone.appendChild(createSidebarContent());
+                parent.parentNode.insertBefore(clone, parent.nextSibling);
                 return;
-            }
-
-            // Fallback for other themes/versions
-            const subManage = Array.from(document.querySelectorAll('a')).find(a => 
-                (a.getAttribute('href') || '').includes('a=subscription') || 
-                a.textContent.trim().toLowerCase().includes('subscription management')
-            );
-            
-            if (subManage) {
-                const parent = subManage.closest('li') || subManage.parentNode;
-                if (parent && parent.parentNode) {
-                    const clone = parent.cloneNode(false);
-                    clone.className = parent.className;
-                    clone.id = '';
-                    clone.appendChild(createSidebarContent());
-                    parent.parentNode.insertBefore(clone, parent.nextSibling);
-                    return;
-                }
             }
         }
     }

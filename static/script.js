@@ -731,6 +731,10 @@
             btn.style.width = btnWidth;
             btn.style.maxWidth = '100%';
             btn.style.display = 'flex';
+            btn.style.border = '1px solid #e66a19';
+            btn.style.borderRadius = btnBorderRadius;
+            btn.style.overflow = 'hidden';
+            btn.style.boxSizing = 'border-box';
 
             // LEFT - open settings
             const left = document.createElement('a');

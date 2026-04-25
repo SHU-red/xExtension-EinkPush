@@ -431,46 +431,76 @@ body.theme-dark .ep-footer {
     .ep-nav-item { flex: 1 1 45%; }
     .ep-grid { grid-template-columns: 1fr; }
 }
-.ep-btn-settings-orange {
-    background-color: #343a40 !important; /* Muted dark grey background */
-    border: 1px solid #e66a19 !important; /* Subtle orange border */
-    color: #eee !important;
-    text-align: center !important;
-    display: block !important;
-    text-decoration: none !important;
+/* --- Split Button Styles --- */
+.ep-btn-split-push {
+    display: flex !important;
+    align-items: stretch !important;
     width: 100% !important;
     box-sizing: border-box !important;
+    border: 1px solid #e66a19 !important;
     border-radius: 4px !important;
-    padding: 5px 10px !important;
-    line-height: 1.4 !important;
-    font-size: 0.85rem !important;
-    transition: all 0.2s ease;
-}
-.ep-btn-settings-orange:hover {
-    background-color: #e66a19 !important;
-    border-color: #e66a19 !important;
-    color: #fff !important;
+    overflow: hidden !important;
+    font-family: 'Nanum Gothic', Tahoma, sans-serif !important;
     text-decoration: none !important;
 }
 
-.ep-btn-push-now-orange {
-    background-color: #e66a19 !important; /* Solid orange background */
-    border: 1px solid #e66a19 !important;
-    color: #fff !important;
-    text-align: center !important;
-    display: block !important;
-    text-decoration: none !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-    border-radius: 4px !important;
-    padding: 5px 10px !important;
-    line-height: 1.4 !important;
-    font-size: 0.85rem !important;
-    transition: all 0.2s ease;
+.ep-split-left, .ep-split-right {
+    flex: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 5px 8px !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    line-height: 1.3 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    transition: background-color 0.2s ease, color 0.2s ease !important;
 }
-.ep-btn-push-now-orange:hover {
+
+.ep-split-left {
+    background-color: #343a40 !important;
+    color: #eee !important;
+    border-right: 1px solid #e66a19 !important;
+}
+
+.ep-split-right {
+    background-color: #e66a19 !important;
+    color: #fff !important;
+}
+
+.ep-btn-split-push:hover .ep-split-left {
+    background-color: #e66a19 !important;
+    color: #fff !important;
+}
+
+.ep-btn-split-push:hover .ep-split-right {
     background-color: #d45d15 !important;
-    border-color: #d45d15 !important;
+    color: #fff !important;
+}
+
+/* Settings icon button */
+.ep-btn-settings-orange {
+    background-color: #343a40 !important;
+    border: 1px solid #e66a19 !important;
+    color: #eee !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 38px !important;
+    min-width: 38px !important;
+    height: auto !important;
+    flex-shrink: 0 !important;
+    border-radius: 4px !important;
+    font-size: 1.1rem !important;
+    margin-left: 4px !important;
+    text-decoration: none !important;
+    transition: all 0.2s ease !important;
+}
+
+.ep-btn-settings-orange:hover {
+    background-color: #e66a19 !important;
     color: #fff !important;
     text-decoration: none !important;
 }

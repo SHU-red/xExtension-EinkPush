@@ -748,21 +748,31 @@
             const btnRow = document.createElement('div');
             btnRow.className = 'ep-sidebar-btn-row';
 
-            const aSettings = document.createElement('a');
-            aSettings.href = './?c=extension&a=configure&e=EinkPush';
-            aSettings.className = 'btn ep-btn-settings-orange';
-            aSettings.innerHTML = '⚙️'; // Or use label if preferred, but icons fit better in split row
-            aSettings.title = label;
-            aSettings.style.width = '100%';
-            btnRow.appendChild(aSettings);
-
             const aPush = document.createElement('a');
             aPush.id = 'ep-sidebar-push-now';
             aPush.href = './?c=EinkPush&a=push&r=main';
-            aPush.className = 'btn ep-btn-push-now-orange';
-            aPush.innerHTML = pushNowLabel;
-            aPush.style.width = '100%'; // Make button full width like subscription management
+            aPush.className = 'btn ep-btn-split-push';
+            aPush.title = pushNowLabel;
+
+            const leftHalf = document.createElement('span');
+            leftHalf.className = 'ep-split-left';
+            leftHalf.textContent = 'E-INK PUSH';
+            aPush.appendChild(leftHalf);
+
+            const rightHalf = document.createElement('span');
+            rightHalf.className = 'ep-split-right';
+            rightHalf.textContent = 'Push';
+            aPush.appendChild(rightHalf);
+
             btnRow.appendChild(aPush);
+
+            // Settings icon sits alone to the right of the split button
+            const aSettings = document.createElement('a');
+            aSettings.href = './?c=extension&a=configure&e=EinkPush';
+            aSettings.className = 'btn ep-btn-settings-orange';
+            aSettings.innerHTML = '⚙️';
+            aSettings.title = label;
+            btnRow.appendChild(aSettings);
 
             box.appendChild(btnRow);
 

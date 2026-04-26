@@ -63,33 +63,30 @@ $write = function($step, $msg, $extra = []) use ($progressFile) {
 error_log('[Worker] START pid=' . getmypid() . ' endpoint=' . $endpoint);
 $write('starting', 'Starting push...');
 
-// Bootstrap FreshRSS
+// Bootstrap FreshRSS (follows cli/_cli.php pattern)
 $freshRssRoot = dirname(dirname(__DIR__));
-$libPath = $freshRssRoot . '/lib/lib_rss.php';
 
 error_log('[Worker] FreshRSS root: ' . $freshRssRoot);
-error_log('[Worker] lib_rss.php exists: ' . (file_exists($libPath) ? 'yes' : 'no'));
 
-if (!file_exists($libPath)) {
-    $write('error', 'FreshRSS lib not found at ' . $libPath);
+// Step 1: Load constants (defines APP_PATH, LIB_PATH, DATA_PATH, etc)
+$constantsFile = $freshRssRoot . '/constants.php';
+if (!file_exists($constantsFile)) {
+    $write('error', 'FreshRSS constants.php not found at ' . $constantsFile);
     exit(1);
 }
+require_once $constantsFile;
+error_log('[Worker] constants.php loaded OK');
 
-// Define FreshRSS constants for CLI
-if (!defined('APP_PATH')) define('APP_PATH', $freshRssRoot . '/app');
-if (!defined('LIB_PATH')) define('LIB_PATH', $freshRssRoot . '/lib');
-if (!defined('EXTENSIONS_PATH')) define('EXTENSIONS_PATH', $freshRssRoot . '/extensions');
-if (!defined('DATA_PATH')) define('DATA_PATH', $freshRssRoot . '/data');
-if (!defined('HTTP_PATH')) define('HTTP_PATH', '/');
-if (!defined('CONFIG_PATH')) define('CONFIG_PATH', $freshRssRoot . '/data/config.php');
+// Step 2: Load autoloader
+$libPath = LIB_PATH . '/lib_rss.php';
+require_once $libPath;
+error_log('[Worker] lib_rss.php loaded OK');
 
-// Define syslog constants for CLI
-$consts = ['LOG_PID','LOG_CONS','LOG_ODELAY','LOG_NDELAY','LOG_NOWAIT','LOG_PERROR','COPY_SYSLOG_TO_STDERR'];
-foreach ($consts as $c) {
-    if (!defined($c)) define($c, 0);
-}
+// Step 3: Load install lib
+$installPath = LIB_PATH . '/lib_install.php';
+if (file_exists($installPath)) require_once $installPath;
 
-// Define _t() fallback (in case Minz/Translate doesn't load in CLI)
+// Step 4: Define _t() fallback
 if (!function_exists('_t')) {
     function _t(string $key, ...$args): string {
         $msg = $key;
@@ -100,18 +97,34 @@ if (!function_exists('_t')) {
     }
 }
 
+// Step 5: Initialize FreshRSS system context (DB, config)
 try {
-    // Clear OPcache to avoid stale bytecode
-    if (function_exists('opcache_reset')) @opcache_reset();
-    
-    // Set minimal context BEFORE loading lib_rss
-    $_SERVER['REMOTE_USER'] = '';
-    $_SERVER['HTTP_HOST'] = '';
-    $_SERVER['REQUEST_URI'] = '';
-    $_SERVER['REQUEST_METHOD'] = 'GET';
-    $_SERVER['SCRIPT_NAME'] = '/index.php';
-    
-    require_once $libPath;
+    Minz_Session::init('FreshRSS', true);
+    FreshRSS_Context::initSystem();
+    Minz_ExtensionManager::init();
+    Minz_Translate::init(Minz_Translate::DEFAULT_LANGUAGE);
+    error_log('[Worker] FreshRSS context initialized OK');
+} catch (Throwable $e) {
+    $write('error', 'FreshRSS init failed: ' . $e->getMessage());
+    exit(1);
+}
+
+// Step 6: Initialize user context
+$user = $bg['username'] ?? 'shur3d';
+try {
+    FreshRSS_Context::initUser($user);
+    if (FreshRSS_Context::hasUserConf()) {
+        $ext_list = FreshRSS_Context::userConf()->extensions_enabled;
+        Minz_ExtensionManager::enableByList($ext_list, 'user');
+        error_log('[Worker] User context initialized: ' . $user);
+    } else {
+        $write('error', 'User config not found for ' . $user);
+        exit(1);
+    }
+} catch (Throwable $e) {
+    $write('error', 'User init failed: ' . $e->getMessage());
+    exit(1);
+}
     error_log('[Worker] lib_rss.php loaded OK');
 } catch (Throwable $e) {
     $write('error', 'FreshRSS load failed: ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine());

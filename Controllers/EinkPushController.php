@@ -144,6 +144,7 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
             'screenHeight' => $screenHeight,
             'fontSize' => $fontSize,
             'readabilityUrl' => $readabilityUrl,
+            'username' => FreshRSS_Context::$user ?? 'shur3d',
             'step' => 'starting',
             'message' => 'Starting...',
             'time' => microtime(true),

@@ -76,11 +76,12 @@ if (!file_exists($libPath)) {
 }
 
 // Define FreshRSS constants for CLI
-if (!defined('APP_PATH')) define('APP_PATH', $freshRssRoot);
-if (!defined('LIB_PATH')) define('LIB_PATH', $freshRssRoot . '/lib/');
-if (!defined('EXTENSIONS_PATH')) define('EXTENSIONS_PATH', $freshRssRoot . '/extensions/');
-if (!defined('DATA_PATH')) define('DATA_PATH', $freshRssRoot . '/data/');
+if (!defined('APP_PATH')) define('APP_PATH', $freshRssRoot . '/app');
+if (!defined('LIB_PATH')) define('LIB_PATH', $freshRssRoot . '/lib');
+if (!defined('EXTENSIONS_PATH')) define('EXTENSIONS_PATH', $freshRssRoot . '/extensions');
+if (!defined('DATA_PATH')) define('DATA_PATH', $freshRssRoot . '/data');
 if (!defined('HTTP_PATH')) define('HTTP_PATH', '/');
+if (!defined('CONFIG_PATH')) define('CONFIG_PATH', $freshRssRoot . '/data/config.php');
 
 // Define syslog constants for CLI
 $consts = ['LOG_PID','LOG_CONS','LOG_ODELAY','LOG_NDELAY','LOG_NOWAIT','LOG_PERROR','COPY_SYSLOG_TO_STDERR'];

@@ -1,5 +1,5 @@
 <?php
-// Standalone push worker v3 - runs as background CLI process
+// Standalone push worker - runs as background CLI process
 // Usage: php FreshExtension_EinkPush_Worker.php <progressFile>
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
@@ -7,9 +7,15 @@ ini_set('log_errors', 1);
 ini_set('error_log', '/tmp/einkpush_worker_errors.log');
 set_time_limit(0);
 
+$log = function($msg) {
+    $line = '[' . date('H:i:s') . '] [Worker] ' . $msg . PHP_EOL;
+    echo $line;
+    file_put_contents('/tmp/einkpush_worker.log', $line, FILE_APPEND);
+};
+
 $progressFile = $argv[1] ?? '';
 
-// Catch fatal errors and write to progress file
+// Catch fatal errors
 register_shutdown_function(function() use ($progressFile) {
     $err = error_get_last();
     if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
@@ -17,17 +23,16 @@ register_shutdown_function(function() use ($progressFile) {
             'step' => 'error',
             'message' => 'Worker crashed: ' . $err['message'],
             'time' => microtime(true),
-        ]));
+        ]), LOCK_EX);
     }
 });
+
 if (empty($progressFile) || !file_exists($progressFile)) {
-    error_log('[Worker] No progress file: ' . $progressFile);
     exit(1);
 }
 
 $bg = json_decode(file_get_contents($progressFile), true);
 if (!$bg) {
-    error_log('[Worker] Invalid config');
     exit(1);
 }
 
@@ -35,22 +40,15 @@ $jobId = $bg['jobId'];
 $endpoint = $bg['endpoint'];
 $epubDir = $bg['epubDir'];
 $sources = $bg['sources'];
-$pushRetries = $bg['pushRetries'];
-$pushRetryDelay = $bg['pushRetryDelay'];
-$screenWidth = $bg['screenWidth'];
-$screenHeight = $bg['screenHeight'];
-$fontSize = $bg['fontSize'];
-$readabilityUrl = $bg['readabilityUrl'];
+$pushRetries = $bg['pushRetries'] ?? 3;
+$pushRetryDelay = $bg['pushRetryDelay'] ?? 5;
+$screenWidth = $bg['screenWidth'] ?? 800;
+$screenHeight = $bg['screenHeight'] ?? 600;
+$fontSize = $bg['fontSize'] ?? 14;
+$readabilityUrl = $bg['readabilityUrl'] ?? '';
+$user = $bg['username'] ?? 'shur3d';
 
-// Derive endpoint same way as controller (device_address + folder_name)
-// If endpoint in config is empty/invalid, rebuild it
-if (empty($endpoint) || strpos($endpoint, '://') === false) {
-    $deviceAddress = rtrim((string)($bg['deviceAddress'] ?? ''), '/');
-    $folderName = ltrim((string)($bg['folderName'] ?? 'RSSFeeds'), '/');
-    $endpoint = $deviceAddress . '/upload?path=/' . $folderName;
-}
-
-$write = function($step, $msg, $extra = []) use ($progressFile) {
+$write = function($step, $msg, $extra = []) use ($progressFile, $log) {
     $payload = [
         'step' => $step,
         'message' => $msg,
@@ -58,101 +56,78 @@ $write = function($step, $msg, $extra = []) use ($progressFile) {
     ] + $extra;
     file_put_contents($progressFile, json_encode($payload), LOCK_EX);
     clearstatcache(true, $progressFile);
+    $log("$step: $msg");
 };
 
-error_log('[Worker] START pid=' . getmypid() . ' endpoint=' . $endpoint);
-$write('starting', 'Starting push...');
+$log('START pid=' . getmypid() . ' user=' . $user . ' endpoint=' . $endpoint);
 
 // Bootstrap FreshRSS (follows cli/_cli.php pattern)
 $freshRssRoot = dirname(dirname(__DIR__));
+$log('FreshRSS root: ' . $freshRssRoot);
 
-error_log('[Worker] FreshRSS root: ' . $freshRssRoot);
-
-// Step 1: Load constants (defines APP_PATH, LIB_PATH, DATA_PATH, etc)
-$constantsFile = $freshRssRoot . '/constants.php';
-if (!file_exists($constantsFile)) {
-    $write('error', 'FreshRSS constants.php not found at ' . $constantsFile);
+// Step 1: Load constants.php (defines APP_PATH, LIB_PATH, DATA_PATH, etc)
+if (!file_exists($freshRssRoot . '/constants.php')) {
+    $write('error', 'constants.php not found');
     exit(1);
 }
-require_once $constantsFile;
-error_log('[Worker] constants.php loaded OK');
+require_once $freshRssRoot . '/constants.php';
+$log('constants.php loaded');
 
-// Step 2: Load autoloader
-$libPath = LIB_PATH . '/lib_rss.php';
-require_once $libPath;
-error_log('[Worker] lib_rss.php loaded OK');
+// Step 2: Load lib_rss.php (autoloader)
+require_once LIB_PATH . '/lib_rss.php';
+$log('lib_rss.php loaded');
 
-// Step 3: Load install lib
-$installPath = LIB_PATH . '/lib_install.php';
-if (file_exists($installPath)) require_once $installPath;
-
-// Step 4: Define _t() fallback
-if (!function_exists('_t')) {
-    function _t(string $key, ...$args): string {
-        $msg = $key;
-        if (!empty($args)) {
-            $msg = str_replace('%s', $args[0], $msg);
-        }
-        return $msg;
-    }
+// Step 3: Load lib_install.php
+if (file_exists(LIB_PATH . '/lib_install.php')) {
+    require_once LIB_PATH . '/lib_install.php';
 }
 
-// Step 5: Initialize FreshRSS system context (DB, config)
+// Step 4: Init FreshRSS system
 try {
     Minz_Session::init('FreshRSS', true);
     FreshRSS_Context::initSystem();
     Minz_ExtensionManager::init();
     Minz_Translate::init(Minz_Translate::DEFAULT_LANGUAGE);
-    error_log('[Worker] FreshRSS context initialized OK');
+    $log('System context initialized');
 } catch (Throwable $e) {
-    $write('error', 'FreshRSS init failed: ' . $e->getMessage());
+    $write('error', 'System init: ' . $e->getMessage());
     exit(1);
 }
 
-// Step 6: Initialize user context
-$user = $bg['username'] ?? 'shur3d';
+// Step 5: Init user context
 try {
     FreshRSS_Context::initUser($user);
-    if (FreshRSS_Context::hasUserConf()) {
-        $ext_list = FreshRSS_Context::userConf()->extensions_enabled;
-        Minz_ExtensionManager::enableByList($ext_list, 'user');
-        error_log('[Worker] User context initialized: ' . $user);
-    } else {
+    if (!FreshRSS_Context::hasUserConf()) {
         $write('error', 'User config not found for ' . $user);
         exit(1);
     }
+    $ext_list = FreshRSS_Context::userConf()->extensions_enabled;
+    Minz_ExtensionManager::enableByList($ext_list, 'user');
+    $log('User context initialized: ' . $user);
 } catch (Throwable $e) {
-    $write('error', 'User init failed: ' . $e->getMessage());
-    exit(1);
-}
-    error_log('[Worker] lib_rss.php loaded OK');
-} catch (Throwable $e) {
-    $write('error', 'FreshRSS load failed: ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine());
+    $write('error', 'User init: ' . $e->getMessage());
     exit(1);
 }
 
 // Load helper
 $helperPath = __DIR__ . '/FreshExtension_EinkPush_Helper.php';
 if (!file_exists($helperPath)) {
-    $write('error', 'Helper not found at ' . $helperPath);
+    $write('error', 'Helper not found');
     exit(1);
 }
 
-try {
-    require_once $helperPath;
-    $helper = new EinkPushHelper($epubDir, $screenWidth, $screenHeight, $fontSize, $readabilityUrl);
-    error_log('[Worker] Helper created OK');
-} catch (Throwable $e) {
-    $write('error', 'Helper failed: ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine());
-    exit(1);
-}
+require_once $helperPath;
+$helper = new EinkPushHelper($epubDir, $screenWidth, $screenHeight, $fontSize, $readabilityUrl);
+$log('Helper created');
+
+// ============================================================
+// PUSH WORKFLOW
+// ============================================================
 
 // Step 1: Test connection
-error_log('[Worker] Testing connection to: ' . $endpoint);
 $write('test_connection', 'Testing connection...');
-
 $connOk = $helper->checkDeviceStatus($endpoint);
-error_log('[Worker] Connection result: ' . ($connOk ? 'OK' : 'FAIL'));
+$log('Connection: ' . ($connOk ? 'OK' : 'FAIL'));
 
 if (!$connOk) {
     $write('error', 'Device unreachable at ' . $endpoint);
@@ -162,7 +137,7 @@ $write('connection_ok', 'Device online');
 
 // Step 2: Generate EPUBs
 $totalSources = 0;
-foreach ($sources as $_key => $_cfg) {
+foreach ($sources as $_cfg) {
     if (!empty($_cfg['enabled'])) $totalSources++;
 }
 
@@ -188,7 +163,7 @@ foreach ($sources as $key => $srcCfg) {
     $entries = $helper->collectForSource($key, $historyDays, $unreadOnly);
 
     if (empty($entries)) {
-        $write('source_empty', $label . ': no articles', ['source' => $label]);
+        $write('source_empty', $label . ': no articles');
         continue;
     }
 
@@ -241,5 +216,5 @@ if ($failed === 0) {
     $write('done_with_errors', $success . ' ok, ' . $failed . ' failed', ['success' => $success, 'failed' => $failed]);
 }
 
-error_log('[Worker] DONE success=' . $success . ' failed=' . $failed);
+$log('DONE success=' . $success . ' failed=' . $failed);
 exit(0);

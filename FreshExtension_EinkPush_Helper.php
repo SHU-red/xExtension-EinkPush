@@ -180,11 +180,11 @@ class EinkPushHelper {
             CURLOPT_CONNECTTIMEOUT => 2,
             CURLOPT_FOLLOWLOCATION => true,
         ]);
-        $response = curl_exec($ch);
+        curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
         
-        return ($httpCode === 200) ? $response : false;
+        return $httpCode === 200;
     }
 
     /**
@@ -232,9 +232,7 @@ class EinkPushHelper {
         
         try {
             $entryDAO = FreshRSS_Factory::createEntryDao();
-            foreach ($entryIds as $entryId) {
-                $entryDAO->toggleFavorite($entryId, false);
-            }
+            $entryDAO->markFavorite($entryIds, false);
         } catch (Exception $e) {
             error_log('[EinkPush] Failed to remove articles from favorites: ' . $e->getMessage());
         }

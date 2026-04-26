@@ -137,33 +137,223 @@
         }
     }
 
-    function showProgress(total) {
+    // ── Unified Streaming Push (sidebar + settings share same flow) ──
+    let activePushAbort = null;
+
+    function epShowProgressModal() {
         let overlay = document.getElementById('ep-progress-overlay');
-        if (!overlay) {
-            overlay = document.createElement('div');
-            overlay.id = 'ep-progress-overlay';
-            overlay.className = 'ep-progress-overlay';
-            overlay.innerHTML = `
+        if (overlay) overlay.remove();
+
+        overlay = document.createElement('div');
+        overlay.id = 'ep-progress-overlay';
+        overlay.className = 'ep-progress-overlay';
+
+        // Read FreshRSS theme colors from body
+        const bodyStyle = getComputedStyle(document.body);
+        const bg = bodyStyle.backgroundColor || '#ffffff';
+        const fg = bodyStyle.color || '#333333';
+        const accent = getComputedStyle(document.documentElement).getPropertyValue('--ep-accent') || '#e66a19';
+        const muted = bodyStyle.getPropertyValue('--text-secondary') || '#888';
+
+        overlay.innerHTML = `
+            <div class="ep-progress-box">
                 <div class="ep-progress-header">
-                    <span>EinkPush Delivery</span>
+                    <span id="ep-progress-title">Pushing to device...</span>
                     <span class="ep-progress-close">✕</span>
                 </div>
                 <div class="ep-progress-bar-bg">
                     <div id="ep-progress-bar-fill" class="ep-progress-bar-fill"></div>
                 </div>
-                <div id="ep-progress-status" class="ep-progress-status">Starting...</div>
-            `;
-            document.body.appendChild(overlay);
-            overlay.querySelector('.ep-progress-close').onclick = () => overlay.remove();
-        }
+                <div id="ep-progress-status" class="ep-progress-status"></div>
+                <div id="ep-progress-detail" class="ep-progress-detail"></div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        // Apply theme colors via JS
+        const box = overlay.querySelector('.ep-progress-box');
+        box.style.backgroundColor = bg;
+        box.style.color = fg;
+        box.style.border = '1px solid ' + muted;
+        box.style.borderRadius = '8px';
+        box.style.padding = '16px';
+        box.style.maxWidth = '400px';
+        box.style.width = '90%';
+        box.style.boxShadow = '0 4px 24px rgba(0,0,0,0.3)';
+        box.style.fontFamily = 'inherit';
+
+        overlay.querySelector('.ep-progress-header').style.display = 'flex';
+        overlay.querySelector('.ep-progress-header').style.justifyContent = 'space-between';
+        overlay.querySelector('.ep-progress-header').style.alignItems = 'center';
+        overlay.querySelector('.ep-progress-header').style.marginBottom = '12px';
+
+        overlay.querySelector('#ep-progress-title').style.fontWeight = 'bold';
+        overlay.querySelector('#ep-progress-title').style.fontSize = '14px';
+
+        overlay.querySelector('.ep-progress-close').style.cursor = 'pointer';
+        overlay.querySelector('.ep-progress-close').style.opacity = '0.6';
+        overlay.querySelector('.ep-progress-close').onclick = () => {
+            if (activePushAbort) activePushAbort.abort();
+            overlay.remove();
+        };
+
+        overlay.querySelector('.ep-progress-bar-bg').style.height = '6px';
+        overlay.querySelector('.ep-progress-bar-bg').style.borderRadius = '3px';
+        overlay.querySelector('.ep-progress-bar-bg').style.overflow = 'hidden';
+        overlay.querySelector('.ep-progress-bar-bg').style.marginBottom = '10px';
+        overlay.querySelector('.ep-progress-bar-bg').style.background = muted + '33';
+
+        const fill = overlay.querySelector('#ep-progress-bar-fill');
+        fill.style.height = '100%';
+        fill.style.width = '0%';
+        fill.style.background = accent;
+        fill.style.borderRadius = '3px';
+        fill.style.transition = 'width 0.3s ease';
+
+        overlay.querySelector('#ep-progress-status').style.fontSize = '13px';
+        overlay.querySelector('#ep-progress-status').style.marginBottom = '4px';
+        overlay.querySelector('#ep-progress-status').style.fontWeight = '500';
+
+        overlay.querySelector('#ep-progress-detail').style.fontSize = '11px';
+        overlay.querySelector('#ep-progress-detail').style.color = muted;
+
+        // Click outside to dismiss (only after done)
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) overlay.remove();
+        });
+
         return overlay;
     }
 
-    function updateProgress(current, total, status) {
+    function epUpdateProgress(percent, status, detail, isError) {
         const fill = document.getElementById('ep-progress-bar-fill');
         const statusEl = document.getElementById('ep-progress-status');
-        if (fill) fill.style.width = (current / total * 100) + '%';
-        if (statusEl) statusEl.innerText = status;
+        const detailEl = document.getElementById('ep-progress-detail');
+        if (fill) fill.style.width = percent + '%';
+        if (statusEl) {
+            statusEl.textContent = status;
+            if (isError) statusEl.style.color = '#d32f2f';
+        }
+        if (detailEl) detailEl.textContent = detail || '';
+    }
+
+    function epStreamPush() {
+        if (activePushAbort) {
+            activePushAbort.abort();
+        }
+        activePushAbort = new AbortController();
+        const sig = activePushAbort.signal;
+
+        epShowProgressModal();
+        epUpdateProgress(0, 'Testing connection...', '');
+
+        const url = './?c=EinkPush&a=pushStream&' + Date.now();
+        const reader = fetch(url, { signal: sig }).then(res => res.body.getReader());
+
+        let buffer = '';
+        reader.then(function process({ done, value }) {
+            if (done) {
+                // Process any remaining buffer
+                if (buffer.trim()) {
+                    const lines = buffer.split('\n');
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.slice(6));
+                                epHandleProgress(data);
+                            } catch(e) {}
+                        }
+                    }
+                }
+                epUpdateProgress(100, 'Done!', '');
+                setTimeout(() => {
+                    document.getElementById('ep-progress-overlay')?.remove();
+                    window.location.reload();
+                }, 1500);
+                activePushAbort = null;
+                return;
+            }
+
+            buffer += new TextDecoder().decode(value);
+            const lines = buffer.split('\n');
+            buffer = '';
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    try {
+                        const data = JSON.parse(line.slice(6));
+                        epHandleProgress(data);
+                    } catch(e) {}
+                    buffer = '';
+                } else if (line.trim() === '') {
+                    // Empty line = SSE delimiter
+                    continue;
+                } else {
+                    buffer = line;
+                }
+            }
+
+            return process({ done: false, value: null });
+        }).then(() => {
+            // Fallback if stream closes without done
+            if (!sig.aborted) {
+                epUpdateProgress(100, 'Done!', '');
+                setTimeout(() => {
+                    document.getElementById('ep-progress-overlay')?.remove();
+                    window.location.reload();
+                }, 1500);
+                activePushAbort = null;
+            }
+        }).catch(err => {
+            if (err.name !== 'AbortError') {
+                epUpdateProgress(100, 'Error: ' + err.message, '', true);
+            }
+            activePushAbort = null;
+        });
+    }
+
+    function epHandleProgress(data) {
+        switch(data.step) {
+            case 'test_connection':
+                epUpdateProgress(0, data.message || 'Testing connection...', '');
+                break;
+            case 'connection_ok':
+                epUpdateProgress(5, data.message || 'Connection OK!', 'Starting EPUB generation...');
+                break;
+            case 'generating':
+                epUpdateProgress(5, 'Generating EPUBs...', data.source + ' (' + (data.sourceIndex || 0) + '/' + (data.totalSources || 0) + ')');
+                break;
+            case 'source_progress':
+                epUpdateProgress(5, 'Collecting articles...', data.source + ' (' + data.totalArticles + ' articles)');
+                break;
+            case 'source_empty':
+                epUpdateProgress(0, '', data.source + ': no articles');
+                break;
+            case 'article':
+                const pct = data.percent || Math.round(((data.articleIndex || 0) / Math.max(1, data.totalInSource || 1)) * 100);
+                epUpdateProgress(pct, 'Processing: ' + data.source,
+                    'Article ' + data.processedAllArticles + '/' + data.totalAllArticles + ' (' + pct + '%)');
+                break;
+            case 'pushing':
+                epUpdateProgress(90, 'Pushing to device...',
+                    data.source + ' (' + data.fileIndex + '/' + data.totalFiles + ')');
+                break;
+            case 'no_content':
+                epUpdateProgress(100, 'No articles', data.message || 'Nothing to push.');
+                setTimeout(() => document.getElementById('ep-progress-overlay')?.remove(), 2000);
+                break;
+            case 'done':
+                epUpdateProgress(100, data.message || 'Done!', data.success + ' EPUB(s) pushed');
+                break;
+            case 'done_with_errors':
+                epUpdateProgress(100, data.message || 'Done with errors',
+                    data.success + ' ok, ' + data.failed + ' failed', true);
+                break;
+            case 'error':
+                epUpdateProgress(100, data.message || 'Error', '', true);
+                setTimeout(() => document.getElementById('ep-progress-overlay')?.remove(), 3000);
+                break;
+        }
     }
 
     function showPreview(html) {
@@ -353,71 +543,12 @@
                 }
 
                 // Intercept "Push All" for progress bar
+                // Intercept "Push All" for progress bar
                 const pushAllBtn = e.target.closest('a[href*="a=push"][href*="EinkPush"]');
                 if (pushAllBtn && !pushAllBtn.href.includes('source=')) {
                     e.preventDefault();
-                    const orig = showLoading(pushAllBtn);
-                    const labels = getLabels();
-                    
-                    const sources = Array.from(document.querySelectorAll('.ep-source-item'))
-                        .filter(item => item.querySelector('input[type="checkbox"]:checked'))
-                        .map(item => {
-                            const dlLink = item.querySelector('a[href*="a=generate"][href*="source="]');
-                            if (!dlLink) return null;
-                            const match = dlLink.href.match(/source=([^&]+)/);
-                            return match ? match[1] : null;
-                        })
-                        .filter(s => s !== null);
-
-                    if (sources.length === 0) {
-                        setButtonStatus(pushAllBtn, 'no-content', labels.noArticles, orig);
-                        return;
-                    }
-
-                    showProgress(sources.length);
-                    let completed = 0;
-
-                    const processNext = () => {
-                        if (completed >= sources.length) {
-                            updateProgress(sources.length, sources.length, 'Finished!');
-                            setButtonStatus(pushAllBtn, 'success', labels.success, orig);
-                            setTimeout(() => window.location.reload(), 1500);
-                            return;
-                        }
-
-                        const source = sources[completed];
-                        updateProgress(completed, sources.length, 'Pushing ' + source + '...');
-                        
-                        // Use pushSingleAction for each
-                        const url = pushAllBtn.href.replace('a=push', 'a=pushSingle') + '&source=' + encodeURIComponent(source) + '&silent=1';
-                        
-                        fetch(url)
-                            .then(async r => {
-                                if (r.status === 204) {
-                                    // No content for this source, but we continue
-                                } else {
-                                    let isError = !r.ok;
-                                    try {
-                                        const data = await r.clone().json();
-                                        if (data && data.status === 'error') {
-                                            isError = true;
-                                            throw new Error(data.message || 'Push failed');
-                                        }
-                                    } catch (e) {
-                                        if (isError) throw new Error('HTTP Error ' + r.status);
-                                    }
-                                }
-                                completed++;
-                                processNext();
-                            })
-                            .catch(err => {
-                                updateProgress(completed, sources.length, 'Error: ' + err.message);
-                                setButtonStatus(pushAllBtn, 'error', labels.error, orig);
-                                setTimeout(() => window.location.reload(), 3000);
-                            });
-                    };
-
-                    processNext();
+                    e.stopPropagation();
+                    epStreamPush();
                     return;
                 }
             }
@@ -543,65 +674,33 @@
                 return;
             }
 
-            // Intercept single download or push
-            const actionBtn = e.target.closest('a[href*="a=generate"][href*="source="], a[href*="a=push"]');
-            if (actionBtn) {
-                console.log('[EinkPush] Single action intercepted:', actionBtn.href);
+            // Intercept single download
+            const dlActionBtn = e.target.closest('a[href*="a=generate"][href*="source="]');
+            if (dlActionBtn) {
+                console.log('[EinkPush] Single download intercepted:', dlActionBtn.href);
                 e.preventDefault();
-                e.stopPropagation(); // Stop FreshRSS from hijacking
-                const origState = showLoading(actionBtn);
+                e.stopPropagation();
+                const origState = showLoading(dlActionBtn);
                 const labels = getLabels();
-                
-                // Force a reflow so the browser paints the spinner immediately
-                void actionBtn.offsetWidth;
-                
-                if (actionBtn.href.includes('a=generate')) {
-                    console.log('[EinkPush] Single download mode');
-                    // Clear cookie before polling
-                    document.cookie = 'ep_dl_complete=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-                    pollCookie([], actionBtn, origState);
-                    
-                    // Trigger download via hidden iframe
-                    const iframe = document.createElement('iframe');
-                    iframe.className = 'ep-hidden';
-                    iframe.src = actionBtn.href + '&silent=1';
-                    document.body.appendChild(iframe);
-                    setTimeout(() => iframe.remove(), 120000); // 2 minutes timeout
-                } else {
-                    console.log('[EinkPush] Push mode, fetching in background');
-                    // For push, use fetch so the page doesn't navigate and the spinner keeps spinning
-                    fetch(actionBtn.href + '&silent=1')
-                        .then(async response => {
-                            if (response.status === 204) {
-                                setButtonStatus(actionBtn, 'no-content', labels.noArticles, origState);
-                                return;
-                            }
-                            
-                            let isError = !response.ok;
-                            try {
-                                const data = await response.clone().json();
-                                if (data && data.status === 'error') {
-                                    isError = true;
-                                }
-                            } catch (e) {
-                                // Not JSON, rely on response.ok
-                            }
+                void dlActionBtn.offsetWidth;
 
-                            if (!isError) {
-                                setButtonStatus(actionBtn, 'success', labels.success, origState);
-                                // If it was the sidebar button, we might want to refresh to update the "Last Push" text
-                                if (actionBtn.id === 'ep-sidebar-push-now') {
-                                    setTimeout(() => window.location.reload(), 2000);
-                                }
-                            } else {
-                                setButtonStatus(actionBtn, 'error', labels.error, origState);
-                            }
-                        })
-                        .catch(err => {
-                            console.error('[EinkPush] Push fetch failed:', err);
-                            setButtonStatus(actionBtn, 'error', labels.error, origState);
-                        });
-                }
+                document.cookie = 'ep_dl_complete=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                pollCookie([], dlActionBtn, origState);
+
+                const iframe = document.createElement('iframe');
+                iframe.className = 'ep-hidden';
+                iframe.src = dlActionBtn.href + '&silent=1';
+                document.body.appendChild(iframe);
+                setTimeout(() => iframe.remove(), 120000);
+                return;
+            }
+
+            // Unified push: sidebar button OR "Push all" in settings
+            const pushTrigger = e.target.closest('#ep-sidebar-push-now, #ep-push-all-btn');
+            if (pushTrigger) {
+                e.preventDefault();
+                e.stopPropagation();
+                epStreamPush();
                 return;
             }
     } catch (err) {
@@ -751,8 +850,8 @@
             // LEFT - push feeds (big orange button)
             const left = document.createElement('a');
             left.id = 'ep-sidebar-push-now';
-            left.href = './?c=EinkPush&a=push&r=main';
             left.className = 'ep-split-left';
+            left.href = '#';
             left.textContent = 'E-INK PUSH';
             left.style.flex = '1';
             left.style.display = 'flex';

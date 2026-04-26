@@ -34,9 +34,9 @@ $history = $helper->getHistory();
             <a class="ep-btn" href="<?= _url('EinkPush', 'generate') ?>">
                 <span>📥</span> <?= _t('ext.dashboard_dl_all') ?>
             </a>
-            <a class="ep-btn ep-btn-primary" href="<?= _url('EinkPush', 'push') ?>">
+            <button type="button" id="ep-push-all-btn" class="ep-btn ep-btn-primary">
                 <span>🚀</span> <?= _t('ext.dashboard_push_all') ?>
-            </a>
+            </button>
         </div>
     </header>
 

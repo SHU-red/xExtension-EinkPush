@@ -106,9 +106,20 @@ $trans = [
     'progress_pushing' => 'Pushing %s...',
     'progress_done' => 'Finished!',
     'progress_error' => 'Error: %s',
+    'progress_testing' => 'Testing connection...',
+    'progress_connection_ok' => 'Connection OK!',
+    'progress_article' => 'Processing article %d/%d',
+    'progress_source_empty' => '%s: no articles',
+    'progress_pushing_file' => 'Pushing %s (%d/%d)...',
     'btn_no_articles' => 'No articles',
     'btn_success' => 'Success',
     'btn_error' => 'Error',
+    'push_testing_connection' => 'Testing connection',
+    'push_connection_ok' => 'Device online',
+    'push_stream_title' => 'Pushing to device',
+    'push_stream_cancel' => 'Cancel',
+    'push_stream_done' => 'Done',
+    'push_stream_error' => 'Error',
 ];
 
 return $trans;

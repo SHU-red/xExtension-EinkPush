@@ -304,7 +304,7 @@ class EinkPushHelper {
         return $entries;
     }
 
-    private function buildEpub(string $sourceKey, string $label, array $entries, bool $markAsRead, bool $fetchContent = false, bool $addTimestamp = true, int $maxArticles = 0): ?string {
+    public function buildEpub(string $sourceKey, string $label, array $entries, bool $markAsRead, bool $fetchContent = false, bool $addTimestamp = true, int $maxArticles = 0, callable $progressCallback = null): ?string {
         $safeName = $this->sanitizeFilename($label);
         $filename = $addTimestamp ? $safeName . '_' . date('Ymd_His') . '.epub' : $safeName . '.epub';
         $fullPath = $this->outputDir . $filename;
@@ -329,6 +329,10 @@ class EinkPushHelper {
                 break;
             }
             $chapterIndex++;
+            // Report progress per article
+            if ($progressCallback) {
+                $progressCallback($chapterIndex, count($entries));
+            }
             $rawTitle = $entry->title();
             $safeTitle = htmlspecialchars($rawTitle, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
@@ -932,7 +936,7 @@ a {
 CSS;
     }
 
-    private function sourceLabel(string $key): string {
+    public function sourceLabel(string $key): string {
         if ($key === 'favorites') {
             return _t('ext.source_favorites');
         }

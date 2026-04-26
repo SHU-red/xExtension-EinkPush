@@ -568,45 +568,16 @@ body.theme-dark .ep-footer {
     text-align: right;
 }
 
-/* Progress Dashboard */
+/* Progress Modal (centered, theme-aware) */
 .ep-progress-overlay {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 300px;
-    background: var(--ep-bg-card-solid);
-    border: 1px solid var(--ep-primary);
-    border-radius: 8px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-    z-index: 1500;
-    padding: 15px;
-}
-.ep-progress-header {
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
     display: flex;
-    justify-content: space-between;
-    margin-bottom: 10px;
-    font-weight: bold;
-    font-size: 0.9rem;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
 }
-.ep-progress-bar-bg {
-    height: 8px;
-    background: var(--ep-bg-hover);
-    border-radius: 4px;
-    overflow: hidden;
-    margin-bottom: 10px;
-}
-.ep-progress-bar-fill {
-    height: 100%;
-    background: var(--ep-primary);
-    width: 0%;
-    transition: width 0.3s ease;
-}
-.ep-progress-status {
-    font-size: 0.8rem;
-    color: var(--ep-text-muted);
-}
-.ep-progress-close { cursor: pointer; opacity: 0.6; }
-.ep-progress-close:hover { opacity: 1; }
 
 
 

@@ -104,6 +104,144 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         }
     }
 
+    public function pushStreamAction(): void {
+        // SSE-like streaming progress for unified push UI
+        $conf = $this->extension->getConfig();
+        $endpoint = $conf['push_endpoint'];
+        $redirect = Minz_Request::param('r', '');
+
+        if (empty($endpoint)) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => _t('ext.error_no_endpoint')]);
+            exit;
+        }
+
+        // Flush headers for streaming
+        header('Content-Type: text/event-stream');
+        header('Cache-Control: no-cache');
+        header('X-Accel-Buffering: no');
+        ini_set('implicit_flush', 1);
+        ob_implicit_flush(1);
+        while (ob_get_level() > 0) ob_end_flush();
+
+        $sendProgress = function($data) {
+            echo 'data: ' . json_encode($data) . "\n\n";
+            flush();
+        };
+
+        // Step 1: Test connection
+        $sendProgress(['step' => 'test_connection', 'message' => _t('ext.push_testing_connection')]);
+        $testPath = $this->extension->getEpubDir() . 'test_connection.epub';
+        file_put_contents($testPath, 'Test EPUB content');
+        $connOk = $this->helper->pushToEndpoint($testPath, $endpoint, 1, 1, 'Connection Test');
+        @unlink($testPath);
+
+        if (!$connOk) {
+            $sendProgress(['step' => 'error', 'message' => _t('ext.push_test_failed', 'Device unreachable')]);
+            exit;
+        }
+        $sendProgress(['step' => 'connection_ok', 'message' => _t('ext.push_connection_ok')]);
+
+        // Step 2: Generate EPUBs with per-article progress
+        $totalSources = 0;
+        $currentSource = 0;
+        foreach ($conf['sources'] as $key => $srcCfg) {
+            if (!empty($srcCfg['enabled'])) $totalSources++;
+        }
+
+        $paths = [];
+        $totalArticles = 0;
+        $processedArticles = 0;
+
+        foreach ($conf['sources'] as $key => $srcCfg) {
+            if (empty($srcCfg['enabled'])) continue;
+            $currentSource++;
+            $label = $this->helper->sourceLabel($key);
+            $sendProgress(['step' => 'generating', 'source' => $label, 'sourceIndex' => $currentSource, 'totalSources' => $totalSources]);
+
+            $historyDays = (int) ($srcCfg['historyDays'] ?? 7);
+            $unreadOnly = !empty($srcCfg['unreadOnly']);
+            $markAsRead = !empty($srcCfg['markAsRead']);
+            $fetchContent = !empty($srcCfg['fetchContent']);
+            $maxArticles = (int) ($srcCfg['maxArticles'] ?? 0);
+            $addTimestamp = !empty($srcCfg['addTimestamp']);
+
+            $entries = $this->helper->collectForSource($key, $historyDays, $unreadOnly);
+            if (empty($entries)) {
+                $sendProgress(['step' => 'source_empty', 'source' => $label]);
+                continue;
+            }
+
+            $numEntries = count($entries);
+            $totalArticles += $numEntries;
+            $sendProgress(['step' => 'source_progress', 'source' => $label, 'totalArticles' => $numEntries, 'processedArticles' => 0, 'totalAllArticles' => $totalArticles, 'processedAllArticles' => $processedArticles]);
+
+            // Generate per-article progress during build
+            $path = $this->helper->buildEpub($key, $label, $entries, $markAsRead, $fetchContent, $addTimestamp, $maxArticles, function($articleIndex, $totalInSource) use ($label, $sendProgress, $totalAllArticles, $processedArticles) {
+                $processedAll = $processedArticles + $articleIndex;
+                $sendProgress([
+                    'step' => 'article',
+                    'source' => $label,
+                    'articleIndex' => $articleIndex,
+                    'totalInSource' => $totalInSource,
+                    'processedAllArticles' => $processedAll,
+                    'totalAllArticles' => $totalAllArticles,
+                    'percent' => round(($processedAll / max(1, $totalAllArticles)) * 100)
+                ]);
+            });
+
+            $processedArticles += $numEntries;
+
+            if ($path !== null) {
+                $paths[$key] = $path;
+            }
+
+            if ($key === 'favorites' && !empty($srcCfg['removeFromFavorites'])) {
+                $entryIds = array_map(function($e) { return $e->id(); }, $entries);
+                $this->helper->removeFromFavorites($entryIds);
+            }
+        }
+
+        if (empty($paths)) {
+            $sendProgress(['step' => 'no_content', 'message' => _t('ext.msg_no_articles')]);
+            exit;
+        }
+
+        // Step 3: Push to device
+        $totalFiles = count($paths);
+        $pushedFiles = 0;
+        $success = 0;
+        $failed = 0;
+
+        foreach ($paths as $sourceKey => $path) {
+            $pushedFiles++;
+            $sourceName = $this->helper->sourceLabel($sourceKey);
+            $sendProgress(['step' => 'pushing', 'source' => $sourceName, 'fileIndex' => $pushedFiles, 'totalFiles' => $totalFiles]);
+            if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], $conf['push_retryDelay'], $sourceName)) {
+                $success++;
+            } else {
+                $failed++;
+            }
+        }
+
+        // Save last push time
+        if ($failed === 0) {
+            $uconf = FreshRSS_Context::$user_conf;
+            if ($uconf) {
+                $uconf->EinkPush_last_push = time();
+                $uconf->EinkPush_last_push_type = 'manual';
+                $uconf->save();
+            }
+        }
+
+        if ($failed === 0) {
+            $sendProgress(['step' => 'done', 'success' => $success, 'message' => _t('ext.msg_push_success', $success)]);
+        } else {
+            $sendProgress(['step' => 'done_with_errors', 'success' => $success, 'failed' => $failed, 'message' => _t('ext.msg_push_failed', $success, $failed)]);
+        }
+        exit;
+    }
+
     public function pushAction(): void {
         $conf = $this->extension->getConfig();
         $endpoint = $conf['push_endpoint'];

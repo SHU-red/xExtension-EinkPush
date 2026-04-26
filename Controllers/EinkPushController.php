@@ -117,37 +117,31 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         $jobId = bin2hex(random_bytes(4));
         $progressFile = $this->extension->getEpubDir() . '.push_progress_' . $jobId . '.json';
 
-        error_log('[EinkPush] pushRun: jobId=' . $jobId . ' fork=' . (function_exists('pcntl_fork') ? 'yes' : 'no'));
+        // Write job config to progress file for background worker
+        $bgConfig = [
+            'jobId' => $jobId,
+            'progressFile' => $progressFile,
+            'endpoint' => $endpoint,
+            'sources' => $conf['sources'],
+            'pushRetries' => $conf['push_retries'] ?? 3,
+            'pushRetryDelay' => $conf['push_retryDelay'] ?? 2,
+            'screenWidth' => (int) $conf['screenWidth'],
+            'screenHeight' => (int) $conf['screenHeight'],
+            'fontSize' => (float) $conf['fontSize'],
+            'readabilityUrl' => (string) ($conf['readability_url'] ?? ''),
+            'epubDir' => $this->extension->getEpubDir(),
+        ];
+        file_put_contents($progressFile, json_encode($bgConfig));
 
-        if (function_exists('pcntl_fork')) {
-            $pid = pcntl_fork();
-            if ($pid === -1) {
-                error_log('[EinkPush] pcntl_fork FAILED, running sync');
-                $this->doPushWork($progressFile, $conf, $endpoint, $this->helper);
-                echo json_encode(['status' => 'ok', 'job' => $jobId]);
-            } elseif ($pid === 0) {
-                // Child process
-                error_log('[EinkPush] child pid=' . posix_getpid() . ' starting');
-                posix_setsid();
-                require_once __DIR__ . '/../FreshExtension_EinkPush_Helper.php';
-                $helper = new EinkPushHelper(
-                    $this->extension->getEpubDir(),
-                    (int) $conf['screenWidth'],
-                    (int) $conf['screenHeight'],
-                    (float) $conf['fontSize'],
-                    (string) $conf['readability_url']
-                );
-                $this->doPushWork($progressFile, $conf, $endpoint, $helper);
-                error_log('[EinkPush] child DONE');
-                exit(0);
-            }
-            // Parent
-            error_log('[EinkPush] parent: forked child pid=' . $pid);
-            echo json_encode(['status' => 'ok', 'job' => $jobId]);
-        } else {
-            $this->doPushWork($progressFile, $conf, $endpoint, $this->helper);
-            echo json_encode(['status' => 'ok', 'job' => $jobId]);
-        }
+        // Spawn background PHP CLI process
+        $workerScript = __DIR__ . '/../FreshExtension_EinkPush_PushWorker.php';
+        $phpBin = PHP_BINARY;
+        $cmd = "$phpBin $workerScript '" . $progressFile . "' &";
+        error_log('[EinkPush] spawning worker: ' . $cmd);
+        exec($cmd, $out, $ret);
+        error_log('[EinkPush] exec result=' . $ret . ' out=' . json_encode($out));
+
+        echo json_encode(['status' => 'ok', 'job' => $jobId]);
         exit;
     }
 
@@ -266,6 +260,11 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
 
         $data = json_decode(file_get_contents($progressFile), true);
         if ($data) {
+            // Update user config on successful push (worker can't write to DB)
+            if (($data['step'] ?? '') === 'done' && $data['success'] ?? 0 > 0) {
+                $uconf = FreshRSS_Context::$user_conf ?? null;
+                if ($uconf) { $uconf->EinkPush_last_push = time(); $uconf->EinkPush_last_push_type = 'manual'; $uconf->save(); }
+            }
             // Clean up done/error files
             if (in_array($data['step'] ?? '', ['done', 'done_with_errors', 'error', 'no_content'])) {
                 @unlink($progressFile);

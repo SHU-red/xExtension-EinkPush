@@ -726,9 +726,8 @@
             box.className = 'ep-sidebar-box';
             box.style.setProperty('width', btnWidth, 'important');
             box.style.setProperty('max-width', btnWidth, 'important');
-            box.style.display = 'block';
+            box.style.display = 'inline-block';
             box.style.boxSizing = 'border-box';
-            box.style.margin = '0 auto';
 
             const btnContainer = document.createElement('div');
             btnContainer.style.display = 'flex';

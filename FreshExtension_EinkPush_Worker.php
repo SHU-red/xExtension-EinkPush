@@ -8,6 +8,18 @@ ini_set('error_log', '/tmp/einkpush_worker_errors.log');
 set_time_limit(0);
 
 $progressFile = $argv[1] ?? '';
+
+// Catch fatal errors and write to progress file
+register_shutdown_function(function() use ($progressFile) {
+    $err = error_get_last();
+    if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+        @file_put_contents($progressFile, json_encode([
+            'step' => 'error',
+            'message' => 'Worker crashed: ' . $err['message'],
+            'time' => microtime(true),
+        ]));
+    }
+});
 if (empty($progressFile) || !file_exists($progressFile)) {
     error_log('[Worker] No progress file: ' . $progressFile);
     exit(1);

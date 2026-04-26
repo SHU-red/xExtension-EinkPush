@@ -248,8 +248,10 @@
                     if (!data || !data.step) return;
 
                     // Check timeout: reset on ANY new data.time (worker is alive)
-                    if (data.time && lastTime > 0) {
-                        if (data.time === lastTime && (Date.now() - lastTime) > timeout) {
+                    // data.time is in seconds (microtime), lastTime in ms
+                    if (data.time) {
+                        var ts = Math.floor(data.time * 1000);
+                        if (lastTime > 0 && ts === lastTime && (Date.now() - lastTime) > timeout) {
                             timedOut = true;
                             clearInterval(pushPollTimer);
                             pushPollTimer = null;
@@ -261,8 +263,8 @@
                             activePushAbort = null;
                             return;
                         }
+                        lastTime = ts;
                     }
-                    if (data.time) lastTime = data.time;
 
                     if (data.step !== lastStep) {
                         lastStep = data.step;

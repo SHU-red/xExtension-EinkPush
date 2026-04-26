@@ -431,10 +431,20 @@ body.theme-dark .ep-footer {
     .ep-nav-item { flex: 1 1 45%; }
     .ep-grid { grid-template-columns: 1fr; }
 }
-/* --- Sidebar split button (inline styles applied in JS) --- */
+/* --- Sidebar button (matches FreshRSS style, orange) --- */
 .ep-sidebar-box {
     padding: 0;
     margin: 0;
+}
+#ep-sidebar-btn-main {
+    width: 100%;
+    display: block;
+    margin: 4px 0;
+}
+#ep-sidebar-push-now {
+    display: block !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
 }
 
 .ep-select-small {

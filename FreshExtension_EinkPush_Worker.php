@@ -37,7 +37,8 @@ if (!$bg) {
 }
 
 $jobId = $bg['jobId'];
-$endpoint = $bg['endpoint'];
+$mode = $bg['mode'] ?? 'push';
+$endpoint = $bg['endpoint'] ?? '';
 $epubDir = $bg['epubDir'];
 $sources = $bg['sources'];
 $pushRetries = $bg['pushRetries'] ?? 3;
@@ -59,13 +60,12 @@ $write = function($step, $msg, $extra = []) use ($progressFile, $log) {
     $log("$step: $msg");
 };
 
-$log('START pid=' . getmypid() . ' user=' . $user . ' endpoint=' . $endpoint);
+$log('START pid=' . getmypid() . ' user=' . $user . ' mode=' . $mode . ' endpoint=' . $endpoint);
 
 // Bootstrap FreshRSS (follows cli/_cli.php pattern)
 $freshRssRoot = dirname(dirname(__DIR__));
 $log('FreshRSS root: ' . $freshRssRoot);
 
-// Step 1: Load constants.php (defines APP_PATH, LIB_PATH, DATA_PATH, etc)
 if (!file_exists($freshRssRoot . '/constants.php')) {
     $write('error', 'constants.php not found');
     exit(1);
@@ -73,16 +73,13 @@ if (!file_exists($freshRssRoot . '/constants.php')) {
 require_once $freshRssRoot . '/constants.php';
 $log('constants.php loaded');
 
-// Step 2: Load lib_rss.php (autoloader)
 require_once LIB_PATH . '/lib_rss.php';
 $log('lib_rss.php loaded');
 
-// Step 3: Load lib_install.php
 if (file_exists(LIB_PATH . '/lib_install.php')) {
     require_once LIB_PATH . '/lib_install.php';
 }
 
-// Step 4: Init FreshRSS system
 try {
     Minz_Session::init('FreshRSS', true);
     FreshRSS_Context::initSystem();
@@ -94,7 +91,6 @@ try {
     exit(1);
 }
 
-// Step 5: Init user context
 try {
     FreshRSS_Context::initUser($user);
     if (!FreshRSS_Context::hasUserConf()) {
@@ -109,7 +105,6 @@ try {
     exit(1);
 }
 
-// Load helper
 $helperPath = __DIR__ . '/FreshExtension_EinkPush_Helper.php';
 if (!file_exists($helperPath)) {
     $write('error', 'Helper not found');
@@ -121,19 +116,19 @@ $helper = new EinkPushHelper($epubDir, $screenWidth, $screenHeight, $fontSize, $
 $log('Helper created');
 
 // ============================================================
-// PUSH WORKFLOW
+// CONNECTION TEST (push mode only)
 // ============================================================
+if ($mode === 'push') {
+    $write('test_connection', 'Testing connection...');
+    $connOk = $helper->checkDeviceStatus($endpoint);
+    $log('Connection: ' . ($connOk ? 'OK' : 'FAIL'));
 
-// Step 1: Test connection
-$write('test_connection', 'Testing connection...');
-$connOk = $helper->checkDeviceStatus($endpoint);
-$log('Connection: ' . ($connOk ? 'OK' : 'FAIL'));
-
-if (!$connOk) {
-    $write('error', 'Device unreachable at ' . $endpoint);
-    exit(0);
+    if (!$connOk) {
+        $write('error', 'Device unreachable at ' . $endpoint);
+        exit(0);
+    }
+    $write('connection_ok', 'Device online');
 }
-$write('connection_ok', 'Device online');
 
 // Step 2: Generate EPUBs
 $totalSources = 0;
@@ -193,28 +188,33 @@ if (empty($paths)) {
     exit(0);
 }
 
-// Step 3: Push to device
-$totalFiles = count($paths);
-$pushedFiles = 0;
-$success = 0;
-$failed = 0;
+// Step 3: Push to device (push mode only)
+if ($mode === 'push') {
+    $totalFiles = count($paths);
+    $pushedFiles = 0;
+    $success = 0;
+    $failed = 0;
 
-foreach ($paths as $sourceKey => $path) {
-    $pushedFiles++;
-    $sourceName = $helper->sourceLabel($sourceKey);
-    $write('pushing', 'Sending ' . $sourceName . '...', ['source' => $sourceName, 'fileIndex' => $pushedFiles, 'totalFiles' => $totalFiles]);
-    if ($helper->pushToEndpoint($path, $endpoint, $pushRetries, $pushRetryDelay, $sourceName)) {
-        $success++;
-    } else {
-        $failed++;
+    foreach ($paths as $sourceKey => $path) {
+        $pushedFiles++;
+        $sourceName = $helper->sourceLabel($sourceKey);
+        $write('pushing', 'Sending ' . $sourceName . '...', ['source' => $sourceName, 'fileIndex' => $pushedFiles, 'totalFiles' => $totalFiles]);
+        if ($helper->pushToEndpoint($path, $endpoint, $pushRetries, $pushRetryDelay, $sourceName)) {
+            $success++;
+        } else {
+            $failed++;
+        }
     }
-}
 
-if ($failed === 0) {
-    $write('done', 'Pushed ' . $success . ' EPUB(s)', ['success' => $success]);
+    if ($failed === 0) {
+        $write('done', 'Pushed ' . $success . ' EPUB(s)', ['success' => $success, 'generatedSources' => array_keys($paths)]);
+    } else {
+        $write('done_with_errors', $success . ' ok, ' . $failed . ' failed', ['success' => $success, 'failed' => $failed, 'generatedSources' => array_keys($paths)]);
+    }
+    $log('DONE success=' . $success . ' failed=' . $failed);
 } else {
-    $write('done_with_errors', $success . ' ok, ' . $failed . ' failed', ['success' => $success, 'failed' => $failed]);
+    $write('done', 'Generated ' . count($paths) . ' EPUB(s)', ['success' => count($paths), 'generatedSources' => array_keys($paths)]);
+    $log('DONE generated=' . count($paths));
 }
 
-$log('DONE success=' . $success . ' failed=' . $failed);
 exit(0);

@@ -116,10 +116,23 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
 
         $conf = $this->extension->getConfig();
         $endpoint = $this->getEndpoint($conf);
+        $singleSource = Minz_Request::param('source', '');
 
         if (empty($endpoint) || $endpoint === '/upload?path=/RSSFeeds') {
             echo json_encode(['status' => 'error', 'message' => _t('ext.error_no_endpoint')]);
             exit;
+        }
+
+        // Filter sources if single source requested
+        $sourcesToProcess = $conf['sources'] ?? [];
+        if ($singleSource !== '') {
+            if (!isset($sourcesToProcess[$singleSource])) {
+                echo json_encode(['status' => 'error', 'message' => _t('ext.error_invalid_source')]);
+                exit;
+            }
+            $singleSrc = $sourcesToProcess[$singleSource];
+            $singleSrc['enabled'] = true; // force enable for single source
+            $sourcesToProcess = [$singleSource => $singleSrc];
         }
 
         $jobId = bin2hex(random_bytes(4));
@@ -130,14 +143,14 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         $fontSize = (float)($conf['fontSize'] ?? 1.0);
         $readabilityUrl = trim((string)($conf['readability_url'] ?? ''));
 
-        // Write full config to progress file for background worker
         $bgConfig = [
             'jobId' => $jobId,
+            'mode' => 'push',
             'endpoint' => $endpoint,
             'deviceAddress' => rtrim((string)($conf['device_address'] ?? ''), '/'),
             'folderName' => ltrim((string)($conf['folder_name'] ?? 'RSSFeeds'), '/'),
             'epubDir' => $epubDir,
-            'sources' => $conf['sources'] ?? [],
+            'sources' => $sourcesToProcess,
             'pushRetries' => (int)($conf['push_retries'] ?? 3),
             'pushRetryDelay' => (int)($conf['push_retryDelay'] ?? 5),
             'screenWidth' => $screenWidth,
@@ -151,7 +164,6 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         ];
         file_put_contents($progressFile, json_encode($bgConfig), LOCK_EX);
 
-        // Spawn background PHP worker
         $workerFile = __DIR__ . '/../FreshExtension_EinkPush_Worker.php';
         $phpBin = PHP_BINARY ?: '/usr/bin/php';
         $cmd = '/bin/sh -c "nohup ' . escapeshellarg($phpBin) . ' ' . escapeshellarg($workerFile) . ' ' . escapeshellarg($progressFile) . ' > /tmp/einkpush_worker.log 2>&1 &"';
@@ -160,6 +172,60 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         $return = 0;
         exec($cmd, $output, $return);
         error_log('[EinkPush] worker spawn: return=' . $return . ' output=' . json_encode($output));
+
+        echo json_encode(['status' => 'ok', 'job' => $jobId]);
+        exit;
+    }
+
+    public function generateRunAction(): void {
+        header('Content-Type: application/json');
+
+        $conf = $this->extension->getConfig();
+        $singleSource = Minz_Request::param('source', '');
+
+        $sourcesToProcess = $conf['sources'] ?? [];
+        if ($singleSource !== '') {
+            if (!isset($sourcesToProcess[$singleSource])) {
+                echo json_encode(['status' => 'error', 'message' => _t('ext.error_invalid_source')]);
+                exit;
+            }
+            $singleSrc = $sourcesToProcess[$singleSource];
+            $singleSrc['enabled'] = true;
+            $sourcesToProcess = [$singleSource => $singleSrc];
+        }
+
+        $jobId = bin2hex(random_bytes(4));
+        $progressFile = $this->extension->getEpubDir() . '.push_progress_' . $jobId . '.json';
+        $epubDir = $this->extension->getEpubDir();
+        $screenWidth = (int)($conf['screenWidth'] ?? 800);
+        $screenHeight = (int)($conf['screenHeight'] ?? 600);
+        $fontSize = (float)($conf['fontSize'] ?? 1.0);
+        $readabilityUrl = trim((string)($conf['readability_url'] ?? ''));
+
+        $bgConfig = [
+            'jobId' => $jobId,
+            'mode' => 'generate',
+            'endpoint' => '',
+            'epubDir' => $epubDir,
+            'sources' => $sourcesToProcess,
+            'pushRetries' => 0,
+            'pushRetryDelay' => 0,
+            'screenWidth' => $screenWidth,
+            'screenHeight' => $screenHeight,
+            'fontSize' => $fontSize,
+            'readabilityUrl' => $readabilityUrl,
+            'username' => FreshRSS_Context::$user ?? 'shur3d',
+            'step' => 'starting',
+            'message' => 'Starting...',
+            'time' => microtime(true),
+        ];
+        file_put_contents($progressFile, json_encode($bgConfig), LOCK_EX);
+
+        $workerFile = __DIR__ . '/../FreshExtension_EinkPush_Worker.php';
+        $phpBin = PHP_BINARY ?: '/usr/bin/php';
+        $cmd = '/bin/sh -c "nohup ' . escapeshellarg($phpBin) . ' ' . escapeshellarg($workerFile) . ' ' . escapeshellarg($progressFile) . ' > /tmp/einkpush_worker.log 2>&1 &"';
+        error_log('[EinkPush] spawning generate worker: ' . $cmd);
+        exec($cmd);
 
         echo json_encode(['status' => 'ok', 'job' => $jobId]);
         exit;
@@ -458,6 +524,29 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
             Minz_Request::bad(_t('ext.push_test_failed', 'Check logs'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
         }
         @unlink($testPath);
+    }
+
+    public function downloadFileAction(): void {
+        $sourceKey = Minz_Request::param('source', '');
+        if (empty($sourceKey)) {
+            header('HTTP/1.1 400 Bad Request');
+            exit;
+        }
+        $epubDir = $this->extension->getEpubDir();
+        $label = $this->helper->sourceLabel($sourceKey);
+        $pattern = $epubDir . '*' . preg_quote($label, '/') . '*.epub';
+        $files = glob($pattern);
+        if (empty($files)) {
+            // Try without label
+            $pattern = $epubDir . '*' . preg_quote($sourceKey, '/') . '*.epub';
+            $files = glob($pattern);
+        }
+        if (empty($files)) {
+            header('HTTP/1.1 404 Not Found');
+            exit;
+        }
+        $path = max($files, function($a, $b) { return filemtime($a) - filemtime($b); });
+        $this->downloadFile($path);
     }
 
     public function previewAction(): void {

@@ -153,7 +153,7 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         // Spawn background PHP worker
         $workerFile = __DIR__ . '/../FreshExtension_EinkPush_Worker.php';
         $phpBin = PHP_BINARY ?: '/usr/bin/php';
-        $cmd = '/bin/sh -c "' . escapeshellarg($phpBin) . ' ' . escapeshellarg($workerFile) . ' ' . escapeshellarg($progressFile) . ' > /dev/null 2>&1 & disown"';
+        $cmd = '/bin/sh -c "nohup ' . escapeshellarg($phpBin) . ' ' . escapeshellarg($workerFile) . ' ' . escapeshellarg($progressFile) . ' > /tmp/einkpush_worker.log 2>&1 &"';
         error_log('[EinkPush] spawning worker: ' . $cmd);
         $output = [];
         $return = 0;

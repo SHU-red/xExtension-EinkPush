@@ -105,7 +105,6 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
     }
 
     public function pushRunAction(): void {
-        // Start push, write progress to file, return immediately
         header('Content-Type: application/json');
         $conf = $this->extension->getConfig();
         $endpoint = $conf['push_endpoint'];
@@ -118,25 +117,57 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         $jobId = bin2hex(random_bytes(4));
         $progressFile = $this->extension->getEpubDir() . '.push_progress_' . $jobId . '.json';
 
-        $writeProgress = function($data) use ($progressFile) {
-            $data['time'] = microtime(true);
-            $content = json_encode($data);
-            file_put_contents($progressFile, $content, LOCK_EX);
+        // Fork background process so polling can run
+        if (function_exists('pcntl_fork')) {
+            $pid = pcntl_fork();
+            if ($pid === -1) {
+                // Fork failed, run synchronously (old behavior)
+                $this->doPushWork($progressFile, $conf, $endpoint, $this->helper);
+                echo json_encode(['status' => 'ok', 'job' => $jobId]);
+            } elseif ($pid === 0) {
+                // Child process: do push work
+                posix_setsid();
+                // Re-init helper in child
+                require_once __DIR__ . '/../FreshExtension_EinkPush_Helper.php';
+                $helper = new EinkPushHelper(
+                    $this->extension->getEpubDir(),
+                    (int) $conf['screenWidth'],
+                    (int) $conf['screenHeight'],
+                    (float) $conf['fontSize'],
+                    (string) $conf['readability_url']
+                );
+                $this->doPushWork($progressFile, $conf, $endpoint, $helper);
+                exit(0);
+            }
+            // Parent: return immediately
+            echo json_encode(['status' => 'ok', 'job' => $jobId]);
+        } else {
+            // No pcntl: run sync (polling still works on threaded Apache)
+            $this->doPushWork($progressFile, $conf, $endpoint, $this->helper);
+            echo json_encode(['status' => 'ok', 'job' => $jobId]);
+        }
+        exit;
+    }
+
+    private function doPushWork(string $progressFile, array $conf, string $endpoint, EinkPushHelper $helper): void {
+        set_time_limit(0);
+
+        $writeProgress = function($step, $extra = []) use ($progressFile) {
+            $payload = ['step' => $step, 'time' => microtime(true)] + $extra;
+            file_put_contents($progressFile, json_encode($payload), LOCK_EX);
             clearstatcache(true, $progressFile);
         };
 
-        // Step 1: Test connection (lightweight GET /api/status)
-        $writeProgress(['step' => 'test_connection', 'message' => _t('ext.push_testing_connection')]);
-        $connOk = $this->helper->checkDeviceStatus($endpoint);
-
+        // Step 1: Test connection
+        $writeProgress('test_connection', ['message' => 'Testing connection...']);
+        $connOk = $helper->checkDeviceStatus($endpoint);
         if (!$connOk) {
-            $writeProgress(['step' => 'error', 'message' => _t('ext.push_test_failed', 'Device unreachable')]);
-            echo json_encode(['status' => 'ok', 'job' => $jobId]);
-            exit;
+            $writeProgress('error', ['message' => 'Device unreachable']);
+            return;
         }
-        $writeProgress(['step' => 'connection_ok', 'message' => _t('ext.push_connection_ok')]);
+        $writeProgress('connection_ok', ['message' => 'Device online']);
 
-        // Step 2: Generate EPUBs with per-article progress
+        // Step 2: Generate EPUBs
         $totalSources = 0;
         foreach ($conf['sources'] as $srcCfg) {
             if (!empty($srcCfg['enabled'])) $totalSources++;
@@ -150,8 +181,8 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         foreach ($conf['sources'] as $key => $srcCfg) {
             if (empty($srcCfg['enabled'])) continue;
             $currentSource++;
-            $label = $this->helper->sourceLabel($key);
-            $writeProgress(['step' => 'generating', 'source' => $label, 'sourceIndex' => $currentSource, 'totalSources' => $totalSources]);
+            $label = $helper->sourceLabel($key);
+            $writeProgress('generating', ['source' => $label, 'sourceIndex' => $currentSource, 'totalSources' => $totalSources]);
 
             $historyDays = (int) ($srcCfg['historyDays'] ?? 7);
             $unreadOnly = !empty($srcCfg['unreadOnly']);
@@ -160,36 +191,37 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
             $maxArticles = (int) ($srcCfg['maxArticles'] ?? 0);
             $addTimestamp = !empty($srcCfg['addTimestamp']);
 
-            $writeProgress(['step' => 'collecting', 'source' => $label, 'message' => 'Collecting articles...']);
-            $entries = $this->helper->collectForSource($key, $historyDays, $unreadOnly);
+            $writeProgress('collecting', ['source' => $label, 'message' => 'Collecting articles...']);
+            $entries = $helper->collectForSource($key, $historyDays, $unreadOnly);
             if (empty($entries)) {
-                $writeProgress(['step' => 'source_empty', 'source' => $label]);
+                $writeProgress('source_empty', ['source' => $label]);
                 continue;
             }
 
             $numEntries = count($entries);
             $totalArticles += $numEntries;
-            $writeProgress(['step' => 'building', 'source' => $label, 'articles' => $numEntries, 'totalAllArticles' => $totalArticles]);
+            $writeProgress('building', ['source' => $label, 'articles' => $numEntries, 'totalAllArticles' => $totalArticles]);
 
-            $path = $this->helper->buildEpub($key, $label, $entries, $markAsRead, $fetchContent, $addTimestamp, $maxArticles, function($idx, $total) use ($label, $writeProgress, $totalArticles, $processedArticles) {
+            $path = $helper->buildEpub($key, $label, $entries, $markAsRead, $fetchContent, $addTimestamp, $maxArticles, function($idx, $total) use ($label, $writeProgress, $totalArticles, $processedArticles) {
                 $all = $processedArticles + $idx;
-                $writeProgress(['step' => 'article', 'source' => $label, 'articleIndex' => $idx, 'totalInSource' => $total,
+                $writeProgress('article', [
+                    'source' => $label, 'articleIndex' => $idx, 'totalInSource' => $total,
                     'processedAllArticles' => $all, 'totalAllArticles' => $totalArticles,
-                    'percent' => round(($all / max(1, $totalArticles)) * 100)]);
+                    'percent' => round(($all / max(1, $totalArticles)) * 100)
+                ]);
             });
 
             $processedArticles += $numEntries;
             if ($path !== null) $paths[$key] = $path;
 
             if ($key === 'favorites' && !empty($srcCfg['removeFromFavorites'])) {
-                $this->helper->removeFromFavorites(array_map(function($e) { return $e->id(); }, $entries));
+                $helper->removeFromFavorites(array_map(function($e) { return $e->id(); }, $entries));
             }
         }
 
         if (empty($paths)) {
-            $writeProgress(['step' => 'no_content', 'message' => _t('ext.msg_no_articles')]);
-            echo json_encode(['status' => 'ok', 'job' => $jobId]);
-            exit;
+            $writeProgress('no_content', ['message' => 'No articles found']);
+            return;
         }
 
         // Step 3: Push to device
@@ -200,22 +232,23 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
 
         foreach ($paths as $sourceKey => $path) {
             $pushedFiles++;
-            $sourceName = $this->helper->sourceLabel($sourceKey);
-            $writeProgress(['step' => 'pushing', 'source' => $sourceName, 'fileIndex' => $pushedFiles, 'totalFiles' => $totalFiles]);
-            if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], $conf['push_retryDelay'], $sourceName)) $success++; else $failed++;
+            $sourceName = $helper->sourceLabel($sourceKey);
+            $writeProgress('pushing', ['source' => $sourceName, 'fileIndex' => $pushedFiles, 'totalFiles' => $totalFiles]);
+            if ($helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], $conf['push_retryDelay'], $sourceName)) $success++; else $failed++;
+        }
+
+        // Save last push time
+        if ($failed === 0) {
+            $uconf = FreshRSS_Context::$user_conf ?? null;
+            if ($uconf) { $uconf->EinkPush_last_push = time(); $uconf->EinkPush_last_push_type = 'manual'; $uconf->save(); }
         }
 
         if ($failed === 0) {
-            $uconf = FreshRSS_Context::$user_conf;
-            if ($uconf) { $uconf->EinkPush_last_push = time(); $uconf->EinkPush_last_push_type = 'manual'; $uconf->save(); }
-            $writeProgress(['step' => 'done', 'success' => $success, 'message' => _t('ext.msg_push_success', $success)]);
+            $writeProgress('done', ['success' => $success, 'message' => 'Successfully pushed ' . $success . ' EPUB(s).']);
         } else {
-            $writeProgress(['step' => 'done_with_errors', 'success' => $success, 'failed' => $failed,
-                'message' => _t('ext.msg_push_failed', $success, $failed)]);
+            $writeProgress('done_with_errors', ['success' => $success, 'failed' => $failed,
+                'message' => 'Pushed ' . $success . ', but ' . $failed . ' failed.']);
         }
-
-        echo json_encode(['status' => 'ok', 'job' => $jobId]);
-        exit;
     }
 
     public function pushStatusAction(): void {

@@ -717,7 +717,10 @@
         function createSidebarContent() {
             // Find Subscription button and use its OWN width (not parent li)
             let subBtn = document.querySelector('#btn-subscription, .feed-tree-btn[href*="a=subscription"]');
-            let btnWidth = subBtn ? Math.round(subBtn.getBoundingClientRect().width) + 'px' : '190px';
+            // Measure full li width (text + + icon) for exact match
+            let subLi = subBtn ? subBtn.closest('li') : null;
+            let btnWidth = subLi ? Math.round(subLi.getBoundingClientRect().width) + 'px' : '190px';
+            console.log('[EinkPush] subBtn:', !!subBtn, 'subLi:', !!subLi, 'btnWidth:', btnWidth);
             const btnFontSize = subBtn ? window.getComputedStyle(subBtn).fontSize : '0.75rem';
             const btnPadding = subBtn ? window.getComputedStyle(subBtn).padding : '5px 0';
             const btnBorderRadius = subBtn ? window.getComputedStyle(subBtn).borderRadius : '4px';
@@ -739,6 +742,7 @@
             btn.className = 'ep-split-container';
             btn.style.width = btnWidth;
             btn.style.display = 'flex';
+            btn.style.gap = '2px';
             btn.style.border = '1px solid #e66a19';
             btn.style.borderRadius = btnBorderRadius;
             btn.style.overflow = 'hidden';

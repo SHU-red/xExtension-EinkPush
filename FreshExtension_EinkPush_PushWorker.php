@@ -41,15 +41,21 @@ $writeProgress = function($step, $extra = []) use ($progressFile) {
 error_log('[EinkPush Worker] Starting jobId=' . $jobId . ' pid=' . getmypid());
 
 // Bootstrap FreshRSS
-// Worker is at: extensions/xExtension-EinkPush/Worker.php
-// FreshRSS root is at: extensions/../..
 $freshRssRoot = dirname(dirname(__DIR__));
 
 if (!file_exists($freshRssRoot . '/lib/lib_rss.php')) {
     $writeProgress('error', ['message' => 'Cannot find FreshRSS lib_rss.php at ' . $freshRssRoot]);
-    error_log('[EinkPush Worker] FreshRSS not found at ' . $freshRssRoot);
     exit(1);
 }
+
+// Define constants missing in CLI context
+if (!defined('LOG_PID')) define('LOG_PID', 0);
+if (!defined('LOG_CONS')) define('LOG_CONS', 0);
+if (!defined('LOG_ODELAY')) define('LOG_ODELAY', 0);
+if (!defined('LOG_NDELAY')) define('LOG_NDELAY', 0);
+if (!defined('LOG_NOWAIT')) define('LOG_NOWAIT', 0);
+if (!defined('LOG_PERROR')) define('LOG_PERROR', 0);
+if (!defined('COPY_SYSLOG_TO_STDERR')) define('COPY_SYSLOG_TO_STDERR', 0);
 
 require_once $freshRssRoot . '/lib/lib_rss.php';
 

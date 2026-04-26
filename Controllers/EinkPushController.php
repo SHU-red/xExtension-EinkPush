@@ -139,10 +139,11 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         // Spawn background PHP CLI process
         $workerScript = __DIR__ . '/../FreshExtension_EinkPush_PushWorker.php';
         $phpBin = PHP_BINARY;
-        $cmd = sprintf('%s %s %s >/dev/null 2>&1 &', $phpBin, $workerScript, $progressFile);
-        error_log('[EinkPush] spawning: /bin/sh -c "' . $cmd . '"');
+        $logFile = $progressFile . '.worker.log';
+        $cmd = sprintf('%s %s %s > %s 2>&1 &', $phpBin, $workerScript, $progressFile, $logFile);
+        error_log('[EinkPush] spawning: ' . $cmd);
         shell_exec('/bin/sh -c "' . $cmd . '"');
-        error_log('[EinkPush] worker spawned');
+        error_log('[EinkPush] worker spawned, log: ' . $logFile);
 
         echo json_encode(['status' => 'ok', 'job' => $jobId]);
         exit;

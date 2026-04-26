@@ -120,15 +120,14 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
 
         $writeProgress = function($data) use ($progressFile) {
             $data['time'] = microtime(true);
-            file_put_contents($progressFile, json_encode($data));
+            $content = json_encode($data);
+            file_put_contents($progressFile, $content, LOCK_EX);
+            clearstatcache(true, $progressFile);
         };
 
-        // Step 1: Test connection
+        // Step 1: Test connection (lightweight GET /api/status)
         $writeProgress(['step' => 'test_connection', 'message' => _t('ext.push_testing_connection')]);
-        $testPath = $this->extension->getEpubDir() . 'test_connection.epub';
-        file_put_contents($testPath, 'Test EPUB content');
-        $connOk = $this->helper->pushToEndpoint($testPath, $endpoint, 1, 1, 'Connection Test');
-        @unlink($testPath);
+        $connOk = $this->helper->checkDeviceStatus($endpoint);
 
         if (!$connOk) {
             $writeProgress(['step' => 'error', 'message' => _t('ext.push_test_failed', 'Device unreachable')]);

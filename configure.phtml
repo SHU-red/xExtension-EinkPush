@@ -99,6 +99,7 @@ $history = $helper->getHistory();
                 <div class="ep-form-group ep-mb-20">
                     <label><?= _t('ext.folder_name') ?></label>
                     <input type="text" name="folder_name" value="<?= htmlspecialchars($cfg['folder_name'] ?? 'RSSFeeds', ENT_QUOTES) ?>" placeholder="RSSFeeds" style="width: 100%;">
+                    <input type="hidden" name="push_endpoint" value="<?= htmlspecialchars(rtrim($cfg['device_address'] ?? '', '/') . '/upload?path=/' . ltrim($cfg['folder_name'] ?? 'RSSFeeds', '/'), ENT_QUOTES) ?>">
                     <p class="help"><?= _t('ext.folder_name_help') ?></p>
                 </div>
 

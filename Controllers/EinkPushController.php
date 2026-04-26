@@ -104,12 +104,18 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         }
     }
 
+    private function getEndpoint($conf) {
+        $deviceAddress = rtrim((string)($conf['device_address'] ?? ''), '/');
+        $folderName = ltrim((string)($conf['folder_name'] ?? 'RSSFeeds'), '/');
+        return $deviceAddress . '/upload?path=/' . $folderName;
+    }
+
     public function pushRunAction(): void {
         header('Content-Type: application/json');
         $conf = $this->extension->getConfig();
-        $endpoint = $conf['push_endpoint'];
+        $endpoint = $this->getEndpoint($conf);
 
-        if (empty($endpoint)) {
+        if (empty($endpoint) || $endpoint === '/upload?path=/RSSFeeds') {
             echo json_encode(['status' => 'error', 'message' => _t('ext.error_no_endpoint')]);
             exit;
         }
@@ -280,7 +286,7 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
 
     public function pushAction(): void {
         $conf = $this->extension->getConfig();
-        $endpoint = $conf['push_endpoint'];
+        $endpoint = $this->getEndpoint($conf);
         $redirect = Minz_Request::param('r', '');
         $isSilent = Minz_Request::param('silent') === '1';
         $target = ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']];
@@ -329,7 +335,7 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
     public function pushSingleAction(): void {
         $sourceKey = Minz_Request::param('source');
         $conf = $this->extension->getConfig();
-        $endpoint = $conf['push_endpoint'];
+        $endpoint = $this->getEndpoint($conf);
         $isSilent = Minz_Request::param('silent') === '1';
 
         if (empty($endpoint)) {
@@ -386,10 +392,10 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
 
     public function testEndpointAction(): void {
         $conf = $this->extension->getConfig();
-        $endpoint = $conf['push_endpoint'];
+        $endpoint = $this->getEndpoint($conf);
         $isSilent = Minz_Request::param('silent') === '1';
-        
-        if (empty($endpoint)) {
+
+        if (empty($endpoint) || $endpoint === '/upload?path=/RSSFeeds') {
             if ($isSilent) { header('Content-Type: application/json'); echo json_encode(['status' => 'error', 'message' => _t('ext.error_no_endpoint')]); exit; }
             Minz_Request::bad(_t('ext.error_no_endpoint'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
         }
@@ -526,8 +532,8 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
             }
         } else {
             // Default: Push
-            $endpoint = $conf['push_endpoint'];
-            if (empty($endpoint)) {
+            $endpoint = $this->getEndpoint($conf);
+            if (empty($endpoint) || $endpoint === '/upload?path=/RSSFeeds') {
                 header('Content-Type: application/json');
                 echo json_encode(['status' => 'error', 'message' => 'No endpoint configured']);
                 exit;

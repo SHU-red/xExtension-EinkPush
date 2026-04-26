@@ -234,37 +234,46 @@
 
     function startPushPoll(jobId) {
         let lastStep = '';
-        let lastUpdate = Date.now();
-        let timeout = 120000; // 2 min hard timeout
+        let lastTime = 0;
+        let lastMessage = '';
+        let timeout = 600000; // 10 min hard timeout (readability fetching is slow)
         let timedOut = false;
 
         pushPollTimer = setInterval(() => {
             if (timedOut) return;
-            if (Date.now() - lastUpdate > timeout) {
-                timedOut = true;
-                clearInterval(pushPollTimer);
-                pushPollTimer = null;
-                epUpdateProgress(100, 'Timeout', 'Push took too long. Check logs.', true);
-                setTimeout(() => {
-                    document.getElementById('ep-progress-overlay')?.remove();
-                    window.location.reload();
-                }, 3000);
-                activePushAbort = null;
-                return;
-            }
 
             fetch('./?c=EinkPush&a=pushStatus&job=' + encodeURIComponent(jobId) + '&_=' + Date.now())
                 .then(r => r.json())
                 .then(data => {
                     if (!data || !data.step) return;
+
+                    // Check timeout: reset on ANY new data.time (worker is alive)
+                    if (data.time && lastTime > 0) {
+                        if (data.time === lastTime && (Date.now() - lastTime) > timeout) {
+                            timedOut = true;
+                            clearInterval(pushPollTimer);
+                            pushPollTimer = null;
+                            epUpdateProgress(100, 'Timeout', 'Push took too long. Worker may have crashed.', true);
+                            setTimeout(() => {
+                                document.getElementById('ep-progress-overlay')?.remove();
+                                window.location.reload();
+                            }, 3000);
+                            activePushAbort = null;
+                            return;
+                        }
+                    }
+                    if (data.time) lastTime = data.time;
+
                     if (data.step !== lastStep) {
                         lastStep = data.step;
-                        lastUpdate = Date.now();
+                        epHandleProgress(data);
+                    } else if (data.message && data.message !== lastMessage) {
+                        // Same step but message changed (e.g. bootstrapping details)
+                        lastMessage = data.message;
                         epHandleProgress(data);
                     } else {
-                        // Same step: show "Working..." pulse
-                        const elapsed = Math.floor((Date.now() - lastUpdate) / 1000);
-                        const dots = '.'.repeat((elapsed % 4));
+                        // Worker alive but same step+message: show dots pulse
+                        const dots = '.'.repeat((Math.floor(Date.now() / 500) % 4));
                         const statusEl = document.getElementById('ep-progress-status');
                         if (statusEl && statusEl.textContent) {
                             statusEl.textContent = statusEl.textContent.replace(/\.+$/, '') + dots;

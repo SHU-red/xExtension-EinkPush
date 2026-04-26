@@ -1,5 +1,5 @@
 <?php
-// Standalone push worker - runs as background CLI process
+// Standalone push worker - runs as background CLI process v2
 // Usage: php FreshExtension_EinkPush_PushWorker.php <progressFile>
 error_reporting(E_ALL & ~E_WARNING & ~E_NOTICE);
 ini_set('display_errors', 1);
@@ -38,7 +38,8 @@ $writeProgress = function($step, $extra = []) use ($progressFile) {
     }
 };
 
-error_log('[EinkPush Worker] Starting jobId=' . $jobId . ' pid=' . getmypid());
+error_log('[EinkPush Worker] Starting jobId=' . $jobId . ' pid=' . getmypid() . ' endpoint=' . $endpoint);
+$writeProgress('starting', ['message' => 'Worker started...']);
 
 // Bootstrap FreshRSS
 $freshRssRoot = dirname(dirname(__DIR__));
@@ -47,6 +48,8 @@ if (!file_exists($freshRssRoot . '/lib/lib_rss.php')) {
     $writeProgress('error', ['message' => 'Cannot find FreshRSS lib_rss.php at ' . $freshRssRoot]);
     exit(1);
 }
+
+$writeProgress('test_connection', ['message' => 'Loading FreshRSS...']);
 
 // Define constants missing in CLI context
 if (!defined('LOG_PID')) define('LOG_PID', 0);
@@ -57,7 +60,12 @@ if (!defined('LOG_NOWAIT')) define('LOG_NOWAIT', 0);
 if (!defined('LOG_PERROR')) define('LOG_PERROR', 0);
 if (!defined('COPY_SYSLOG_TO_STDERR')) define('COPY_SYSLOG_TO_STDERR', 0);
 
-require_once $freshRssRoot . '/lib/lib_rss.php';
+try {
+    require_once $freshRssRoot . '/lib/lib_rss.php';
+} catch (Throwable $e) {
+    $writeProgress('error', ['message' => 'Failed to load FreshRSS: ' . $e->getMessage()]);
+    exit(1);
+}
 
 // Set minimal context
 $_SERVER['REMOTE_USER'] = '';
@@ -65,8 +73,13 @@ $_SERVER['HTTP_HOST'] = '';
 $_SERVER['REQUEST_URI'] = '';
 
 // Create helper
-require_once __DIR__ . '/FreshExtension_EinkPush_Helper.php';
-$helper = new EinkPushHelper($epubDir, $screenWidth, $screenHeight, $fontSize, $readabilityUrl);
+try {
+    require_once __DIR__ . '/FreshExtension_EinkPush_Helper.php';
+    $helper = new EinkPushHelper($epubDir, $screenWidth, $screenHeight, $fontSize, $readabilityUrl);
+} catch (Throwable $e) {
+    $writeProgress('error', ['message' => 'Failed to create helper: ' . $e->getMessage()]);
+    exit(1);
+}
 
 // Step 1: Test connection
 $writeProgress('test_connection', ['message' => 'Testing connection...']);

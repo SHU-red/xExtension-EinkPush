@@ -233,12 +233,43 @@
     }
 
     function startPushPoll(jobId) {
+        let lastStep = '';
+        let lastUpdate = Date.now();
+        let timeout = 120000; // 2 min hard timeout
+        let timedOut = false;
+
         pushPollTimer = setInterval(() => {
-            fetch('./?c=EinkPush&a=pushStatus&job=' + encodeURIComponent(jobId))
+            if (timedOut) return;
+            if (Date.now() - lastUpdate > timeout) {
+                timedOut = true;
+                clearInterval(pushPollTimer);
+                pushPollTimer = null;
+                epUpdateProgress(100, 'Timeout', 'Push took too long. Check logs.', true);
+                setTimeout(() => {
+                    document.getElementById('ep-progress-overlay')?.remove();
+                    window.location.reload();
+                }, 3000);
+                activePushAbort = null;
+                return;
+            }
+
+            fetch('./?c=EinkPush&a=pushStatus&job=' + encodeURIComponent(jobId) + '&_=' + Date.now())
                 .then(r => r.json())
                 .then(data => {
                     if (!data || !data.step) return;
-                    epHandleProgress(data);
+                    if (data.step !== lastStep) {
+                        lastStep = data.step;
+                        lastUpdate = Date.now();
+                        epHandleProgress(data);
+                    } else {
+                        // Same step: show "Working..." pulse
+                        const elapsed = Math.floor((Date.now() - lastUpdate) / 1000);
+                        const dots = '.'.repeat((elapsed % 4));
+                        const statusEl = document.getElementById('ep-progress-status');
+                        if (statusEl && statusEl.textContent) {
+                            statusEl.textContent = statusEl.textContent.replace(/\.+$/, '') + dots;
+                        }
+                    }
 
                     if (in_array(data.step, ['done', 'done_with_errors', 'no_content'])) {
                         clearInterval(pushPollTimer);
@@ -277,6 +308,12 @@
                 break;
             case 'generating':
                 epUpdateProgress(5, 'Generating EPUBs...', data.source + ' (' + (data.sourceIndex || 0) + '/' + (data.totalSources || 0) + ')');
+                break;
+            case 'collecting':
+                epUpdateProgress(5, 'Collecting...', data.source + ' - fetching articles');
+                break;
+            case 'building':
+                epUpdateProgress(10, 'Building EPUB...', data.source + ' (' + data.articles + ' articles)');
                 break;
             case 'source_progress':
                 epUpdateProgress(5, 'Collecting articles...', data.source + ' (' + data.totalArticles + ' articles)');

@@ -161,6 +161,7 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
             $maxArticles = (int) ($srcCfg['maxArticles'] ?? 0);
             $addTimestamp = !empty($srcCfg['addTimestamp']);
 
+            $writeProgress(['step' => 'collecting', 'source' => $label, 'message' => 'Collecting articles...']);
             $entries = $this->helper->collectForSource($key, $historyDays, $unreadOnly);
             if (empty($entries)) {
                 $writeProgress(['step' => 'source_empty', 'source' => $label]);
@@ -169,6 +170,7 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
 
             $numEntries = count($entries);
             $totalArticles += $numEntries;
+            $writeProgress(['step' => 'building', 'source' => $label, 'articles' => $numEntries, 'totalAllArticles' => $totalArticles]);
 
             $path = $this->helper->buildEpub($key, $label, $entries, $markAsRead, $fetchContent, $addTimestamp, $maxArticles, function($idx, $total) use ($label, $writeProgress, $totalArticles, $processedArticles) {
                 $all = $processedArticles + $idx;

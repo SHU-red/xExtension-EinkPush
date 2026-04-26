@@ -117,7 +117,7 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         $jobId = bin2hex(random_bytes(4));
         $progressFile = $this->extension->getEpubDir() . '.push_progress_' . $jobId . '.json';
 
-        // Write job config to progress file for background worker
+        // Write job config + initial progress to file
         $bgConfig = [
             'jobId' => $jobId,
             'progressFile' => $progressFile,
@@ -130,16 +130,19 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
             'fontSize' => (float) $conf['fontSize'],
             'readabilityUrl' => (string) ($conf['readability_url'] ?? ''),
             'epubDir' => $this->extension->getEpubDir(),
+            'step' => 'test_connection',
+            'message' => 'Testing connection...',
+            'time' => microtime(true),
         ];
         file_put_contents($progressFile, json_encode($bgConfig));
 
         // Spawn background PHP CLI process
         $workerScript = __DIR__ . '/../FreshExtension_EinkPush_PushWorker.php';
         $phpBin = PHP_BINARY;
-        $cmd = "$phpBin $workerScript '" . $progressFile . "' &";
-        error_log('[EinkPush] spawning worker: ' . $cmd);
-        exec($cmd, $out, $ret);
-        error_log('[EinkPush] exec result=' . $ret . ' out=' . json_encode($out));
+        $cmd = sprintf('%s %s %s >/dev/null 2>&1 &', $phpBin, $workerScript, $progressFile);
+        error_log('[EinkPush] spawning: /bin/sh -c "' . $cmd . '"');
+        shell_exec('/bin/sh -c "' . $cmd . '"');
+        error_log('[EinkPush] worker spawned');
 
         echo json_encode(['status' => 'ok', 'job' => $jobId]);
         exit;

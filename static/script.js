@@ -737,58 +737,60 @@
             btnContainer.style.justifyContent = 'center';
             btnContainer.style.width = btnWidth;
 
-            // Split button: left=Settings, right=Push
+            // Split button: left=Push (big), right=Settings (small square)
+            // Matches FreshRSS "Subscription management" + "+" icon style
+            const gearSize = '32px';
             const btn = document.createElement('div');
             btn.className = 'ep-split-container';
             btn.style.width = btnWidth;
             btn.style.display = 'flex';
-            btn.style.gap = '2px';
-            btn.style.border = '1px solid #e66a19';
             btn.style.borderRadius = btnBorderRadius;
             btn.style.overflow = 'hidden';
             btn.style.boxSizing = 'border-box';
 
-            // LEFT - open settings
+            // LEFT - push feeds (big orange button)
             const left = document.createElement('a');
-            left.href = './?c=extension&a=configure&e=EinkPush';
+            left.id = 'ep-sidebar-push-now';
+            left.href = './?c=EinkPush&a=push&r=main';
             left.className = 'ep-split-left';
-            left.textContent = '⚙️';
+            left.textContent = 'E-INK PUSH';
             left.style.flex = '1';
             left.style.display = 'flex';
             left.style.alignItems = 'center';
             left.style.justifyContent = 'center';
             left.style.color = '#fff';
             left.style.textDecoration = 'none';
-            left.style.fontSize = btnFontSize;
+            left.style.fontSize = '0.75rem';
             left.style.padding = btnPadding;
             left.style.fontWeight = '700';
-            left.style.backgroundColor = '#343a40';
+            left.style.letterSpacing = '0.5px';
+            left.style.backgroundColor = '#e66a19';
             left.style.borderRadius = btnBorderRadius + ' 0 0 ' + btnBorderRadius;
-            left.style.borderRight = '1px solid rgba(0,0,0,0.2)';
+            left.style.border = '1px solid #e66a19';
+            left.style.borderRight = '1px solid rgba(0,0,0,0.25)';
             left.style.transition = 'background-color 0.15s ease';
-            left.onmouseover = () => left.style.backgroundColor = '#e66a19';
-            left.onmouseout = () => left.style.backgroundColor = '#343a40';
+            left.onmouseover = () => left.style.backgroundColor = '#d45d15';
+            left.onmouseout = () => left.style.backgroundColor = '#e66a19';
 
-            // RIGHT - push feeds
+            // RIGHT - settings (small square gear)
             const right = document.createElement('a');
-            right.id = 'ep-sidebar-push-now';
-            right.href = './?c=EinkPush&a=push&r=main';
+            right.href = './?c=extension&a=configure&e=EinkPush';
             right.className = 'ep-split-right';
-            right.textContent = 'Push';
-            right.style.flex = '1';
+            right.textContent = '⚙️';
             right.style.display = 'flex';
             right.style.alignItems = 'center';
             right.style.justifyContent = 'center';
             right.style.color = '#fff';
             right.style.textDecoration = 'none';
-            right.style.fontSize = btnFontSize;
-            right.style.padding = btnPadding;
-            right.style.fontWeight = '700';
-            right.style.backgroundColor = '#e66a19';
+            right.style.fontSize = '1.1rem';
+            right.style.width = gearSize;
+            right.style.minWidth = gearSize;
+            right.style.backgroundColor = '#343a40';
             right.style.borderRadius = '0 ' + btnBorderRadius + ' ' + btnBorderRadius + ' 0';
+            right.style.border = '1px solid #343a40';
             right.style.transition = 'background-color 0.15s ease';
-            right.onmouseover = () => right.style.backgroundColor = '#d45d15';
-            right.onmouseout = () => right.style.backgroundColor = '#e66a19';
+            right.onmouseover = () => right.style.backgroundColor = '#4a5058';
+            right.onmouseout = () => right.style.backgroundColor = '#343a40';
 
             btn.appendChild(left);
             btn.appendChild(right);

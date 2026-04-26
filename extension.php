@@ -97,6 +97,19 @@ class EinkPushExtension extends Minz_Extension {
             $posted = isset($_POST['sources']) && is_array($_POST['sources']) ? $_POST['sources'] : [];
             $sources = [];
 
+            // Main stream (all feeds combined)
+            $main = $posted['main'] ?? [];
+            $sources['main'] = [
+                'enabled'      => !empty($main['enabled']),
+                'historyDays'  => max(0, (int) ($main['historyDays'] ?? 7)),
+                'unreadOnly'   => !empty($main['unreadOnly']),
+                'markAsRead'   => !empty($main['markAsRead']),
+                'autoPush'     => !empty($main['autoPush']),
+                'fetchContent' => !empty($main['fetchContent']),
+                'addTimestamp' => !empty($main['addTimestamp']),
+                'maxArticles'  => max(0, (int) ($main['maxArticles'] ?? 50)),
+            ];
+
             // Favorites
             $fav = $posted['favorites'] ?? [];
             $sources['favorites'] = [
@@ -184,6 +197,7 @@ class EinkPushExtension extends Minz_Extension {
             'EinkPush_auto_push_enabled' => 0,
             'EinkPush_device_info'    => '',
             'EinkPush_sources'        => [
+                'main' => ['enabled' => false, 'historyDays' => 7, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 50],
                 'favorites' => ['enabled' => false, 'historyDays' => 7, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 50, 'removeFromFavorites' => false],
             ],
             'EinkPush_device_address' => 'http://crosspoint.local',

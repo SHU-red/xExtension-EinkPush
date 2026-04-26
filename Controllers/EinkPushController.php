@@ -280,13 +280,15 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
 
         $data = json_decode(file_get_contents($progressFile), true);
         if ($data) {
+            $step = $data['step'] ?? '';
             // Update user config on successful push (worker can't write to DB)
-            if (($data['step'] ?? '') === 'done' && $data['success'] ?? 0 > 0) {
+            if ($step === 'done' && ($data['success'] ?? 0) > 0) {
                 $uconf = FreshRSS_Context::$user_conf ?? null;
                 if ($uconf) { $uconf->EinkPush_last_push = time(); $uconf->EinkPush_last_push_type = 'manual'; $uconf->save(); }
             }
-            // Clean up done/error files
-            if (in_array($data['step'] ?? '', ['done', 'done_with_errors', 'error', 'no_content'])) {
+            // Don't delete file for done states - return data until it expires naturally
+            // (worker may finish faster than first poll fires)
+            if ($step === 'error' && !isset($data['time'])) {
                 @unlink($progressFile);
             }
         }

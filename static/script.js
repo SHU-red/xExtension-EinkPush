@@ -715,23 +715,25 @@
         }
 
         function createSidebarContent() {
-            // Find Subscription button and use its PARENT element width
+            // Find Subscription button and use its OWN width (not parent li)
             let subBtn = document.querySelector('#btn-subscription, .feed-tree-btn[href*="a=subscription"]');
-            let subLi = subBtn ? subBtn.closest('li, .item') : null;
-            let btnWidth = subLi
-                ? subLi.getBoundingClientRect().width + 'px'
-                : '100%';
+            let btnWidth = subBtn ? Math.round(subBtn.getBoundingClientRect().width) + 'px' : '100%';
             const btnFontSize = subBtn ? window.getComputedStyle(subBtn).fontSize : '0.75rem';
             const btnPadding = subBtn ? window.getComputedStyle(subBtn).padding : '5px 0';
             const btnBorderRadius = subBtn ? window.getComputedStyle(subBtn).borderRadius : '4px';
 
             const box = document.createElement('div');
             box.className = 'ep-sidebar-box';
+            box.style.width = btnWidth;
+            box.style.maxWidth = btnWidth;
+            box.style.display = 'block';
+            box.style.boxSizing = 'border-box';
 
             const btnContainer = document.createElement('div');
-            btnContainer.style.width = '100%';
             btnContainer.style.display = 'flex';
             btnContainer.style.justifyContent = 'center';
+            btnContainer.style.width = btnWidth;
+            btnContainer.style.width = btnWidth;
 
             // Split button: left=Settings, right=Push
             const btn = document.createElement('div');
@@ -821,32 +823,29 @@
             return;
         }
 
-        // FreshRSS Default theme (and others) often use #aside_feed
+        // Plain wrapper — no li clone (li = full sidebar width)
+        const wrapper = document.createElement('div');
+        wrapper.id = 'ep-sidebar-btn-main';
+        wrapper.style.textAlign = 'center';
+        wrapper.appendChild(createSidebarContent());
+
+        // FreshRSS Default theme: insert before the tree
         const asideFeed = document.querySelector('#aside_feed');
         if (asideFeed) {
-            const subLi = asideFeed.querySelector('li.item') || asideFeed.querySelector('li');
-            if (subLi) {
-                const clone = subLi.cloneNode(false);
-                clone.id = 'ep-sidebar-btn-main';
-                clone.appendChild(createSidebarContent());
-                const tree = asideFeed.querySelector('.tree');
-                if (tree) tree.parentNode.insertBefore(clone, tree);
-                else asideFeed.insertBefore(clone, asideFeed.firstChild);
-            }
+            const tree = asideFeed.querySelector('.tree');
+            if (tree) tree.parentNode.insertBefore(wrapper, tree);
+            else asideFeed.insertBefore(wrapper, asideFeed.firstChild);
             return;
         }
 
-        // Fallback: find subscription link and clone its li
+        // Fallback: insert after subscription button
         const subManage = Array.from(document.querySelectorAll('a')).find(a =>
             (a.getAttribute('href') || '').includes('a=subscription')
         );
         if (subManage) {
             const parent = subManage.closest('li, .item');
             if (parent) {
-                const clone = parent.cloneNode(false);
-                clone.id = 'ep-sidebar-btn-main';
-                clone.appendChild(createSidebarContent());
-                parent.parentNode.insertBefore(clone, parent.nextSibling);
+                parent.parentNode.insertBefore(wrapper, parent.nextSibling);
                 return;
             }
         }

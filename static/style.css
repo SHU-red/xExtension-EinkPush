@@ -432,34 +432,13 @@ body.theme-dark .ep-footer {
     .ep-grid { grid-template-columns: 1fr; }
 }
 /* --- Sidebar split button (inline styles applied in JS) --- */
-.ep-sidebar-box {
-    padding: 5px 0;
-}
-
 .ep-sidebar-container {
-    display: block !important;
-    clear: both !important;
-    width: 100% !important;
-    max-width: none !important;
-    margin: 4px auto 10px auto !important;
-    text-align: center !important;
-}
-
-.ep-sidebar-box {
-    background: var(--ep-bg-card);
-    border: 1px solid var(--ep-border);
-    border-radius: 6px;
-    padding: 0 !important;
-    margin: 0 auto;
     text-align: center;
-    display: inline-block;
-    width: 100%;
-    vertical-align: middle;
 }
 
-/* --- Sidebar --- */
 .ep-sidebar-box {
-    padding: 5px 0;
+    padding: 0;
+    margin: 0;
 }
     justify-content: center !important;
     font-size: 0.75rem !important;

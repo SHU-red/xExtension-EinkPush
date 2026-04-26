@@ -120,9 +120,15 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         header('Content-Type: text/event-stream');
         header('Cache-Control: no-cache');
         header('X-Accel-Buffering: no');
+        header('Connection: keep-alive');
+        ini_set('output_buffering', 0);
         ini_set('implicit_flush', 1);
         ob_implicit_flush(1);
-        while (ob_get_level() > 0) ob_end_flush();
+        while (ob_get_level() > 0) @ob_end_flush();
+
+        // Force flush padding (nginx/php buffering workaround)
+        for ($i = 0; $i < 1024; $i++) echo ' ';
+        flush();
 
         $sendProgress = function($data) {
             echo 'data: ' . json_encode($data) . "\n\n";

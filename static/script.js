@@ -248,68 +248,49 @@
         epUpdateProgress(0, 'Testing connection...', '');
 
         const url = './?c=EinkPush&a=pushStream&' + Date.now();
-        const reader = fetch(url, { signal: sig }).then(res => res.body.getReader());
-
         let buffer = '';
-        reader.then(function process({ done, value }) {
-            if (done) {
-                // Process any remaining buffer
-                if (buffer.trim()) {
+        const decoder = new TextDecoder();
+
+        fetch(url, { signal: sig })
+            .then(res => {
+                const reader = res.body.getReader();
+                return reader.read().then(function process({ done, value }) {
+                    if (done) {
+                        return epHandleStreamEnd();
+                    }
+                    buffer += decoder.decode(value, { stream: true });
                     const lines = buffer.split('\n');
+                    // Keep last incomplete chunk in buffer
+                    buffer = lines.pop() || '';
+
                     for (const line of lines) {
                         if (line.startsWith('data: ')) {
                             try {
-                                const data = JSON.parse(line.slice(6));
-                                epHandleProgress(data);
+                                epHandleProgress(JSON.parse(line.slice(6)));
                             } catch(e) {}
                         }
                     }
+                    return reader.read().then(process);
+                });
+            })
+            .catch(err => {
+                if (err.name !== 'AbortError') {
+                    epUpdateProgress(100, 'Error: ' + err.message, '', true);
                 }
-                epUpdateProgress(100, 'Done!', '');
-                setTimeout(() => {
-                    document.getElementById('ep-progress-overlay')?.remove();
-                    window.location.reload();
-                }, 1500);
                 activePushAbort = null;
-                return;
-            }
+            });
+    }
 
-            buffer += new TextDecoder().decode(value);
-            const lines = buffer.split('\n');
-            buffer = '';
-
-            for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                    try {
-                        const data = JSON.parse(line.slice(6));
-                        epHandleProgress(data);
-                    } catch(e) {}
-                    buffer = '';
-                } else if (line.trim() === '') {
-                    // Empty line = SSE delimiter
-                    continue;
-                } else {
-                    buffer = line;
-                }
-            }
-
-            return process({ done: false, value: null });
-        }).then(() => {
-            // Fallback if stream closes without done
-            if (!sig.aborted) {
-                epUpdateProgress(100, 'Done!', '');
-                setTimeout(() => {
-                    document.getElementById('ep-progress-overlay')?.remove();
-                    window.location.reload();
-                }, 1500);
-                activePushAbort = null;
-            }
-        }).catch(err => {
-            if (err.name !== 'AbortError') {
-                epUpdateProgress(100, 'Error: ' + err.message, '', true);
-            }
-            activePushAbort = null;
-        });
+    function epHandleStreamEnd() {
+        if (buffer.trim() && buffer.startsWith('data: ')) {
+            try { epHandleProgress(JSON.parse(buffer.slice(6).trim())); } catch(e) {}
+        }
+        epUpdateProgress(100, 'Done!', '');
+        setTimeout(() => {
+            document.getElementById('ep-progress-overlay')?.remove();
+            window.location.reload();
+        }, 1500);
+        activePushAbort = null;
     }
 
     function epHandleProgress(data) {

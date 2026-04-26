@@ -605,44 +605,82 @@
         if (isOnSettingsPage || isSettingsUrl) return;
 
         function createSidebarContent() {
-            // Match FreshRSS button style exactly
-            let subBtn = document.querySelector('#btn-subscription, .feed-tree-btn[href*="a=subscription"]');
-            let subLi = subBtn ? subBtn.closest('li') : null;
-            let btnWidth = subLi ? Math.round(subLi.getBoundingClientRect().width) + 'px' : '190px';
-            const btnPadding = subBtn ? window.getComputedStyle(subBtn).padding : '5px 0';
-            const btnBorderRadius = subBtn ? window.getComputedStyle(subBtn).borderRadius : '4px';
+            // Read native button styles
+            let subBtn = document.querySelector('#btn-subscription');
+            let computedSub = subBtn ? window.getComputedStyle(subBtn) : null;
+            let btnWidth = computedSub ? computedSub.width : '190px';
+            let btnHeight = computedSub ? computedSub.height : '32px';
+            let btnBorderRadius = computedSub ? computedSub.borderRadius : '4px';
+            let btnFont = computedSub ? computedSub.font : '';
+            let btnPadding = computedSub ? computedSub.padding : '5px 0';
 
-            // Single orange button matching FreshRSS style
-            const btn = document.createElement('a');
-            btn.id = 'ep-sidebar-push-now';
-            btn.href = '#';
-            btn.textContent = 'E-INK PUSH';
-            btn.style.display = 'block';
-            btn.style.width = btnWidth;
-            btn.style.maxWidth = btnWidth;
-            btn.style.boxSizing = 'border-box';
-            btn.style.textAlign = 'center';
-            btn.style.textDecoration = 'none';
-            btn.style.color = '#fff';
-            btn.style.fontSize = '0.75rem';
-            btn.style.padding = btnPadding;
-            btn.style.fontWeight = '700';
-            btn.style.letterSpacing = '0.5px';
-            btn.style.backgroundColor = '#e66a19';
-            btn.style.borderRadius = btnBorderRadius;
-            btn.style.border = '1px solid #e66a19';
-            btn.style.cursor = 'pointer';
-            btn.style.transition = 'background-color 0.15s ease';
-            btn.style.whiteSpace = 'nowrap';
-            btn.style.overflow = 'hidden';
-            btn.style.textOverflow = 'ellipsis';
-            btn.onmouseover = () => btn.style.backgroundColor = '#d45d15';
-            btn.onmouseout = () => btn.style.backgroundColor = '#e66a19';
-
+            // Flex container to center the split button
             const wrapper = document.createElement('div');
-            wrapper.style.textAlign = 'center';
-            wrapper.style.padding = '2px 0';
-            wrapper.appendChild(btn);
+            wrapper.style.display = 'flex';
+            wrapper.style.justifyContent = 'center';
+            wrapper.style.padding = '4px 0';
+
+            // Split button container (flex row)
+            const splitContainer = document.createElement('div');
+            splitContainer.style.display = 'flex';
+            splitContainer.style.alignItems = 'stretch';
+            splitContainer.style.width = btnWidth;
+            splitContainer.style.height = btnHeight;
+            splitContainer.style.boxSizing = 'border-box';
+            splitContainer.style.borderRadius = btnBorderRadius;
+            splitContainer.style.overflow = 'hidden';
+
+            // Left half: Settings (blue)
+            const gearBtn = document.createElement('button');
+            gearBtn.type = 'button';
+            gearBtn.title = 'E-INK PUSH Settings';
+            gearBtn.innerHTML = '<span style="font-size:14px">⚙️</span>';
+            gearBtn.style.flex = '1';
+            gearBtn.style.display = 'flex';
+            gearBtn.style.alignItems = 'center';
+            gearBtn.style.justifyContent = 'center';
+            gearBtn.style.background = '#3d6b99';
+            gearBtn.style.border = 'none';
+            gearBtn.style.borderRight = '2px solid #1c1f2b';
+            gearBtn.style.color = '#fff';
+            gearBtn.style.cursor = 'pointer';
+            gearBtn.style.fontSize = '14px';
+            gearBtn.style.padding = '0';
+            gearBtn.onmouseover = () => gearBtn.style.background = '#4a7db5';
+            gearBtn.onmouseout = () => gearBtn.style.background = '#3d6b99';
+            gearBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.location.href = './?c=extension&a=configure&e=EinkPush';
+            });
+
+            // Right half: Push (orange) - main trigger
+            const pushBtn = document.createElement('button');
+            pushBtn.id = 'ep-sidebar-push-now';
+            pushBtn.type = 'button';
+            pushBtn.title = 'Push all to E-Ink';
+            pushBtn.innerHTML = '<span style="font-size:14px">📤</span>';
+            pushBtn.style.flex = '2';
+            pushBtn.style.display = 'flex';
+            pushBtn.style.alignItems = 'center';
+            pushBtn.style.justifyContent = 'center';
+            pushBtn.style.background = '#e66a19';
+            pushBtn.style.border = 'none';
+            pushBtn.style.color = '#fff';
+            pushBtn.style.cursor = 'pointer';
+            pushBtn.style.fontSize = '14px';
+            pushBtn.style.padding = '0';
+            pushBtn.onmouseover = () => pushBtn.style.background = '#d45d15';
+            pushBtn.onmouseout = () => pushBtn.style.background = '#e66a19';
+            pushBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                epStreamPush();
+            });
+
+            splitContainer.appendChild(gearBtn);
+            splitContainer.appendChild(pushBtn);
+            wrapper.appendChild(splitContainer);
             return wrapper;
         }
 

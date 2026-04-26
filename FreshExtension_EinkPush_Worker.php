@@ -16,14 +16,36 @@ $log = function($msg) {
 $progressFile = $argv[1] ?? '';
 
 // Catch fatal errors
+set_error_handler(function($severity, $message, $file, $line) use ($progressFile) {
+    $log("ERROR [$severity] $message at $file:$line");
+    @file_put_contents($progressFile, json_encode([
+        'step' => 'error',
+        'message' => "PHP Error: $message at $file:$line",
+        'time' => microtime(true),
+    ]), LOCK_EX);
+    return false;
+});
+
+set_exception_handler(function($e) use ($progressFile) {
+    $log("EXCEPTION: " . $e->getMessage());
+    @file_put_contents($progressFile, json_encode([
+        'step' => 'error',
+        'message' => 'Exception: ' . $e->getMessage(),
+        'time' => microtime(true),
+    ]), LOCK_EX);
+});
+
 register_shutdown_function(function() use ($progressFile) {
     $err = error_get_last();
-    if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
-        @file_put_contents($progressFile, json_encode([
-            'step' => 'error',
-            'message' => 'Worker crashed: ' . $err['message'],
-            'time' => microtime(true),
-        ]), LOCK_EX);
+    if ($err) {
+        $log("SHUTDOWN: " . print_r($err, true));
+        if (in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+            @file_put_contents($progressFile, json_encode([
+                'step' => 'error',
+                'message' => 'Worker crashed: ' . $err['message'],
+                'time' => microtime(true),
+            ]), LOCK_EX);
+        }
     }
 });
 
@@ -166,18 +188,25 @@ foreach ($sources as $key => $srcCfg) {
     $totalArticles += $numEntries;
     $write('building', $label . ': ' . $numEntries . ' articles', ['source' => $label, 'articles' => $numEntries, 'totalAllArticles' => $totalArticles]);
 
-    $path = $helper->buildEpub($key, $label, $entries, $markAsRead, $fetchContent, $addTimestamp, $maxArticles, function($idx, $total) use ($label, $write, $totalArticles, &$processedArticles) {
-        $all = $processedArticles + $idx;
-        $pct = round(($all / max(1, $totalArticles)) * 100);
-        $write('article', 'Article ' . $all . '/' . $totalArticles . ' (' . $pct . '%)', [
-            'source' => $label,
-            'articleIndex' => $idx,
-            'totalInSource' => $total,
-            'processedAllArticles' => $all,
-            'totalAllArticles' => $totalArticles,
-            'percent' => $pct,
-        ]);
-    });
+    try {
+        $log('buildEpub START: ' . $numEntries . ' entries, fetchContent=' . ($fetchContent ? 'yes' : 'no') . ', readability=' . ($readabilityUrl ?: 'none'));
+        $path = $helper->buildEpub($key, $label, $entries, $markAsRead, $fetchContent, $addTimestamp, $maxArticles, function($idx, $total) use ($label, $write, $totalArticles, &$processedArticles) {
+            $all = $processedArticles + $idx;
+            $pct = round(($all / max(1, $totalArticles)) * 100);
+            $write('article', 'Article ' . $all . '/' . $totalArticles . ' (' . $pct . '%)', [
+                'source' => $label,
+                'articleIndex' => $idx,
+                'totalInSource' => $total,
+                'processedAllArticles' => $all,
+                'totalAllArticles' => $totalArticles,
+                'percent' => $pct,
+            ]);
+        });
+        $log('buildEpub DONE: path=' . ($path ?: 'null'));
+    } catch (Throwable $e) {
+        $write('error', 'buildEpub failed: ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine());
+        exit(1);
+    }
 
     $processedArticles += $numEntries;
     if ($path !== null) $paths[$key] = $path;

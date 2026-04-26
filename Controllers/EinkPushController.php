@@ -117,17 +117,18 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         $jobId = bin2hex(random_bytes(4));
         $progressFile = $this->extension->getEpubDir() . '.push_progress_' . $jobId . '.json';
 
-        // Fork background process so polling can run
+        error_log('[EinkPush] pushRun: jobId=' . $jobId . ' fork=' . (function_exists('pcntl_fork') ? 'yes' : 'no'));
+
         if (function_exists('pcntl_fork')) {
             $pid = pcntl_fork();
             if ($pid === -1) {
-                // Fork failed, run synchronously (old behavior)
+                error_log('[EinkPush] pcntl_fork FAILED, running sync');
                 $this->doPushWork($progressFile, $conf, $endpoint, $this->helper);
                 echo json_encode(['status' => 'ok', 'job' => $jobId]);
             } elseif ($pid === 0) {
-                // Child process: do push work
+                // Child process
+                error_log('[EinkPush] child pid=' . posix_getpid() . ' starting');
                 posix_setsid();
-                // Re-init helper in child
                 require_once __DIR__ . '/../FreshExtension_EinkPush_Helper.php';
                 $helper = new EinkPushHelper(
                     $this->extension->getEpubDir(),
@@ -137,12 +138,13 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
                     (string) $conf['readability_url']
                 );
                 $this->doPushWork($progressFile, $conf, $endpoint, $helper);
+                error_log('[EinkPush] child DONE');
                 exit(0);
             }
-            // Parent: return immediately
+            // Parent
+            error_log('[EinkPush] parent: forked child pid=' . $pid);
             echo json_encode(['status' => 'ok', 'job' => $jobId]);
         } else {
-            // No pcntl: run sync (polling still works on threaded Apache)
             $this->doPushWork($progressFile, $conf, $endpoint, $this->helper);
             echo json_encode(['status' => 'ok', 'job' => $jobId]);
         }
@@ -151,6 +153,7 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
 
     private function doPushWork(string $progressFile, array $conf, string $endpoint, EinkPushHelper $helper): void {
         set_time_limit(0);
+        error_log('[EinkPush] doPushWork START pid=' . (function_exists('posix_getpid') ? posix_getpid() : 'unknown'));
 
         $writeProgress = function($step, $extra = []) use ($progressFile) {
             $payload = ['step' => $step, 'time' => microtime(true)] + $extra;
@@ -160,7 +163,9 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
 
         // Step 1: Test connection
         $writeProgress('test_connection', ['message' => 'Testing connection...']);
+        error_log('[EinkPush] checking device: ' . $endpoint);
         $connOk = $helper->checkDeviceStatus($endpoint);
+        error_log('[EinkPush] checkDeviceStatus result: ' . ($connOk ? 'ok' : 'fail'));
         if (!$connOk) {
             $writeProgress('error', ['message' => 'Device unreachable']);
             return;

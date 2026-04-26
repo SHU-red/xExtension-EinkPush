@@ -137,8 +137,9 @@
         }
     }
 
-    // ── Unified Streaming Push (sidebar + settings share same flow) ──
+    // ── Unified Push (sidebar + settings share same flow) ──
     let activePushAbort = null;
+    let pushPollTimer = null;
 
     function epShowProgressModal() {
         let overlay = document.getElementById('ep-progress-overlay');
@@ -148,12 +149,11 @@
         overlay.id = 'ep-progress-overlay';
         overlay.className = 'ep-progress-overlay';
 
-        // Read FreshRSS theme colors from body
         const bodyStyle = getComputedStyle(document.body);
         const bg = bodyStyle.backgroundColor || '#ffffff';
         const fg = bodyStyle.color || '#333333';
-        const accent = getComputedStyle(document.documentElement).getPropertyValue('--ep-accent') || '#e66a19';
-        const muted = bodyStyle.getPropertyValue('--text-secondary') || '#888';
+        const accent = '#e66a19';
+        const muted = '#888';
 
         overlay.innerHTML = `
             <div class="ep-progress-box">
@@ -170,58 +170,24 @@
         `;
         document.body.appendChild(overlay);
 
-        // Apply theme colors via JS
         const box = overlay.querySelector('.ep-progress-box');
-        box.style.backgroundColor = bg;
-        box.style.color = fg;
-        box.style.border = '1px solid ' + muted;
-        box.style.borderRadius = '8px';
-        box.style.padding = '16px';
-        box.style.maxWidth = '400px';
-        box.style.width = '90%';
-        box.style.boxShadow = '0 4px 24px rgba(0,0,0,0.3)';
-        box.style.fontFamily = 'inherit';
+        box.style.cssText = 'background-color:' + bg + ';color:' + fg + ';border:1px solid ' + muted +
+            ';border-radius:8px;padding:16px;max-width:400px;width:90%;box-shadow:0 4px 24px rgba(0,0,0,0.3);font-family:inherit;';
 
-        overlay.querySelector('.ep-progress-header').style.display = 'flex';
-        overlay.querySelector('.ep-progress-header').style.justifyContent = 'space-between';
-        overlay.querySelector('.ep-progress-header').style.alignItems = 'center';
-        overlay.querySelector('.ep-progress-header').style.marginBottom = '12px';
-
-        overlay.querySelector('#ep-progress-title').style.fontWeight = 'bold';
-        overlay.querySelector('#ep-progress-title').style.fontSize = '14px';
-
-        overlay.querySelector('.ep-progress-close').style.cursor = 'pointer';
-        overlay.querySelector('.ep-progress-close').style.opacity = '0.6';
+        overlay.querySelector('.ep-progress-header').style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;';
+        overlay.querySelector('#ep-progress-title').style.cssText = 'font-weight:bold;font-size:14px;';
+        overlay.querySelector('.ep-progress-close').style.cssText = 'cursor:pointer;opacity:0.6;';
         overlay.querySelector('.ep-progress-close').onclick = () => {
             if (activePushAbort) activePushAbort.abort();
+            if (pushPollTimer) clearInterval(pushPollTimer);
             overlay.remove();
         };
+        overlay.querySelector('.ep-progress-bar-bg').style.cssText = 'height:6px;border-radius:3px;overflow:hidden;margin-bottom:10px;background:' + muted + '33;';
+        overlay.querySelector('#ep-progress-bar-fill').style.cssText = 'height:100%;width:0%;background:' + accent + ';border-radius:3px;transition:width 0.3s ease;';
+        overlay.querySelector('#ep-progress-status').style.cssText = 'font-size:13px;margin-bottom:4px;font-weight:500;';
+        overlay.querySelector('#ep-progress-detail').style.cssText = 'font-size:11px;color:' + muted + ';';
 
-        overlay.querySelector('.ep-progress-bar-bg').style.height = '6px';
-        overlay.querySelector('.ep-progress-bar-bg').style.borderRadius = '3px';
-        overlay.querySelector('.ep-progress-bar-bg').style.overflow = 'hidden';
-        overlay.querySelector('.ep-progress-bar-bg').style.marginBottom = '10px';
-        overlay.querySelector('.ep-progress-bar-bg').style.background = muted + '33';
-
-        const fill = overlay.querySelector('#ep-progress-bar-fill');
-        fill.style.height = '100%';
-        fill.style.width = '0%';
-        fill.style.background = accent;
-        fill.style.borderRadius = '3px';
-        fill.style.transition = 'width 0.3s ease';
-
-        overlay.querySelector('#ep-progress-status').style.fontSize = '13px';
-        overlay.querySelector('#ep-progress-status').style.marginBottom = '4px';
-        overlay.querySelector('#ep-progress-status').style.fontWeight = '500';
-
-        overlay.querySelector('#ep-progress-detail').style.fontSize = '11px';
-        overlay.querySelector('#ep-progress-detail').style.color = muted;
-
-        // Click outside to dismiss (only after done)
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) overlay.remove();
-        });
-
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
         return overlay;
     }
 
@@ -232,46 +198,31 @@
         if (fill) fill.style.width = percent + '%';
         if (statusEl) {
             statusEl.textContent = status;
-            if (isError) statusEl.style.color = '#d32f2f';
+            statusEl.style.color = isError ? '#d32f2f' : '';
         }
         if (detailEl) detailEl.textContent = detail || '';
     }
 
     function epStreamPush() {
-        if (activePushAbort) {
-            activePushAbort.abort();
-        }
+        if (activePushAbort) activePushAbort.abort();
+        if (pushPollTimer) clearInterval(pushPollTimer);
         activePushAbort = new AbortController();
-        const sig = activePushAbort.signal;
 
         epShowProgressModal();
         epUpdateProgress(0, 'Testing connection...', '');
 
-        const url = './?c=EinkPush&a=pushStream&' + Date.now();
-        let buffer = '';
-        const decoder = new TextDecoder();
-
-        fetch(url, { signal: sig })
-            .then(res => {
-                const reader = res.body.getReader();
-                return reader.read().then(function process({ done, value }) {
-                    if (done) {
-                        return epHandleStreamEnd();
-                    }
-                    buffer += decoder.decode(value, { stream: true });
-                    const lines = buffer.split('\n');
-                    // Keep last incomplete chunk in buffer
-                    buffer = lines.pop() || '';
-
-                    for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            try {
-                                epHandleProgress(JSON.parse(line.slice(6)));
-                            } catch(e) {}
-                        }
-                    }
-                    return reader.read().then(process);
-                });
+        fetch('./?c=EinkPush&a=pushRun&' + Date.now(), { signal: activePushAbort.signal })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'error') {
+                    epUpdateProgress(100, data.message || 'Error', '', true);
+                    setTimeout(() => document.getElementById('ep-progress-overlay')?.remove(), 3000);
+                    activePushAbort = null;
+                    return;
+                }
+                if (data.job) {
+                    startPushPoll(data.job);
+                }
             })
             .catch(err => {
                 if (err.name !== 'AbortError') {
@@ -281,16 +232,39 @@
             });
     }
 
-    function epHandleStreamEnd() {
-        if (buffer.trim() && buffer.startsWith('data: ')) {
-            try { epHandleProgress(JSON.parse(buffer.slice(6).trim())); } catch(e) {}
-        }
-        epUpdateProgress(100, 'Done!', '');
-        setTimeout(() => {
-            document.getElementById('ep-progress-overlay')?.remove();
-            window.location.reload();
-        }, 1500);
-        activePushAbort = null;
+    function startPushPoll(jobId) {
+        pushPollTimer = setInterval(() => {
+            fetch('./?c=EinkPush&a=pushStatus&job=' + encodeURIComponent(jobId))
+                .then(r => r.json())
+                .then(data => {
+                    if (!data || !data.step) return;
+                    epHandleProgress(data);
+
+                    if (in_array(data.step, ['done', 'done_with_errors', 'no_content'])) {
+                        clearInterval(pushPollTimer);
+                        pushPollTimer = null;
+                        if (data.step === 'done' || data.step === 'done_with_errors') {
+                            setTimeout(() => {
+                                document.getElementById('ep-progress-overlay')?.remove();
+                                window.location.reload();
+                            }, 1500);
+                        } else {
+                            setTimeout(() => document.getElementById('ep-progress-overlay')?.remove(), 2500);
+                        }
+                        activePushAbort = null;
+                    } else if (data.step === 'error') {
+                        clearInterval(pushPollTimer);
+                        pushPollTimer = null;
+                        setTimeout(() => document.getElementById('ep-progress-overlay')?.remove(), 3000);
+                        activePushAbort = null;
+                    }
+                })
+                .catch(() => {});
+        }, 400);
+    }
+
+    function in_array(needle, haystack) {
+        return haystack.indexOf(needle) !== -1;
     }
 
     function epHandleProgress(data) {

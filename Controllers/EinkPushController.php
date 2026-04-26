@@ -113,7 +113,6 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
 
     public function pushRunAction(): void {
         header('Content-Type: application/json');
-        set_time_limit(0);
 
         $conf = $this->extension->getConfig();
         $endpoint = $this->getEndpoint($conf);
@@ -125,117 +124,44 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
 
         $jobId = bin2hex(random_bytes(4));
         $progressFile = $this->extension->getEpubDir() . '.push_progress_' . $jobId . '.json';
+        $epubDir = $this->extension->getEpubDir();
+        $screenWidth = (int)($conf['screen_width'] ?? 800);
+        $screenHeight = (int)($conf['screen_height'] ?? 600);
+        $fontSize = (int)($conf['font_size'] ?? 14);
+        $readabilityUrl = trim((string)($conf['readability_api_url'] ?? ''));
 
-        $writeProgress = function($step, $msg, $extra = []) use ($progressFile) {
-            $payload = ['step' => $step, 'message' => $msg, 'time' => microtime(true)] + $extra;
-            file_put_contents($progressFile, json_encode($payload), LOCK_EX);
-            clearstatcache(true, $progressFile);
-        };
+        // Write full config to progress file for background worker
+        $bgConfig = [
+            'jobId' => $jobId,
+            'endpoint' => $endpoint,
+            'deviceAddress' => rtrim((string)($conf['device_address'] ?? ''), '/'),
+            'folderName' => ltrim((string)($conf['folder_name'] ?? 'RSSFeeds'), '/'),
+            'epubDir' => $epubDir,
+            'sources' => $conf['sources'] ?? [],
+            'pushRetries' => (int)($conf['push_retries'] ?? 3),
+            'pushRetryDelay' => (int)($conf['push_retryDelay'] ?? 5),
+            'screenWidth' => $screenWidth,
+            'screenHeight' => $screenHeight,
+            'fontSize' => $fontSize,
+            'readabilityUrl' => $readabilityUrl,
+            'step' => 'starting',
+            'message' => 'Starting...',
+            'time' => microtime(true),
+        ];
+        file_put_contents($progressFile, json_encode($bgConfig), LOCK_EX);
 
-        $writeProgress('starting', 'Starting...');
+        // Spawn background PHP worker
+        $workerFile = __DIR__ . '/../FreshExtension_EinkPush_Worker.php';
+        $phpBin = PHP_BINARY ?: '/usr/bin/php';
+        $cmd = '/bin/sh -c "' . escapeshellarg($phpBin) . ' ' . escapeshellarg($workerFile) . ' ' . escapeshellarg($progressFile) . ' > /dev/null 2>&1 & disown"';
+        error_log('[EinkPush] spawning worker: ' . $cmd);
+        $output = [];
+        $return = 0;
+        exec($cmd, $output, $return);
+        error_log('[EinkPush] worker spawn: return=' . $return . ' output=' . json_encode($output));
 
-        // Send immediate response to free PHP-FPM worker for pushStatus polling
-        ignore_user_abort(true);
         echo json_encode(['status' => 'ok', 'job' => $jobId]);
-        @ob_end_flush();
-        @flush();
-        if (function_exists('fastcgi_finish_request')) {
-            fastcgi_finish_request();
-        }
-        error_log('[EinkPush] fastcgi_finish: ' . (function_exists('fastcgi_finish_request') ? 'called' : 'not available') . ' pid=' . getmypid());
-
-        // Now do heavy work (PHP-FPM worker freed or script continues in background)
-        $writeProgress('test_connection', 'Testing connection...');
-        error_log('[EinkPush] testing: ' . $endpoint);
-        $connOk = $this->helper->checkDeviceStatus($endpoint);
-        error_log('[EinkPush] result: ' . ($connOk ? 'ok' : 'fail'));
-
-        if (!$connOk) {
-            $writeProgress('error', 'Device unreachable at ' . $endpoint);
-            return;
-        }
-        $writeProgress('connection_ok', 'Device online');
-
-        // Step 2: Generate EPUBs
-        $totalSources = 0;
-        foreach ($conf['sources'] as $_k => $_v) {
-            if (!empty($_v['enabled'])) $totalSources++;
-        }
-
-        $paths = [];
-        $totalArticles = 0;
-        $processedArticles = 0;
-        $currentSource = 0;
-
-        foreach ($conf['sources'] as $key => $srcCfg) {
-            if (empty($srcCfg['enabled'])) continue;
-            $currentSource++;
-            $label = $this->helper->sourceLabel($key);
-            $writeProgress('generating', 'Processing ' . $label, ['source' => $label, 'sourceIndex' => $currentSource, 'totalSources' => $totalSources]);
-
-            $historyDays = (int)($srcCfg['historyDays'] ?? 7);
-            $unreadOnly = !empty($srcCfg['unreadOnly']);
-            $markAsRead = !empty($srcCfg['markAsRead']);
-            $fetchContent = !empty($srcCfg['fetchContent']);
-            $maxArticles = (int)($srcCfg['maxArticles'] ?? 0);
-            $addTimestamp = !empty($srcCfg['addTimestamp']);
-
-            $writeProgress('collecting', 'Collecting articles...', ['source' => $label]);
-            $entries = $this->helper->collectForSource($key, $historyDays, $unreadOnly);
-
-            if (empty($entries)) {
-                $writeProgress('source_empty', $label . ': no articles', ['source' => $label]);
-                continue;
-            }
-
-            $numEntries = count($entries);
-            $totalArticles += $numEntries;
-            $writeProgress('building', $label . ': ' . $numEntries . ' articles', ['source' => $label, 'articles' => $numEntries, 'totalAllArticles' => $totalArticles]);
-
-            $path = $this->helper->buildEpub($key, $label, $entries, $markAsRead, $fetchContent, $addTimestamp, $maxArticles, function($idx, $total) use ($label, $writeProgress, $totalArticles, &$processedArticles) {
-                $all = $processedArticles + $idx;
-                $pct = round(($all / max(1, $totalArticles)) * 100);
-                $writeProgress('article', 'Article ' . $all . '/' . $totalArticles . ' (' . $pct . '%)', [
-                    'source' => $label, 'articleIndex' => $idx, 'totalInSource' => $total,
-                    'processedAllArticles' => $all, 'totalAllArticles' => $totalArticles, 'percent' => $pct,
-                ]);
-            });
-
-            $processedArticles += $numEntries;
-            if ($path !== null) $paths[$key] = $path;
-        }
-
-        if (empty($paths)) {
-            $writeProgress('no_content', 'No articles found');
-            return;
-        }
-
-        // Step 3: Push to device
-        $totalFiles = count($paths);
-        $pushedFiles = 0;
-        $success = 0;
-        $failed = 0;
-
-        foreach ($paths as $sourceKey => $path) {
-            $pushedFiles++;
-            $sourceName = $this->helper->sourceLabel($sourceKey);
-            $writeProgress('pushing', 'Sending ' . $sourceName . '...', ['source' => $sourceName, 'fileIndex' => $pushedFiles, 'totalFiles' => $totalFiles]);
-            if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], $conf['push_retryDelay'], $sourceName)) {
-                $success++;
-            } else {
-                $failed++;
-            }
-        }
-
-        if ($failed === 0) {
-            $uconf = FreshRSS_Context::$user_conf ?? null;
-            if ($uconf) { $uconf->EinkPush_last_push = time(); $uconf->EinkPush_last_push_type = 'manual'; $uconf->save(); }
-            $writeProgress('done', 'Pushed ' . $success . ' EPUB(s)', ['success' => $success]);
-        } else {
-            $writeProgress('done_with_errors', $success . ' ok, ' . $failed . ' failed', ['success' => $success, 'failed' => $failed]);
-        }
-
-        return;
+        exit;
     }
 
     private function doPushWork(string $progressFile, array $conf, string $endpoint, EinkPushHelper $helper): void {

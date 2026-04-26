@@ -82,17 +82,22 @@ foreach ($consts as $c) {
 }
 
 try {
+    // Clear OPcache to avoid stale bytecode
+    if (function_exists('opcache_reset')) @opcache_reset();
+    
+    // Set minimal context BEFORE loading lib_rss
+    $_SERVER['REMOTE_USER'] = '';
+    $_SERVER['HTTP_HOST'] = '';
+    $_SERVER['REQUEST_URI'] = '';
+    $_SERVER['REQUEST_METHOD'] = 'GET';
+    $_SERVER['SCRIPT_NAME'] = '/index.php';
+    
     require_once $libPath;
     error_log('[Worker] lib_rss.php loaded OK');
 } catch (Throwable $e) {
-    $write('error', 'FreshRSS load failed: ' . $e->getMessage());
+    $write('error', 'FreshRSS load failed: ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine());
     exit(1);
 }
-
-// Set minimal context
-$_SERVER['REMOTE_USER'] = '';
-$_SERVER['HTTP_HOST'] = '';
-$_SERVER['REQUEST_URI'] = '';
 
 // Load helper
 $helperPath = __DIR__ . '/FreshExtension_EinkPush_Helper.php';
@@ -106,7 +111,7 @@ try {
     $helper = new EinkPushHelper($epubDir, $screenWidth, $screenHeight, $fontSize, $readabilityUrl);
     error_log('[Worker] Helper created OK');
 } catch (Throwable $e) {
-    $write('error', 'Helper failed: ' . $e->getMessage());
+    $write('error', 'Helper failed: ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine());
     exit(1);
 }
 

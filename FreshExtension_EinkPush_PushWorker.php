@@ -41,11 +41,9 @@ $writeProgress = function($step, $extra = []) use ($progressFile) {
 error_log('[EinkPush Worker] Starting jobId=' . $jobId . ' pid=' . getmypid());
 
 // Bootstrap FreshRSS
-$freshRssRoot = dirname(__DIR__);
-if (!file_exists($freshRssRoot . '/lib/lib_rss.php')) {
-    // Try parent (extension is in extensions/xExtension-EinkPush/)
-    $freshRssRoot = dirname(dirname(dirname(__DIR__)));
-}
+// Worker is at: extensions/xExtension-EinkPush/Worker.php
+// FreshRSS root is at: extensions/../..
+$freshRssRoot = dirname(dirname(__DIR__));
 
 if (!file_exists($freshRssRoot . '/lib/lib_rss.php')) {
     $writeProgress('error', ['message' => 'Cannot find FreshRSS lib_rss.php at ' . $freshRssRoot]);

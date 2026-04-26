@@ -81,6 +81,17 @@ foreach ($consts as $c) {
     if (!defined($c)) define($c, 0);
 }
 
+// Define _t() fallback (in case Minz/Translate doesn't load in CLI)
+if (!function_exists('_t')) {
+    function _t(string $key, ...$args): string {
+        $msg = $key;
+        if (!empty($args)) {
+            $msg = str_replace('%s', $args[0], $msg);
+        }
+        return $msg;
+    }
+}
+
 try {
     // Clear OPcache to avoid stale bytecode
     if (function_exists('opcache_reset')) @opcache_reset();

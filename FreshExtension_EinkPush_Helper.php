@@ -385,7 +385,7 @@ class EinkPushHelper {
 
             // If fetch failed and we are skipping, log it and continue to next article
             if ($fetchSkipped) {
-                $this->logInfo(_t('ext.log_skipped_fetch', $rawTitle));
+                $this->logInfo(function_exists('_t') ? _t('ext.log_skipped_fetch', $rawTitle) : 'Skipped fetch: ' . $rawTitle);
                 continue;
             }
 
@@ -936,10 +936,10 @@ CSS;
 
     public function sourceLabel(string $key): string {
         if ($key === 'favorites') {
-            return _t('ext.source_favorites');
+            return function_exists('_t') ? _t('ext.source_favorites') : 'Favorites';
         }
         if ($key === 'main') {
-            return _t('ext.source_main_stream');
+            return function_exists('_t') ? _t('ext.source_main_stream') : 'Main stream';
         }
         if (strpos($key, 'cat_') === 0) {
             $catId = (int) substr($key, 4);

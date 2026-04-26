@@ -125,10 +125,10 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         $jobId = bin2hex(random_bytes(4));
         $progressFile = $this->extension->getEpubDir() . '.push_progress_' . $jobId . '.json';
         $epubDir = $this->extension->getEpubDir();
-        $screenWidth = (int)($conf['screen_width'] ?? 800);
-        $screenHeight = (int)($conf['screen_height'] ?? 600);
-        $fontSize = (int)($conf['font_size'] ?? 14);
-        $readabilityUrl = trim((string)($conf['readability_api_url'] ?? ''));
+        $screenWidth = (int)($conf['screenWidth'] ?? 800);
+        $screenHeight = (int)($conf['screenHeight'] ?? 600);
+        $fontSize = (float)($conf['fontSize'] ?? 1.0);
+        $readabilityUrl = trim((string)($conf['readability_url'] ?? ''));
 
         // Write full config to progress file for background worker
         $bgConfig = [

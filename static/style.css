@@ -432,17 +432,9 @@ body.theme-dark .ep-footer {
     .ep-grid { grid-template-columns: 1fr; }
 }
 /* --- Sidebar split button (inline styles applied in JS) --- */
-.ep-sidebar-container {
-    text-align: center;
-}
-
 .ep-sidebar-box {
     padding: 0;
     margin: 0;
-}
-    justify-content: center !important;
-    font-size: 0.75rem !important;
-    white-space: nowrap;
 }
 
 .ep-select-small {

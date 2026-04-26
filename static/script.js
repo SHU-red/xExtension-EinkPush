@@ -717,15 +717,15 @@
         function createSidebarContent() {
             // Find Subscription button and use its OWN width (not parent li)
             let subBtn = document.querySelector('#btn-subscription, .feed-tree-btn[href*="a=subscription"]');
-            let btnWidth = subBtn ? Math.round(subBtn.getBoundingClientRect().width) + 'px' : '100%';
+            let btnWidth = subBtn ? Math.round(subBtn.getBoundingClientRect().width) + 'px' : '190px';
             const btnFontSize = subBtn ? window.getComputedStyle(subBtn).fontSize : '0.75rem';
             const btnPadding = subBtn ? window.getComputedStyle(subBtn).padding : '5px 0';
             const btnBorderRadius = subBtn ? window.getComputedStyle(subBtn).borderRadius : '4px';
 
             const box = document.createElement('div');
             box.className = 'ep-sidebar-box';
-            box.style.width = btnWidth;
-            box.style.maxWidth = btnWidth;
+            box.style.setProperty('width', btnWidth, 'important');
+            box.style.setProperty('max-width', btnWidth, 'important');
             box.style.display = 'block';
             box.style.boxSizing = 'border-box';
 
@@ -733,13 +733,11 @@
             btnContainer.style.display = 'flex';
             btnContainer.style.justifyContent = 'center';
             btnContainer.style.width = btnWidth;
-            btnContainer.style.width = btnWidth;
 
             // Split button: left=Settings, right=Push
             const btn = document.createElement('div');
             btn.className = 'ep-split-container';
             btn.style.width = btnWidth;
-            btn.style.maxWidth = '100%';
             btn.style.display = 'flex';
             btn.style.border = '1px solid #e66a19';
             btn.style.borderRadius = btnBorderRadius;

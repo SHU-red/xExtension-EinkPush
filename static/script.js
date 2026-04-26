@@ -720,7 +720,7 @@
             // Measure full li width (text + + icon) for exact match
             let subLi = subBtn ? subBtn.closest('li') : null;
             let btnWidth = subLi ? Math.round(subLi.getBoundingClientRect().width) + 'px' : '190px';
-            console.log('[EinkPush] subBtn:', !!subBtn, 'subLi:', !!subLi, 'btnWidth:', btnWidth);
+
             const btnFontSize = subBtn ? window.getComputedStyle(subBtn).fontSize : '0.75rem';
             const btnPadding = subBtn ? window.getComputedStyle(subBtn).padding : '5px 0';
             const btnBorderRadius = subBtn ? window.getComputedStyle(subBtn).borderRadius : '4px';

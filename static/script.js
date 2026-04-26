@@ -209,7 +209,7 @@
         activePushAbort = new AbortController();
 
         epShowProgressModal();
-        epUpdateProgress(0, 'Testing connection...', '');
+        epUpdateProgress(0, 'Starting...', '');
 
         fetch('./?c=EinkPush&a=pushRun&' + Date.now(), { signal: activePushAbort.signal })
             .then(r => r.json())
@@ -309,6 +309,9 @@
 
     function epHandleProgress(data) {
         switch(data.step) {
+            case 'starting':
+                epUpdateProgress(0, data.message || 'Starting...', '');
+                break;
             case 'test_connection':
                 epUpdateProgress(0, data.message || 'Testing connection...', '');
                 break;

@@ -129,6 +129,8 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
             'jobId' => $jobId,
             'progressFile' => $progressFile,
             'endpoint' => $endpoint,
+            'deviceAddress' => (string)($conf['device_address'] ?? ''),
+            'folderName' => (string)($conf['folder_name'] ?? 'RSSFeeds'),
             'sources' => $conf['sources'],
             'pushRetries' => $conf['push_retries'] ?? 3,
             'pushRetryDelay' => $conf['push_retryDelay'] ?? 2,
@@ -137,14 +139,14 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
             'fontSize' => (float) $conf['fontSize'],
             'readabilityUrl' => (string) ($conf['readability_url'] ?? ''),
             'epubDir' => $this->extension->getEpubDir(),
-            'step' => 'test_connection',
-            'message' => 'Testing connection...',
+            'step' => 'starting',
+            'message' => 'Starting...',
             'time' => microtime(true),
         ];
         file_put_contents($progressFile, json_encode($bgConfig));
 
         // Spawn background PHP CLI process
-        $workerScript = __DIR__ . '/../FreshExtension_EinkPush_PushWorker.php';
+        $workerScript = __DIR__ . '/../FreshExtension_EinkPush_Worker.php';
         $phpBin = PHP_BINARY;
         $logFile = $progressFile . '.worker.log';
         $cmd = sprintf('%s %s %s > %s 2>&1 &', $phpBin, $workerScript, $progressFile, $logFile);

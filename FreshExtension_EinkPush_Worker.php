@@ -177,7 +177,7 @@ foreach ($sources as $key => $srcCfg) {
     $addTimestamp = !empty($srcCfg['addTimestamp']);
 
     $write('collecting', 'Collecting articles...', ['source' => $label]);
-    $entries = $helper->collectForSource($key, $historyDays, $unreadOnly);
+    $entries = $helper->collectForSource($key, $historyDays, $unreadOnly, $maxArticles);
 
     if (empty($entries)) {
         $write('source_empty', $label . ': no articles');

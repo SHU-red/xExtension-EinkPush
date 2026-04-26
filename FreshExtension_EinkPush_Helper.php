@@ -240,7 +240,7 @@ class EinkPushHelper {
 
     // ── private helpers ─────────────────────────────────────────────
 
-    public function collectForSource(string $sourceKey, int $historyDays, bool $unreadOnly): array {
+    public function collectForSource(string $sourceKey, int $historyDays, bool $unreadOnly, int $maxArticles = 0): array {
         $entryDAO = FreshRSS_Factory::createEntryDao();
         $limit = 500;
         $idMin = '';
@@ -302,7 +302,7 @@ class EinkPushHelper {
         return $entries;
     }
 
-    public function buildEpub(string $sourceKey, string $label, array $entries, bool $markAsRead, bool $fetchContent = false, bool $addTimestamp = true, int $maxArticles = 0, callable $progressCallback = null): ?string {
+    public function buildEpub(string $sourceKey, string $label, array $entries, bool $markAsRead, bool $fetchContent = false, bool $addTimestamp = true, int $maxArticles = 0, ?callable $progressCallback = null): ?string {
         $safeName = $this->sanitizeFilename($label);
         $filename = $addTimestamp ? $safeName . '_' . date('Ymd_His') . '.epub' : $safeName . '.epub';
         $fullPath = $this->outputDir . $filename;

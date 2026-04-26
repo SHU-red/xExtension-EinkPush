@@ -112,14 +112,7 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
     }
 
     public function pushRunAction(): void {
-        // Turn off output buffering so progress streams to browser
-        while (ob_get_level()) @ob_end_clean();
-        header('Content-Type: application/json; charset=utf-8');
-        header('X-Accel-Buffering: no');
-        header('Connection: close');
-        ini_set('output_buffering', '0');
-        ini_set('implicit_flush', 1);
-        ob_implicit_flush(true);
+        header('Content-Type: application/json');
         set_time_limit(0);
 
         $conf = $this->extension->getConfig();
@@ -137,15 +130,21 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
             $payload = ['step' => $step, 'message' => $msg, 'time' => microtime(true)] + $extra;
             file_put_contents($progressFile, json_encode($payload), LOCK_EX);
             clearstatcache(true, $progressFile);
-            // Also stream to browser
-            $json = json_encode(['step' => $step, 'message' => $msg, 'time' => microtime(true)] + $extra);
-            echo $json . '\n';
-            flush();
         };
 
         $writeProgress('starting', 'Starting...');
 
-        // Step 1: Test connection
+        // Send immediate response to free PHP-FPM worker for pushStatus polling
+        ignore_user_abort(true);
+        echo json_encode(['status' => 'ok', 'job' => $jobId]);
+        @ob_end_flush();
+        @flush();
+        if (function_exists('fastcgi_finish_request')) {
+            fastcgi_finish_request();
+        }
+        error_log('[EinkPush] fastcgi_finish: ' . (function_exists('fastcgi_finish_request') ? 'called' : 'not available') . ' pid=' . getmypid());
+
+        // Now do heavy work (PHP-FPM worker freed or script continues in background)
         $writeProgress('test_connection', 'Testing connection...');
         error_log('[EinkPush] testing: ' . $endpoint);
         $connOk = $this->helper->checkDeviceStatus($endpoint);
@@ -153,8 +152,7 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
 
         if (!$connOk) {
             $writeProgress('error', 'Device unreachable at ' . $endpoint);
-            echo json_encode(['status' => 'ok', 'job' => $jobId]);
-            exit;
+            return;
         }
         $writeProgress('connection_ok', 'Device online');
 
@@ -209,8 +207,7 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
 
         if (empty($paths)) {
             $writeProgress('no_content', 'No articles found');
-            echo json_encode(['status' => 'ok', 'job' => $jobId]);
-            exit;
+            return;
         }
 
         // Step 3: Push to device
@@ -238,8 +235,7 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
             $writeProgress('done_with_errors', $success . ' ok, ' . $failed . ' failed', ['success' => $success, 'failed' => $failed]);
         }
 
-        echo json_encode(['status' => 'ok', 'job' => $jobId]);
-        exit;
+        return;
     }
 
     private function doPushWork(string $progressFile, array $conf, string $endpoint, EinkPushHelper $helper): void {

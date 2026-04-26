@@ -1,4 +1,5 @@
 <?php
+// OPcache bust: 2026-04-26 derive endpoint fix
 error_log('[EinkPush] EinkPushController.php is INCLUDED by PHP!');
 
 class FreshExtension_EinkPush_Controller extends Minz_ActionController {

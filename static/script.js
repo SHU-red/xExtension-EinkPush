@@ -605,82 +605,85 @@
         if (isOnSettingsPage || isSettingsUrl) return;
 
         function createSidebarContent() {
-            // Clone native button for exact style match
+            // Match native button styles (Subscription management + + button)
             let subBtn = document.querySelector('#btn-subscription');
-            let computedSub = subBtn ? window.getComputedStyle(subBtn) : null;
-            let btnWidth = computedSub ? computedSub.width : '190px';
-            let btnHeight = computedSub ? computedSub.height : '32px';
-            let btnBorderRadius = computedSub ? computedSub.borderRadius : '4px';
-            let btnFont = computedSub ? computedSub.font : '';
-            let btnPadding = computedSub ? computedSub.padding : '';
+            let addBtn = document.querySelector('#btn-add');
+            let stick = document.querySelector('.stick.configure-feeds');
+
+            let btnWidth, btnHeight, btnBorderRadius, btnFont;
+            if (stick) {
+                let cs = window.getComputedStyle(stick);
+                btnWidth = cs.width;
+                btnHeight = cs.height;
+                btnBorderRadius = cs.borderRadius;
+            } else if (subBtn) {
+                let cs = window.getComputedStyle(subBtn);
+                // Combine width of subscription + add buttons
+                let subW = parseFloat(cs.width);
+                let addW = addBtn ? parseFloat(window.getComputedStyle(addBtn).width) : 36;
+                let gap = addBtn ? parseFloat(cs.marginRight) || 0 : 0;
+                btnWidth = (subW + addW + gap) + 'px';
+                btnHeight = cs.height;
+                btnBorderRadius = cs.borderRadius;
+                btnFont = cs.font;
+            } else {
+                btnWidth = '195px';
+                btnHeight = '32px';
+                btnBorderRadius = '4px';
+                btnFont = '';
+            }
 
             const wrapper = document.createElement('div');
             wrapper.style.padding = '4px 0';
 
-            // Split button container (flex row) - exact native dims
-            const splitContainer = document.createElement('div');
-            splitContainer.style.display = 'flex';
-            splitContainer.style.alignItems = 'stretch';
-            splitContainer.style.width = btnWidth;
-            splitContainer.style.height = btnHeight;
-            splitContainer.style.boxSizing = 'border-box';
-            splitContainer.style.borderRadius = btnBorderRadius;
-            splitContainer.style.overflow = 'hidden';
+            // Orange button matching native dims exactly
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.id = 'ep-sidebar-push-now';
+            btn.title = 'E-INK PUSH';
+            btn.style.width = btnWidth;
+            btn.style.height = btnHeight;
+            btn.style.boxSizing = 'border-box';
+            btn.style.borderRadius = btnBorderRadius;
+            btn.style.background = '#e66a19';
+            btn.style.border = '1px solid #e66a19';
+            btn.style.color = '#fff';
+            btn.style.cursor = 'pointer';
+            btn.style.font = btnFont || '0.9rem/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            btn.style.padding = '0.25rem 0.5rem';
+            btn.style.display = 'flex';
+            btn.style.alignItems = 'center';
+            btn.style.justifyContent = 'space-between';
+            btn.style.whiteSpace = 'nowrap';
+            btn.style.overflow = 'hidden';
+            btn.style.textOverflow = 'ellipsis';
+            btn.onmouseover = () => btn.style.background = '#d45d15';
+            btn.onmouseout = () => btn.style.background = '#e66a19';
 
-            // Left: Settings (blue gear side)
-            const gearBtn = document.createElement('button');
-            gearBtn.type = 'button';
-            gearBtn.title = 'E-INK PUSH Settings';
-            gearBtn.innerHTML = '⚙️';
-            gearBtn.style.width = '36px';
-            gearBtn.style.minWidth = '36px';
-            gearBtn.style.display = 'flex';
-            gearBtn.style.alignItems = 'center';
-            gearBtn.style.justifyContent = 'center';
-            gearBtn.style.background = '#3d6b99';
-            gearBtn.style.border = 'none';
-            gearBtn.style.color = '#fff';
-            gearBtn.style.cursor = 'pointer';
-            gearBtn.style.fontSize = '14px';
-            gearBtn.style.padding = '0';
-            gearBtn.onmouseover = () => gearBtn.style.background = '#4a7db5';
-            gearBtn.onmouseout = () => gearBtn.style.background = '#3d6b99';
-            gearBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                window.location.href = './?c=extension&a=configure&e=EinkPush';
-            });
+            // Left: E-INK PUSH text
+            const textSpan = document.createElement('span');
+            textSpan.style.flex = '1';
+            textSpan.style.textAlign = 'left';
+            textSpan.textContent = 'E-INK PUSH';
 
-            // Right: Push (orange with E-INK PUSH text)
-            const pushBtn = document.createElement('button');
-            pushBtn.id = 'ep-sidebar-push-now';
-            pushBtn.type = 'button';
-            pushBtn.title = 'Push all to E-Ink';
-            pushBtn.innerHTML = 'E-INK PUSH';
-            pushBtn.style.flex = '1';
-            pushBtn.style.display = 'flex';
-            pushBtn.style.alignItems = 'center';
-            pushBtn.style.justifyContent = 'center';
-            pushBtn.style.background = '#e66a19';
-            pushBtn.style.border = 'none';
-            pushBtn.style.color = '#fff';
-            pushBtn.style.cursor = 'pointer';
-            pushBtn.style.font = btnFont || 'bold 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-            pushBtn.style.padding = '0 8px';
-            pushBtn.style.whiteSpace = 'nowrap';
-            pushBtn.style.overflow = 'hidden';
-            pushBtn.style.textOverflow = 'ellipsis';
-            pushBtn.onmouseover = () => pushBtn.style.background = '#d45d15';
-            pushBtn.onmouseout = () => pushBtn.style.background = '#e66a19';
-            pushBtn.addEventListener('click', (e) => {
+            // Right: gear icon (like + button)
+            const iconSpan = document.createElement('span');
+            iconSpan.style.width = '36px';
+            iconSpan.style.minWidth = '36px';
+            iconSpan.style.display = 'flex';
+            iconSpan.style.alignItems = 'center';
+            iconSpan.style.justifyContent = 'center';
+            iconSpan.textContent = '⚙️';
+
+            btn.appendChild(textSpan);
+            btn.appendChild(iconSpan);
+            btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 epStreamPush();
             });
 
-            splitContainer.appendChild(gearBtn);
-            splitContainer.appendChild(pushBtn);
-            wrapper.appendChild(splitContainer);
+            wrapper.appendChild(btn);
             return wrapper;
         }
 
@@ -690,9 +693,16 @@
 
         const asideFeed = document.querySelector('#aside_feed');
         if (asideFeed) {
-            const tree = asideFeed.querySelector('.tree');
-            if (tree) tree.parentNode.insertBefore(container, tree);
-            else asideFeed.insertBefore(container, asideFeed.firstChild);
+            const stick = asideFeed.querySelector('.stick.configure-feeds');
+            if (stick) {
+                // Replace native buttons with our button
+                stick.parentNode.insertBefore(container, stick.nextSibling);
+                stick.style.display = 'none';
+            } else {
+                const tree = asideFeed.querySelector('.tree');
+                if (tree) tree.parentNode.insertBefore(container, tree);
+                else asideFeed.insertBefore(container, asideFeed.firstChild);
+            }
             return;
         }
 

@@ -695,9 +695,8 @@
         if (asideFeed) {
             const stick = asideFeed.querySelector('.stick.configure-feeds');
             if (stick) {
-                // Replace native buttons with our button
+                // Insert below native buttons (co-exist)
                 stick.parentNode.insertBefore(container, stick.nextSibling);
-                stick.style.display = 'none';
             } else {
                 const tree = asideFeed.querySelector('.tree');
                 if (tree) tree.parentNode.insertBefore(container, tree);

@@ -605,58 +605,56 @@
         if (isOnSettingsPage || isSettingsUrl) return;
 
         function createSidebarContent() {
-            // Match native button styles (Subscription management + + button)
+            // Match native button styles exactly
             let subBtn = document.querySelector('#btn-subscription');
             let addBtn = document.querySelector('#btn-add');
             let stick = document.querySelector('.stick.configure-feeds');
 
-            let btnWidth, btnHeight, btnBorderRadius, btnFont;
+            let btnWidth, btnBorder;
             if (stick) {
                 let cs = window.getComputedStyle(stick);
                 btnWidth = cs.width;
-                btnHeight = cs.height;
-                btnBorderRadius = cs.borderRadius;
+                btnBorder = cs.border;
             } else if (subBtn) {
                 let cs = window.getComputedStyle(subBtn);
-                // Combine width of subscription + add buttons
                 let subW = parseFloat(cs.width);
                 let addW = addBtn ? parseFloat(window.getComputedStyle(addBtn).width) : 36;
-                let gap = addBtn ? parseFloat(cs.marginRight) || 0 : 0;
-                btnWidth = (subW + addW + gap) + 'px';
-                btnHeight = cs.height;
-                btnBorderRadius = cs.borderRadius;
-                btnFont = cs.font;
+                btnWidth = (subW + addW) + 'px';
+                btnBorder = cs.border;
             } else {
                 btnWidth = '195px';
-                btnHeight = '32px';
-                btnBorderRadius = '4px';
-                btnFont = '';
+                btnBorder = '1px solid #333';
             }
 
             const wrapper = document.createElement('div');
             wrapper.style.padding = '4px 0';
 
-            // Orange button matching native dims exactly
+            // Orange button matching native .btn-important specs exactly
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.id = 'ep-sidebar-push-now';
             btn.title = 'E-INK PUSH';
             btn.style.width = btnWidth;
-            btn.style.height = btnHeight;
+            btn.style.minHeight = '25px';
             btn.style.boxSizing = 'border-box';
-            btn.style.borderRadius = btnBorderRadius;
+            btn.style.borderRadius = '2px';
             btn.style.background = '#e66a19';
-            btn.style.border = '1px solid #e66a19';
+            btn.style.border = btnBorder || '1px solid #e66a19';
             btn.style.color = '#fff';
             btn.style.cursor = 'pointer';
-            btn.style.font = btnFont || '0.9rem/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            btn.style.fontFamily = '"OpenSans", Cantarell, Helvetica, Arial, sans-serif';
+            btn.style.fontSize = '0.9rem';
+            btn.style.lineHeight = '1.7';
+            btn.style.fontWeight = 'normal';
             btn.style.padding = '0.25rem 0.5rem';
+            btn.style.verticalAlign = 'middle';
             btn.style.display = 'flex';
             btn.style.alignItems = 'center';
             btn.style.justifyContent = 'space-between';
             btn.style.whiteSpace = 'nowrap';
             btn.style.overflow = 'hidden';
             btn.style.textOverflow = 'ellipsis';
+            btn.style.margin = '0';
             btn.onmouseover = () => btn.style.background = '#d45d15';
             btn.onmouseout = () => btn.style.background = '#e66a19';
 
@@ -666,7 +664,7 @@
             textSpan.style.textAlign = 'left';
             textSpan.textContent = 'E-INK PUSH';
 
-            // Right: gear icon (like + button)
+            // Right: gear icon (like + button on blue)
             const iconSpan = document.createElement('span');
             iconSpan.style.width = '36px';
             iconSpan.style.minWidth = '36px';

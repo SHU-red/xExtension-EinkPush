@@ -605,22 +605,19 @@
         if (isOnSettingsPage || isSettingsUrl) return;
 
         function createSidebarContent() {
-            // Read native button styles
+            // Clone native button for exact style match
             let subBtn = document.querySelector('#btn-subscription');
             let computedSub = subBtn ? window.getComputedStyle(subBtn) : null;
             let btnWidth = computedSub ? computedSub.width : '190px';
             let btnHeight = computedSub ? computedSub.height : '32px';
             let btnBorderRadius = computedSub ? computedSub.borderRadius : '4px';
             let btnFont = computedSub ? computedSub.font : '';
-            let btnPadding = computedSub ? computedSub.padding : '5px 0';
+            let btnPadding = computedSub ? computedSub.padding : '';
 
-            // Flex container to center the split button
             const wrapper = document.createElement('div');
-            wrapper.style.display = 'flex';
-            wrapper.style.justifyContent = 'center';
             wrapper.style.padding = '4px 0';
 
-            // Split button container (flex row)
+            // Split button container (flex row) - exact native dims
             const splitContainer = document.createElement('div');
             splitContainer.style.display = 'flex';
             splitContainer.style.alignItems = 'stretch';
@@ -630,18 +627,18 @@
             splitContainer.style.borderRadius = btnBorderRadius;
             splitContainer.style.overflow = 'hidden';
 
-            // Left half: Settings (blue)
+            // Left: Settings (blue gear side)
             const gearBtn = document.createElement('button');
             gearBtn.type = 'button';
             gearBtn.title = 'E-INK PUSH Settings';
-            gearBtn.innerHTML = '<span style="font-size:14px">⚙️</span>';
-            gearBtn.style.flex = '1';
+            gearBtn.innerHTML = '⚙️';
+            gearBtn.style.width = '36px';
+            gearBtn.style.minWidth = '36px';
             gearBtn.style.display = 'flex';
             gearBtn.style.alignItems = 'center';
             gearBtn.style.justifyContent = 'center';
             gearBtn.style.background = '#3d6b99';
             gearBtn.style.border = 'none';
-            gearBtn.style.borderRight = '2px solid #1c1f2b';
             gearBtn.style.color = '#fff';
             gearBtn.style.cursor = 'pointer';
             gearBtn.style.fontSize = '14px';
@@ -654,13 +651,13 @@
                 window.location.href = './?c=extension&a=configure&e=EinkPush';
             });
 
-            // Right half: Push (orange) - main trigger
+            // Right: Push (orange with E-INK PUSH text)
             const pushBtn = document.createElement('button');
             pushBtn.id = 'ep-sidebar-push-now';
             pushBtn.type = 'button';
             pushBtn.title = 'Push all to E-Ink';
-            pushBtn.innerHTML = '<span style="font-size:14px">📤</span>';
-            pushBtn.style.flex = '2';
+            pushBtn.innerHTML = 'E-INK PUSH';
+            pushBtn.style.flex = '1';
             pushBtn.style.display = 'flex';
             pushBtn.style.alignItems = 'center';
             pushBtn.style.justifyContent = 'center';
@@ -668,8 +665,11 @@
             pushBtn.style.border = 'none';
             pushBtn.style.color = '#fff';
             pushBtn.style.cursor = 'pointer';
-            pushBtn.style.fontSize = '14px';
-            pushBtn.style.padding = '0';
+            pushBtn.style.font = btnFont || 'bold 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            pushBtn.style.padding = '0 8px';
+            pushBtn.style.whiteSpace = 'nowrap';
+            pushBtn.style.overflow = 'hidden';
+            pushBtn.style.textOverflow = 'ellipsis';
             pushBtn.onmouseover = () => pushBtn.style.background = '#d45d15';
             pushBtn.onmouseout = () => pushBtn.style.background = '#e66a19';
             pushBtn.addEventListener('click', (e) => {

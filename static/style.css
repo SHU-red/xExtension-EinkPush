@@ -442,7 +442,6 @@ body.theme-dark .ep-footer {
     margin: 4px 0;
 }
 #ep-sidebar-push-now {
-    display: flex !important;
     text-decoration: none !important;
     cursor: pointer !important;
 }

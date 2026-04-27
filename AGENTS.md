@@ -6,3 +6,8 @@
 - After every change, do a git commit and push to the repository (dev branch).
 - All development must be done in the `dev` branch.
 - Merge `dev` into `main` and publish a release ONLY if the user EXPLICITLY requests it. Ask if unsure.
+
+## Secrets
+- Read `SECRETS.md` for credentials, SSH access, and Docker commands.
+- NEVER commit `SECRETS.md` (it is in `.gitignore`).
+- Use these for live instance verification during development.

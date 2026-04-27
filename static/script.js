@@ -610,20 +610,24 @@
             let addBtn = document.querySelector('#btn-add');
             let stick = document.querySelector('.stick.configure-feeds');
 
-            let btnWidth, btnBorderRadius;
-            if (subBtn) {
+            let btnWidth, btnBorderRadius, btnBorder;
+            // Read border from container (.stick.configure-feeds) which has the visible border
+            if (stick) {
+                let cs = window.getComputedStyle(stick);
+                btnBorderRadius = cs.borderRadius;
+                btnBorder = cs.borderWidth + ' ' + cs.borderStyle + ' ' + cs.borderColor;
+                btnWidth = cs.width;
+            } else if (subBtn) {
                 let cs = window.getComputedStyle(subBtn);
                 btnBorderRadius = cs.borderRadius;
+                btnBorder = cs.borderWidth + ' ' + cs.borderStyle + ' ' + cs.borderColor;
                 let subW = parseFloat(cs.width);
                 let addW = addBtn ? parseFloat(window.getComputedStyle(addBtn).width) : 36;
                 btnWidth = (subW + addW) + 'px';
-            } else if (stick) {
-                let cs = window.getComputedStyle(stick);
-                btnBorderRadius = cs.borderRadius;
-                btnWidth = cs.width;
             } else {
                 btnWidth = '195px';
                 btnBorderRadius = '3px';
+                btnBorder = '1px solid #333';
             }
 
             const wrapper = document.createElement('div');
@@ -639,7 +643,7 @@
             btn.style.boxSizing = 'border-box';
             btn.style.borderRadius = btnBorderRadius;
             btn.style.background = '#e66a19';
-            btn.style.border = '1px solid #e66a19';
+            btn.style.border = btnBorder || '1px solid #333';
             btn.style.color = '#fff';
             btn.style.cursor = 'pointer';
             btn.style.fontFamily = '"OpenSans", Cantarell, Helvetica, Arial, sans-serif';

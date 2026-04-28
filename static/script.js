@@ -605,11 +605,10 @@
         if (isOnSettingsPage || isSettingsUrl) return;
 
         function createSidebarContent() {
-            // Read width/font from #btn-subscription, border/radius from .stick.configure-feeds
+            // Read width/font from native elements
             let stick = document.querySelector('.stick.configure-feeds');
             let nativeBtn = document.querySelector('#btn-subscription');
 
-            let btnWidth = null;
             let btnBorderRadius = '4px';
             let btnBorder = '1px solid #333';
             let btnPadding = '0.5rem';
@@ -630,28 +629,38 @@
                 btnLineHeight = cs.lineHeight;
             }
 
-            // Wrapper - match .stick inline-flex + aside center
+            // Wrapper - copy exact native stick style
             const wrapper = document.createElement('div');
             wrapper.className = 'stick';
             wrapper.style.display = 'inline-flex';
             wrapper.style.maxWidth = '100%';
             wrapper.style.whiteSpace = 'nowrap';
             wrapper.style.verticalAlign = 'middle';
+            if (stick) {
+                let cs = window.getComputedStyle(stick);
+                wrapper.style.width = cs.width;
+                wrapper.style.padding = cs.padding;
+                wrapper.style.marginTop = cs.marginTop;
+                wrapper.style.marginBottom = cs.marginBottom;
+            }
 
-            // Left: main text button
+            // Left: main text button - copy exact native btn-subscription style
             const btnMain = document.createElement('button');
             btnMain.type = 'button';
             btnMain.id = 'ep-sidebar-push-now';
             btnMain.className = 'btn btn-important';
+            if (nativeBtn) {
+                let cs = window.getComputedStyle(nativeBtn);
+                btnMain.style.padding = cs.padding;
+                btnMain.style.borderRadius = cs.borderRadius;
+                btnMain.style.border = cs.border;
+                btnMain.style.fontFamily = cs.fontFamily;
+                btnMain.style.fontSize = cs.fontSize;
+                btnMain.style.lineHeight = cs.lineHeight;
+                btnMain.style.fontWeight = cs.fontWeight;
+            }
             btnMain.style.background = '#c45510';
             btnMain.style.color = '#ffffff';
-            btnMain.style.border = btnBorder;
-            btnMain.style.borderRadius = btnBorderRadius;
-            btnMain.style.fontFamily = btnFontFamily;
-            btnMain.style.fontSize = btnFontSize;
-            btnMain.style.lineHeight = btnLineHeight;
-            btnMain.style.fontWeight = 'normal';
-            btnMain.style.padding = btnPadding;
             btnMain.style.cursor = 'pointer';
             btnMain.style.whiteSpace = 'nowrap';
             btnMain.style.overflow = 'hidden';
@@ -663,23 +672,31 @@
             btnMain.onmouseover = () => btnMain.style.background = '#a84810';
             btnMain.onmouseout = () => btnMain.style.background = '#c45510';
 
-            // Right: gear icon button (like + on native)
+            // Right: gear icon button - copy exact native btn-add style
             const btnIcon = document.createElement('button');
             btnIcon.type = 'button';
             btnIcon.className = 'btn btn-important';
             btnIcon.title = 'Open settings';
+            let addBtn = document.querySelector('#btn-add');
+            if (addBtn) {
+                let cs = window.getComputedStyle(addBtn);
+                btnIcon.style.padding = cs.padding;
+                btnIcon.style.borderRadius = cs.borderRadius;
+                btnIcon.style.border = cs.border;
+                btnIcon.style.fontSize = cs.fontSize;
+                btnIcon.style.lineHeight = cs.lineHeight;
+                btnIcon.style.fontWeight = cs.fontWeight;
+            } else {
+                btnIcon.style.fontSize = '1.2em';
+                btnIcon.style.lineHeight = '1';
+                btnIcon.style.padding = '0.5rem 0.7rem';
+            }
             btnIcon.style.background = '#c45510';
             btnIcon.style.color = '#ffffff';
-            btnIcon.style.border = btnBorder;
-            btnIcon.style.borderRadius = btnBorderRadius;
-            btnIcon.style.fontFamily = btnFontFamily;
-            btnIcon.style.fontSize = '1.2em';
-            btnIcon.style.padding = '0.5rem 0.7rem';
             btnIcon.style.cursor = 'pointer';
             btnIcon.style.display = 'flex';
             btnIcon.style.alignItems = 'center';
             btnIcon.style.justifyContent = 'center';
-            btnIcon.style.lineHeight = '1';
             btnIcon.textContent = '⚙️';
             btnIcon.onmouseover = () => btnIcon.style.background = '#a84810';
             btnIcon.onmouseout = () => btnIcon.style.background = '#c45510';

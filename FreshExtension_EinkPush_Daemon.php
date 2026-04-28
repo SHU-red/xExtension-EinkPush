@@ -31,7 +31,10 @@ $log = function($msg) {
 $log('START pid=' . getmypid());
 
 // Bootstrap FreshRSS
-$freshrssRoot = dirname(__DIR__) ?: '/var/www/FreshRSS';
+$freshrssRoot = dirname(dirname(__DIR__));
+if ($freshrssRoot === '/' || $freshrssRoot === '.') {
+    $freshrssRoot = '/var/www/FreshRSS';
+}
 $constantsFile = $freshrssRoot . '/constants.php';
 if (file_exists($constantsFile)) require_once $constantsFile;
 if (!defined('APP_PATH')) define('APP_PATH', $freshrssRoot . '/app/');
@@ -41,11 +44,14 @@ if (!defined('DATA_PATH')) define('DATA_PATH', $freshrssRoot . '/data/');
 if (!defined('USERS_PATH')) define('USERS_PATH', $freshrssRoot . '/data/users/');
 if (!defined('FEED_TYPES')) define('FEED_TYPES', '');
 
+$log('FreshRSS root: ' . $freshrssRoot);
+$log('LIB_PATH: ' . (defined('LIB_PATH') ? LIB_PATH : 'NOT SET'));
+
 if (!function_exists('_t')) {
     function _t($key, ...$args) { return $key; }
 }
 
-require_once LIB_PATH . 'lib_rss.php';
+require_once rtrim(LIB_PATH, '/') . '/lib_rss.php';
 
 // Find user with EinkPush
 $user = '';

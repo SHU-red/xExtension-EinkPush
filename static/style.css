@@ -440,7 +440,6 @@ body.theme-dark .ep-footer {
 #ep-sidebar-push-now {
     text-decoration: none !important;
     cursor: pointer !important;
-    border-radius: 4px !important;
 }
 
 .ep-select-small {

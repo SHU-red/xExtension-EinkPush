@@ -605,49 +605,60 @@
         if (isOnSettingsPage || isSettingsUrl) return;
 
         function createSidebarContent() {
-            // Read native button styles from .stick.configure-feeds (the blue "Subscription management" element)
+            // Clone styles from native blue button (#btn-subscription)
+            let nativeBtn = document.querySelector('#btn-subscription');
             let stick = document.querySelector('.stick.configure-feeds');
-            let btnWidth = null;
-            let btnBorderRadius = '4px';
-            let btnBorder = '1px solid #333';
-            let btnPadding = '0.5rem';
-            let btnFontFamily, btnFontSize, btnLineHeight;
 
-            if (stick) {
-                let cs = window.getComputedStyle(stick);
+            let btnWidth = null;
+            let btnBorderRadius = '2px';
+            let btnBorder = '1px solid var(--frss-border-color, #333)';
+            let btnPadding = '0.25rem 0.5rem';
+            let btnFontFamily = '"OpenSans", Cantarell, Helvetica, Arial, sans-serif';
+            let btnFontSize = '0.9rem';
+            let btnLineHeight = '1.7';
+            let btnMinHeight = '28px';
+
+            if (nativeBtn) {
+                let cs = window.getComputedStyle(nativeBtn);
                 btnWidth = cs.width;
                 btnBorderRadius = cs.borderRadius;
-                btnBorder = cs.borderWidth + ' ' + cs.borderStyle + ' ' + cs.borderColor;
+                btnBorder = cs.border;
                 btnPadding = cs.paddingTop + ' ' + cs.paddingRight + ' ' + cs.paddingBottom + ' ' + cs.paddingLeft;
                 btnFontFamily = cs.fontFamily;
                 btnFontSize = cs.fontSize;
                 btnLineHeight = cs.lineHeight;
+                btnMinHeight = cs.height;
+            } else if (stick) {
+                let cs = window.getComputedStyle(stick);
+                btnWidth = cs.width;
+                btnBorderRadius = cs.borderRadius;
+                btnBorder = cs.border;
+                btnPadding = cs.paddingTop + ' ' + cs.paddingRight + ' ' + cs.paddingBottom + ' ' + cs.paddingLeft;
             }
 
-            // Wrapper: flex center to match native button position
+            // Wrapper to sit below native buttons
             const wrapper = document.createElement('div');
-            wrapper.style.display = 'flex';
-            wrapper.style.justifyContent = 'center';
             wrapper.style.padding = '4px 0';
 
-            // Orange button matching native button specs exactly
+            // Orange button - clone native button styles exactly
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.id = 'ep-sidebar-push-now';
             btn.title = 'E-INK PUSH';
+            btn.className = nativeBtn ? nativeBtn.className : 'btn btn-important';
             if (btnWidth) btn.style.width = btnWidth;
             btn.style.boxSizing = 'border-box';
             btn.style.borderRadius = btnBorderRadius;
-            btn.style.setProperty('border-radius', btnBorderRadius, 'important');
-            btn.style.background = '#e66a19';
             btn.style.border = btnBorder;
+            btn.style.background = '#e66a19';
             btn.style.color = '#fff';
+            btn.style.minHeight = btnMinHeight;
             btn.style.cursor = 'pointer';
-            btn.style.fontFamily = btnFontFamily || '"OpenSans", Cantarell, Helvetica, Arial, sans-serif';
-            btn.style.fontSize = btnFontSize || '0.9rem';
-            btn.style.lineHeight = btnLineHeight || '1.7';
+            btn.style.fontFamily = btnFontFamily;
+            btn.style.fontSize = btnFontSize;
+            btn.style.lineHeight = btnLineHeight;
             btn.style.fontWeight = 'normal';
-            btn.style.padding = btnPadding || '0.5rem';
+            btn.style.padding = btnPadding;
             btn.style.display = 'flex';
             btn.style.alignItems = 'center';
             btn.style.justifyContent = 'space-between';
@@ -655,6 +666,7 @@
             btn.style.overflow = 'hidden';
             btn.style.textOverflow = 'ellipsis';
             btn.style.margin = '0';
+            btn.style.outline = 'none';
             btn.onmouseover = () => btn.style.background = '#d45d15';
             btn.onmouseout = () => btn.style.background = '#e66a19';
 

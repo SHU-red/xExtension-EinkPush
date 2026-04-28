@@ -22,13 +22,28 @@ $history = $helper->getHistory();
         <div class="ep-header-info">
             <h2><?= _t('ext.title') ?> <span class="ep-version"><?= _t('ext.version') ?> <?= $this::VERSION ?></span></h2>
             <p><?= _t('ext.description') ?></p>
-            <?php if (!empty($cfg['last_push'])): ?>
-                <?php
-                $typeKey = ($cfg['last_push_type'] === 'auto') ? 'ext.push_type_auto' : 'ext.push_type_manual';
-                $typeStr = _t($typeKey);
-                ?>
-                <p class="ep-last-push-header"><?= _t('ext.push_last_auto_push', date('Y-m-d H:i:s', $cfg['last_push'])) ?> (<?= $typeStr ?>)</p>
-            <?php endif; ?>
+            <?php
+            $lastPingStr = '—';
+            if (!empty($cfg['last_ping']) && $cfg['last_ping'] > 0) {
+                $lastPingStr = date('Y-m-d H:i', $cfg['last_ping']);
+                $lastPingStr .= $cfg['last_ping_status'] === 'online' ? ' ✅ Online' : ' ❌ Offline';
+            }
+
+            $lastPushStr = '—';
+            if (!empty($cfg['last_push']) && $cfg['last_push'] > 0) {
+                $lastPushStr = date('Y-m-d H:i', $cfg['last_push']);
+                $lps = $cfg['last_push_status'] ?? '';
+                if ($lps === 'success') $lastPushStr .= ' ✅ Success';
+                elseif ($lps === 'partial') $lastPushStr .= ' ⚠️ Partial';
+            }
+            ?>
+            <p class="ep-last-push-header">
+                <span>Last Ping: <?= $lastPingStr ?></span>
+                <span style="margin-left:12px;">Last Push: <?= $lastPushStr ?></span>
+                <?php if (!empty($cfg['auto_push_enabled'])): ?>
+                    <span style="margin-left:12px; color:#e66a19;" id="ep-next-ping" data-last-ping="<?= (int)($cfg['last_ping'] ?? 0) ?>" data-interval-min="<?= (int)($cfg['ping_interval'] ?? 5) ?>"></span>
+                <?php endif; ?>
+            </p>
         </div>
         <div class="ep-quick-actions">
             <a class="ep-btn" href="<?= _url('EinkPush', 'generate') ?>">
@@ -135,45 +150,7 @@ $history = $helper->getHistory();
                     </div>
                 </div>
 
-                <!-- Auto Push Status (only when enabled) -->
-                <?php if (!empty($cfg['auto_push_enabled'])): ?>
-                <div class="ep-auto-push-status" style="margin-top:15px; padding:12px; background:#f0f4f8; border-radius:4px; border:1px solid #d0d7de;">
-                    <?php
-                    $lastPingStr = '';
-                    if (!empty($cfg['last_ping']) && $cfg['last_ping'] > 0) {
-                        $lastPingStr = date('Y-m-d H:i', $cfg['last_ping']) . ' — ';
-                        $lastPingStr .= $cfg['last_ping_status'] === 'online' ? '✅ Online' : '❌ Offline';
-                    } else {
-                        $lastPingStr = '—';
-                    }
 
-                    $lastPushStr = '';
-                    if (!empty($cfg['last_push']) && $cfg['last_push'] > 0) {
-                        $lastPushStr = date('Y-m-d H:i', $cfg['last_push']) . ' — ';
-                        $lps = $cfg['last_push_status'] ?? '';
-                        if ($lps === 'success') $lastPushStr .= '✅ Success';
-                        elseif ($lps === 'partial') $lastPushStr .= '⚠️ Partial';
-                        else $lastPushStr .= '⚠️';
-                    } else {
-                        $lastPushStr = '—';
-                    }
-                    ?>
-                    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
-                        <div style="flex:1; min-width:150px;">
-                            <div style="font-size:0.7rem; color:#888; text-transform:uppercase; margin-bottom:2px;">Last Ping</div>
-                            <div style="font-size:0.85rem;"><?= $lastPingStr ?></div>
-                        </div>
-                        <div style="flex:1; min-width:150px;">
-                            <div style="font-size:0.7rem; color:#888; text-transform:uppercase; margin-bottom:2px;">Last Push</div>
-                            <div style="font-size:0.85rem;"><?= $lastPushStr ?></div>
-                        </div>
-                        <div style="flex:1; min-width:150px;">
-                            <div style="font-size:0.7rem; color:#888; text-transform:uppercase; margin-bottom:2px;">Next Ping</div>
-                            <div><span id="ep-next-ping" data-last-ping="<?= (int)($cfg['last_ping'] ?? 0) ?>" data-interval-min="<?= (int)($cfg['ping_interval'] ?? 5) ?>" style="font-size:0.85rem; font-weight:600; color:#e66a19;"></span></div>
-                        </div>
-                    </div>
-                </div>
-                <?php endif; ?>
             </div>
         </div>
 

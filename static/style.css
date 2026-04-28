@@ -469,10 +469,13 @@ body.theme-dark .ep-footer {
 .ep-api-examples { font-size: 0.8rem; color: var(--ep-text-muted); line-height: 1.6; }
 
 .ep-last-push-header {
-    font-size: 0.7rem;
-    color: #22c55e;
-    font-weight: 600;
+    font-size: 0.72rem;
+    color: #888;
+    font-weight: 500;
     margin-top: 4px !important;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
 }
 
 .ep-device-info-section {

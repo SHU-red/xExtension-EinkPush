@@ -799,22 +799,29 @@
         if (!el) return;
         const lastPing = parseInt(el.dataset.lastPing || '0');
         const intervalMin = parseInt(el.dataset.intervalMin || '5');
-        if (!lastPing) {
-            el.textContent = '—';
-            return;
-        }
+        const lastPush = parseInt(el.dataset.lastPush || '0');
+        const cooldownH = parseInt(el.dataset.cooldownH || '20');
         const update = () => {
             const now = Math.floor(Date.now() / 1000);
-            const next = lastPing + (intervalMin * 60);
-            const diff = next - now;
+            const baselinePing = lastPing > 0 ? lastPing : now;
+            const baselinePush = lastPush > 0 ? lastPush : 0;
+            const nextPing = baselinePing + (intervalMin * 60);
+            const nextCoold = baselinePush + (cooldownH * 3600);
+            // next check = max of ping interval expiry and cooldown expiry
+            const nextCheck = Math.max(nextPing, baselinePush > 0 ? nextCoold : nextPing);
+            let diff = nextCheck - now;
             if (diff <= 0) {
-                el.textContent = 'Due now';
+                el.textContent = '🔔 Due';
                 el.style.color = '#28a745';
                 return;
             }
-            const m = Math.floor(diff / 60);
+            const h = Math.floor(diff / 3600);
+            const m = Math.floor((diff % 3600) / 60);
             const s = diff % 60;
-            el.textContent = m + 'm ' + (s < 10 ? '0' : '') + s + 's';
+            let txt = '';
+            if (h > 0) txt = h + ':';
+            txt += (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+            el.textContent = '🔔 ' + txt;
             el.style.color = '#e66a19';
         };
         update();

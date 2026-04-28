@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2026-04-28
+### Added
+- **Auto-Push Daemon**: Runs independent of page loads, sleeps to ping interval, pushes all enabled sources on device online
+- Live countdown to next ping (cooldown + interval)
+### Changed
+- Push tab: Settings (folder) + Push (auto-push toggle + 3 number inputs) sections
+- Header: Last Push + Next Ping countdown (only when auto-push enabled)
+### Fixed
+- `!empty()` fails on FreshRSS magic config properties (cast to int)
+- `posix_kill()` guarded with `function_exists()` for PHP without posix extension
+
 ## [1.2.1] - 2026-04-28
 ### Fixed
 - Push tab UI: renamed to Settings + Auto Push sections, 3 number inputs in row, fixed missing i18n for retries label

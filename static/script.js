@@ -605,21 +605,21 @@
         if (isOnSettingsPage || isSettingsUrl) return;
 
         function createSidebarContent() {
-            // Clone styles from native blue button (#btn-subscription)
-            let nativeBtn = document.querySelector('#btn-subscription');
+            // Read styles from .stick.configure-feeds (has border, border-radius, padding, font)
             let stick = document.querySelector('.stick.configure-feeds');
+            let nativeBtn = document.querySelector('#btn-subscription');
 
             let btnWidth = null;
-            let btnBorderRadius = '2px';
-            let btnBorder = '1px solid var(--frss-border-color, #333)';
-            let btnPadding = '0.25rem 0.5rem';
+            let btnBorderRadius = '4px';
+            let btnBorder = '1px solid #333';
+            let btnPadding = '0.5rem';
             let btnFontFamily = '"OpenSans", Cantarell, Helvetica, Arial, sans-serif';
             let btnFontSize = '0.9rem';
             let btnLineHeight = '1.7';
-            let btnMinHeight = '28px';
+            let btnColor = '#fff';
 
-            if (nativeBtn) {
-                let cs = window.getComputedStyle(nativeBtn);
+            if (stick) {
+                let cs = window.getComputedStyle(stick);
                 btnWidth = cs.width;
                 btnBorderRadius = cs.borderRadius;
                 btnBorder = cs.border;
@@ -627,32 +627,23 @@
                 btnFontFamily = cs.fontFamily;
                 btnFontSize = cs.fontSize;
                 btnLineHeight = cs.lineHeight;
-                btnMinHeight = cs.height;
-            } else if (stick) {
-                let cs = window.getComputedStyle(stick);
-                btnWidth = cs.width;
-                btnBorderRadius = cs.borderRadius;
-                btnBorder = cs.border;
-                btnPadding = cs.paddingTop + ' ' + cs.paddingRight + ' ' + cs.paddingBottom + ' ' + cs.paddingLeft;
             }
 
-            // Wrapper to sit below native buttons
+            // Wrapper sits below native buttons
             const wrapper = document.createElement('div');
             wrapper.style.padding = '4px 0';
 
-            // Orange button - clone native button styles exactly
+            // Orange button - same dims/border/radius as native, orange bg + white text
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.id = 'ep-sidebar-push-now';
             btn.title = 'E-INK PUSH';
-            btn.className = nativeBtn ? nativeBtn.className : 'btn btn-important';
             if (btnWidth) btn.style.width = btnWidth;
             btn.style.boxSizing = 'border-box';
             btn.style.borderRadius = btnBorderRadius;
             btn.style.border = btnBorder;
             btn.style.background = '#e66a19';
-            btn.style.color = '#fff';
-            btn.style.minHeight = btnMinHeight;
+            btn.style.color = btnColor;
             btn.style.cursor = 'pointer';
             btn.style.fontFamily = btnFontFamily;
             btn.style.fontSize = btnFontSize;

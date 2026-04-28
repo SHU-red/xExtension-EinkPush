@@ -82,7 +82,7 @@ while (true) {
     $endpoint = $conf->EinkPush_push_endpoint ?? '';
 
     if (!$autoOn || !$endpoint) {
-        $log('Auto-push off or no endpoint');
+        $log('Auto-push=' . var_export($autoOn, true) . ' endpoint=' . var_export($endpoint, true));
         sleep(60);
         continue;
     }

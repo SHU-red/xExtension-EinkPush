@@ -653,7 +653,8 @@
                 let cs = window.getComputedStyle(nativeBtn);
                 btnMain.style.padding = cs.padding;
                 btnMain.style.borderRadius = cs.borderRadius;
-                btnMain.style.border = cs.border;
+                btnMain.style.borderTopRightRadius = '0';
+                btnMain.style.borderBottomRightRadius = '0';
                 btnMain.style.fontFamily = cs.fontFamily;
                 btnMain.style.fontSize = cs.fontSize;
                 btnMain.style.lineHeight = cs.lineHeight;
@@ -687,6 +688,9 @@
                 btnIcon.style.fontSize = cs.fontSize;
                 btnIcon.style.lineHeight = cs.lineHeight;
                 btnIcon.style.fontWeight = cs.fontWeight;
+                btnIcon.style.borderRadius = cs.borderRadius;
+                btnIcon.style.borderTopLeftRadius = '0';
+                btnIcon.style.borderBottomLeftRadius = '0';
             } else {
                 btnIcon.style.fontSize = '1.2em';
                 btnIcon.style.lineHeight = '1';
@@ -694,6 +698,7 @@
             }
             btnIcon.style.background = '#c45510';
             btnIcon.style.color = '#ffffff';
+            btnIcon.style.border = '1px solid #e87a30';
             btnIcon.style.cursor = 'pointer';
             btnIcon.style.display = 'flex';
             btnIcon.style.alignItems = 'center';

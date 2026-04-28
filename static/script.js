@@ -799,12 +799,17 @@
         if (!el) return;
         const lastPing = parseInt(el.dataset.lastPing || '0');
         const intervalMin = parseInt(el.dataset.intervalMin || '5');
+        const lastPush = parseInt(el.dataset.lastPush || '0');
+        const cooldownH = parseInt(el.dataset.cooldownH || '20');
         const update = () => {
             const now = Math.floor(Date.now() / 1000);
-            // If never pinged, use current time as baseline
-            const baseline = lastPing > 0 ? lastPing : now;
-            const next = baseline + (intervalMin * 60);
-            const diff = next - now;
+            const baselinePing = lastPing > 0 ? lastPing : now;
+            const baselinePush = lastPush > 0 ? lastPush : 0;
+            const nextPing = baselinePing + (intervalMin * 60);
+            const nextCoold = baselinePush + (cooldownH * 3600);
+            // next check = max of ping interval expiry and cooldown expiry
+            const nextCheck = Math.max(nextPing, baselinePush > 0 ? nextCoold : nextPing);
+            let diff = nextCheck - now;
             if (diff <= 0) {
                 el.textContent = '🔔 Due';
                 el.style.color = '#28a745';
@@ -814,7 +819,7 @@
             const m = Math.floor((diff % 3600) / 60);
             const s = diff % 60;
             let txt = '';
-            if (h > 0) txt = h + 'h ';
+            if (h > 0) txt = h + ':';
             txt += (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
             el.textContent = '🔔 ' + txt;
             el.style.color = '#e66a19';

@@ -162,8 +162,9 @@ class EinkPushHelper {
 
     /**
      * Check if the device is online via /api/status
+     * Returns the response body (JSON) if online, false otherwise.
      */
-    public function checkDeviceStatus(string $endpoint): bool {
+    public function checkDeviceStatus(string $endpoint) {
         $parsed = parse_url($endpoint);
         if (!$parsed || !isset($parsed['host'])) return false;
         
@@ -179,11 +180,11 @@ class EinkPushHelper {
             CURLOPT_CONNECTTIMEOUT => 2,
             CURLOPT_FOLLOWLOCATION => true,
         ]);
-        $response = curl_exec($ch);
+        curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
         
-        return ($httpCode === 200);
+        return $httpCode === 200;
     }
 
     /**
@@ -231,9 +232,7 @@ class EinkPushHelper {
         
         try {
             $entryDAO = FreshRSS_Factory::createEntryDao();
-            foreach ($entryIds as $entryId) {
-                $entryDAO->toggleFavorite($entryId, false);
-            }
+            $entryDAO->markFavorite($entryIds, false);
         } catch (Exception $e) {
             error_log('[EinkPush] Failed to remove articles from favorites: ' . $e->getMessage());
         }
@@ -241,7 +240,7 @@ class EinkPushHelper {
 
     // ── private helpers ─────────────────────────────────────────────
 
-    private function collectForSource(string $sourceKey, int $historyDays, bool $unreadOnly): array {
+    public function collectForSource(string $sourceKey, int $historyDays, bool $unreadOnly, int $maxArticles = 0): array {
         $entryDAO = FreshRSS_Factory::createEntryDao();
         $limit = 500;
         $idMin = '';
@@ -261,6 +260,16 @@ class EinkPushHelper {
         if ($sourceKey === 'favorites') {
             $result = $entryDAO->listWhere(
                 type: 'S', id: 0, state: $state,
+                filters: null, id_min: $idMin, order: 'DESC', limit: $limit
+            );
+            if ($result) {
+                foreach ($result as $entry) {
+                    $entries[] = $entry;
+                }
+            }
+        } elseif ($sourceKey === 'main') {
+            $result = $entryDAO->listWhere(
+                type: 'A', id: 0, state: $state,
                 filters: null, id_min: $idMin, order: 'DESC', limit: $limit
             );
             if ($result) {
@@ -293,7 +302,7 @@ class EinkPushHelper {
         return $entries;
     }
 
-    private function buildEpub(string $sourceKey, string $label, array $entries, bool $markAsRead, bool $fetchContent = false, bool $addTimestamp = true, int $maxArticles = 0): ?string {
+    public function buildEpub(string $sourceKey, string $label, array $entries, bool $markAsRead, bool $fetchContent = false, bool $addTimestamp = true, int $maxArticles = 0, ?callable $progressCallback = null): ?string {
         $safeName = $this->sanitizeFilename($label);
         $filename = $addTimestamp ? $safeName . '_' . date('Ymd_His') . '.epub' : $safeName . '.epub';
         $fullPath = $this->outputDir . $filename;
@@ -318,6 +327,10 @@ class EinkPushHelper {
                 break;
             }
             $chapterIndex++;
+            // Report progress per article
+            if ($progressCallback) {
+                $progressCallback($chapterIndex, count($entries));
+            }
             $rawTitle = $entry->title();
             $safeTitle = htmlspecialchars($rawTitle, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
@@ -357,7 +370,7 @@ class EinkPushHelper {
                                 $fetchError = $result['error'];
                                 $fetchDebug = $result['debug'] ?? '';
                                 $fetchSkipped = false;
-                                throw new Exception('Readability API failed for "' . $rawTitle . '": ' . $fetchError);
+                                error_log('Readability API failed for "' . $rawTitle . '": ' . $fetchError);
                             }
                         }
                     }
@@ -367,12 +380,12 @@ class EinkPushHelper {
                     error_log('[EinkPush] Fetch content is enabled but no Readability API URL configured');
                 }
                 $fetchError = 'No Readability API URL configured in extension settings.';
-                throw new Exception('Readability API URL is not configured, but "Extract full article text" is enabled.');
+                // throw new Exception('Readability API URL is not configured, but "Extract full article text" is enabled.');
             }
 
             // If fetch failed and we are skipping, log it and continue to next article
             if ($fetchSkipped) {
-                $this->logInfo(_t('ext.log_skipped_fetch', $rawTitle));
+                $this->logInfo(function_exists('_t') ? _t('ext.log_skipped_fetch', $rawTitle) : 'Skipped fetch: ' . $rawTitle);
                 continue;
             }
 
@@ -719,8 +732,8 @@ class EinkPushHelper {
         $ch = curl_init();
         $baseOpts = [
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => 30,
-            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_TIMEOUT        => 5,
+            CURLOPT_CONNECTTIMEOUT => 3,
             CURLOPT_FOLLOWLOCATION => false,
             CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
         ];
@@ -921,9 +934,12 @@ a {
 CSS;
     }
 
-    private function sourceLabel(string $key): string {
+    public function sourceLabel(string $key): string {
         if ($key === 'favorites') {
-            return _t('ext.source_favorites');
+            return function_exists('_t') ? _t('ext.source_favorites') : 'Favorites';
+        }
+        if ($key === 'main') {
+            return function_exists('_t') ? _t('ext.source_main_stream') : 'Main stream';
         }
         if (strpos($key, 'cat_') === 0) {
             $catId = (int) substr($key, 4);

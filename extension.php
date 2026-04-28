@@ -1,7 +1,7 @@
 <?php
 
 class EinkPushExtension extends Minz_Extension {
-    const VERSION = '1.1.8';
+    const VERSION = '1.2.0';
 
     public function init() {
         $this->registerController('EinkPush');
@@ -14,13 +14,24 @@ class EinkPushExtension extends Minz_Extension {
 
         $showSidebarVal = ($conf && $conf->EinkPush_showSidebarButton !== null) ? (int)$conf->EinkPush_showSidebarButton : 1;
         $showSidebar = ($showSidebarVal !== 0) ? '1' : '0';
+        $lastPushTime = ($conf && !empty($conf->EinkPush_last_push)) ? (int)$conf->EinkPush_last_push : 0;
+        $lastPushType = ($conf && !empty($conf->EinkPush_last_push_type)) ? (string)$conf->EinkPush_last_push_type : '';
         
         $styleUrl = Minz_Url::display('/ext.php?f=xExtension-EinkPush/static/style.css', 'php');
         // Pass config via URL parameters to bypass strict CSP (Content Security Policy)
         $scriptUrl = Minz_Url::display('/ext.php?f=xExtension-EinkPush/static/script.js', 'php') . 
                      '&v=' . time() . 
                      '&sb=' . $showSidebar . 
-                     '&l=' . urlencode(_t('ext.sidebar_push_all'));
+                     '&lpt=' . $lastPushTime .
+                     '&lpty=' . urlencode($lastPushType) .
+                     '&l=' . urlencode(_t('ext.sidebar_push_all')) .
+                     '&pn_l=' . urlencode(_t('ext.sidebar_push_now')) .
+                     '&lp_l=' . urlencode(_t('ext.sidebar_last_push')) .
+                     '&ty_m=' . urlencode(_t('ext.push_type_manual')) .
+                     '&ty_a=' . urlencode(_t('ext.push_type_auto')) .
+                     '&b_na=' . urlencode(_t('ext.btn_no_articles')) .
+                     '&b_s=' . urlencode(_t('ext.btn_success')) .
+                     '&b_e=' . urlencode(_t('ext.btn_error'));
         
         Minz_View::appendStyle($styleUrl . '&v=' . time());
         Minz_View::appendScript($scriptUrl);
@@ -41,6 +52,7 @@ class EinkPushExtension extends Minz_Extension {
             $conf->EinkPush_screenHeight = max(100, (int) Minz_Request::param('screenHeight', 800, true));
             $conf->EinkPush_fontSize = max(0.5, min(3.0, (float) Minz_Request::param('fontSize', 1.0, true)));
             $conf->EinkPush_showSidebarButton = !empty($_POST['showSidebarButton']) ? 1 : 0;
+            $conf->EinkPush_auto_push_enabled = !empty($_POST['auto_push_enabled']) ? 1 : 0;
             
             error_log('[EinkPush] Saving showSidebarButton: ' . $conf->EinkPush_showSidebarButton);
 
@@ -55,7 +67,23 @@ class EinkPushExtension extends Minz_Extension {
             $conf->EinkPush_ping_interval = max(1, (int) Minz_Request::param('ping_interval', 5, true));
             $conf->EinkPush_push_cooldown = max(1, (int) Minz_Request::param('push_cooldown', 20, true));
             $conf->EinkPush_push_retries = max(0, min(20, (int) Minz_Request::param('push_retries', 3, true)));
-            $conf->EinkPush_push_retryDelay = max(1, min(300, (int) Minz_Request::param('push_retryDelay', 10, true)));
+
+            // Device address and folder name for push endpoint
+            $deviceAddress = trim((string) Minz_Request::param('device_address', 'http://crosspoint.local', true));
+            if ($deviceAddress !== '' && !preg_match('#^https?://#i', $deviceAddress)) {
+                $deviceAddress = 'http://crosspoint.local';
+            }
+            $conf->EinkPush_device_address = rtrim($deviceAddress, '/');
+            
+            $folderName = trim((string) Minz_Request::param('folder_name', 'RSSFeeds', true));
+            if ($folderName === '') {
+                $folderName = 'RSSFeeds';
+            }
+            $conf->EinkPush_folder_name = $folderName;
+            
+            // Auto-generate push endpoint from saved address + folder
+            $pushEndpoint = rtrim($conf->EinkPush_device_address, '/') . '/upload?path=/' . ltrim($conf->EinkPush_folder_name, '/');
+            $conf->EinkPush_push_endpoint = $pushEndpoint;
 
             // Readability API
             $readaUrl = trim((string) Minz_Request::param('readability_url', '', true));
@@ -67,6 +95,19 @@ class EinkPushExtension extends Minz_Extension {
             // Per-source settings (read directly from $_POST to preserve nested arrays)
             $posted = isset($_POST['sources']) && is_array($_POST['sources']) ? $_POST['sources'] : [];
             $sources = [];
+
+            // Main stream (all feeds combined)
+            $main = $posted['main'] ?? [];
+            $sources['main'] = [
+                'enabled'      => !empty($main['enabled']),
+                'historyDays'  => max(0, (int) ($main['historyDays'] ?? 7)),
+                'unreadOnly'   => !empty($main['unreadOnly']),
+                'markAsRead'   => !empty($main['markAsRead']),
+                'autoPush'     => !empty($main['autoPush']),
+                'fetchContent' => !empty($main['fetchContent']),
+                'addTimestamp' => !empty($main['addTimestamp']),
+                'maxArticles'  => max(0, (int) ($main['maxArticles'] ?? 50)),
+            ];
 
             // Favorites
             $fav = $posted['favorites'] ?? [];
@@ -125,14 +166,23 @@ class EinkPushExtension extends Minz_Extension {
             'screenHeight'    => $conf->EinkPush_screenHeight,
             'fontSize'        => $conf->EinkPush_fontSize,
             'showSidebarButton'=> $conf->EinkPush_showSidebarButton,
+            'auto_push_enabled' => $conf->EinkPush_auto_push_enabled,
+            'device_info'     => $conf->EinkPush_device_info,
+            'last_push'       => $conf->EinkPush_last_push,
+            'last_push_type'  => $conf->EinkPush_last_push_type,
+            'last_ping'       => $conf->EinkPush_last_ping,
+            'last_ping_status' => $conf->EinkPush_last_ping_status,
+            'last_push_status' => $conf->EinkPush_last_push_status,
             'sources'         => $conf->EinkPush_sources,
             'push_endpoint'   => $conf->EinkPush_push_endpoint,
             'ping_interval'   => $conf->EinkPush_ping_interval,
             'push_cooldown'   => $conf->EinkPush_push_cooldown,
             'push_retries'    => $conf->EinkPush_push_retries,
-            'push_retryDelay' => $conf->EinkPush_push_retryDelay,
+
             'push_token'      => $conf->EinkPush_push_token,
             'readability_url' => $conf->EinkPush_readability_url,
+            'device_address' => $conf->EinkPush_device_address,
+            'folder_name' => $conf->EinkPush_folder_name,
         ];
     }
 
@@ -146,16 +196,24 @@ class EinkPushExtension extends Minz_Extension {
             'EinkPush_screenHeight'   => 800,
             'EinkPush_fontSize'       => 1.0,
             'EinkPush_showSidebarButton' => 1,
+            'EinkPush_auto_push_enabled' => 0,
+            'EinkPush_device_info'    => '',
             'EinkPush_sources'        => [
+                'main' => ['enabled' => false, 'historyDays' => 7, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 50],
                 'favorites' => ['enabled' => false, 'historyDays' => 7, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 50, 'removeFromFavorites' => false],
             ],
+            'EinkPush_device_address' => 'http://crosspoint.local',
+            'EinkPush_folder_name'    => 'RSSFeeds',
             'EinkPush_push_endpoint'  => 'http://crosspoint.local/upload?path=/RSSFeeds',
+            'EinkPush_device_info'    => '',
             'EinkPush_ping_interval'  => 5,
             'EinkPush_push_cooldown'  => 20,
             'EinkPush_last_ping'      => 0,
+            'EinkPush_last_ping_status' => '',
             'EinkPush_last_push'      => 0,
+            'EinkPush_last_push_type' => '',
+            'EinkPush_last_push_status' => '',
             'EinkPush_push_retries'   => 3,
-            'EinkPush_push_retryDelay'=> 10,
             'EinkPush_push_token'     => '',
             'EinkPush_readability_url'=> '',
         ];
@@ -185,25 +243,34 @@ class EinkPushExtension extends Minz_Extension {
     }
 
     private function checkAutoPush($conf) {
+        if (empty($conf->EinkPush_auto_push_enabled)) {
+            return;
+        }
+
         $now = time();
         $lastPing = (int) ($conf->EinkPush_last_ping ?? 0);
         $lastPush = (int) ($conf->EinkPush_last_push ?? 0);
         $pingInterval = (int) ($conf->EinkPush_ping_interval ?? 5) * 60;
         $cooldown = (int) ($conf->EinkPush_push_cooldown ?? 20) * 3600;
 
+        error_log('[EinkPush] AutoPush check: now=' . $now . ' lastPing=' . $lastPing . ' lastPush=' . $lastPush . ' pingInterval=' . $pingInterval . ' cooldown=' . $cooldown);
+
         // 1. Check cooldown
         if (($now - $lastPush) < $cooldown) {
+            error_log('[EinkPush] AutoPush blocked: cooldown not expired');
             return;
         }
 
         // 2. Check ping interval
         if (($now - $lastPing) < $pingInterval) {
+            error_log('[EinkPush] AutoPush blocked: ping interval not expired');
             return;
         }
 
         // 3. Update last ping time immediately to avoid concurrent pings if possible
         $conf->EinkPush_last_ping = $now;
-        $conf->save();
+        $saved = $conf->save();
+        error_log('[EinkPush] Pinging device... save=' . var_export($saved, true));
 
         // 4. Ping device
         $endpoint = $conf->EinkPush_push_endpoint;
@@ -211,33 +278,42 @@ class EinkPushExtension extends Minz_Extension {
 
         require_once $this->getPath() . '/FreshExtension_EinkPush_Helper.php';
         $helper = new EinkPushHelper($this->getEpubDir());
-        
-        if ($helper->checkDeviceStatus($endpoint)) {
+
+        $statusResponse = $helper->checkDeviceStatus($endpoint);
+        if ($statusResponse !== false) {
+            $conf->EinkPush_last_ping_status = 'online';
+            $conf->EinkPush_device_info = $statusResponse;
+            $conf->save();
             error_log('[EinkPush] Device is ONLINE. Triggering auto-push.');
-            
+
             // Trigger push for all enabled sources that have autoPush=true
             $sources = $conf->EinkPush_sources;
             $paths = $helper->generateAll($sources);
-            
+
             if (!empty($paths)) {
                 $success = 0;
+                $failed = 0;
                 foreach ($paths as $key => $path) {
                     $srcCfg = $sources[$key] ?? [];
                     if (empty($srcCfg['autoPush'])) continue;
 
                     $sourceName = $key === 'favorites' ? _t('ext.source_favorites') : $key;
-                    if ($helper->pushToEndpoint($path, $endpoint, (int)$conf->EinkPush_push_retries, (int)$conf->EinkPush_push_retryDelay, $sourceName)) {
+                    if ($helper->pushToEndpoint($path, $endpoint, (int)$conf->EinkPush_push_retries, 5, $sourceName)) {
                         $success++;
+                    } else {
+                        $failed++;
                     }
                 }
-                
-                if ($success > 0) {
-                    $conf->EinkPush_last_push = time();
-                    $conf->save();
-                    error_log('[EinkPush] Auto-push completed. Success: ' . $success);
-                }
+
+                $conf->EinkPush_last_push = time();
+                $conf->EinkPush_last_push_type = 'auto';
+                $conf->EinkPush_last_push_status = $failed > 0 ? 'partial' : 'success';
+                $conf->save();
+                error_log('[EinkPush] Auto-push completed. ' . $success . ' success, ' . $failed . ' failed.');
             }
         } else {
+            $conf->EinkPush_last_ping_status = 'offline';
+            $conf->save();
             error_log('[EinkPush] Device is OFFLINE.');
         }
     }

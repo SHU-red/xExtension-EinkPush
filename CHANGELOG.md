@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-04-28
+### Added
+- **Auto-Push Status UI**: Live countdown to next ping, last ping/push status display
+- **Granular Progress**: Per-article progress tracking during push/download
+- **Background Worker**: Non-blocking push via CLI worker (survives page reloads)
+- **Readability Integration**: Full-text extraction via configurable API
+- **Native Sidebar Button**: Split button matches FreshRSS style exactly
+
+### Changed
+- **Hardcoded retry delay**: 5 seconds fixed, removed UI field
+- **Dark orange sidebar button**: Centered text, gear icon, matching borders
+- **Unified push workflow**: All buttons share same progress overlay & connection test
+
+### Fixed
+- **Worker crashes**: Undefined `$maxArticles`, deprecated nullable params, CLI bootstrap
+- **Progress modal stalling**: JS polling timer resets, premature file deletion
+- **Config key mismatches**: `screenWidth`, `readability_url` alignment
+- **Sidebar width**: Exact native dimension matching via computed styles
+
 ## [1.1.8] - 2026-04-14
 ### Added
 - **Auto-Push (Device Status)**: New primary delivery method that pings your device's `/api/status` endpoint.

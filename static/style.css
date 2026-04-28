@@ -83,8 +83,89 @@
 .ep-nav-item.active { background: var(--ep-primary) !important; color: #fff !important; }
 
 /* Content Sections */
-.ep-section { display: none; }
-.ep-section.active { display: block; }
+.ep-section {
+    display: none !important;
+    clear: both;
+    overflow: hidden;
+}
+.ep-section.active {
+    display: block !important;
+    visibility: visible;
+    opacity: 1;
+    position: relative;
+    z-index: 1;
+}
+
+/* Section separator */
+.ep-section-separator {
+    margin: 30px 0;
+    border: 0;
+    border-top: 1px solid #ddd;
+}
+
+.ep-full-width {
+    width: 100%;
+}
+
+.ep-flex-center-gap-10 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ep-device-info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.ep-device-info-key {
+    font-weight: 600;
+    color: var(--ep-text-muted);
+}
+
+.ep-device-info-value {
+    font-weight: 500;
+    color: var(--ep-text);
+}
+
+/* Badge grid for device info */
+.ep-device-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 4px 0;
+}
+
+.ep-badge {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: rgba(144, 85, 24, 0.12);
+    border: 1px solid rgba(144, 85, 24, 0.25);
+    border-radius: 999px;
+    font-size: 12px !important;
+    font-weight: 500;
+    color: var(--ep-text, #1e1e1f) !important;
+    white-space: nowrap;
+    line-height: 1.4;
+}
+
+/* Inline test button — same height as input */
+.ep-inline-test-btn {
+    min-height: 30px !important;
+    height: 30px !important;
+    min-width: 130px !important;
+    max-width: 130px !important;
+    line-height: 30px !important;
+    box-sizing: border-box !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    border-radius: 4px !important;
+}
+
 
 .ep-welcome-banner {
     background: rgba(242, 125, 38, 0.1);
@@ -310,6 +391,23 @@ body.theme-dark .ep-footer {
     font-size: 0.85rem !important;
 }
 
+/* Button Feedback States */
+.ep-btn-success {
+    background-color: #22c55e !important;
+    border-color: #22c55e !important;
+    color: #fff !important;
+}
+.ep-btn-error {
+    background-color: #ef4444 !important;
+    border-color: #ef4444 !important;
+    color: #fff !important;
+}
+.ep-btn-no-content {
+    background-color: #9ca3af !important;
+    border-color: #9ca3af !important;
+    color: #fff !important;
+}
+
 /* Inline style replacements */
 .ep-cron-cmd-wrapper { position: relative; }
 .ep-cron-cmd-input { font-family: monospace; font-size: 0.85rem; background: var(--ep-bg-hover); width: 100%; box-sizing: border-box; }
@@ -333,35 +431,15 @@ body.theme-dark .ep-footer {
     .ep-nav-item { flex: 1 1 45%; }
     .ep-grid { grid-template-columns: 1fr; }
 }
-.ep-btn-settings-orange {
-    background-color: #343a40 !important; /* Muted dark grey background */
-    border: 1px solid #e66a19 !important; /* Subtle orange border */
-    color: #eee !important;
-    text-align: center !important;
-    display: block !important;
-    text-decoration: none !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-    border-radius: 4px !important;
-    padding: 5px 10px !important;
-    line-height: 1.4 !important;
-    font-size: 0.85rem !important;
-    transition: all 0.2s ease;
+/* --- Sidebar button (matches FreshRSS style, orange) --- */
+#ep-sidebar-btn-main {
+    width: 100%;
+    display: block;
+    margin: 4px 0;
 }
-.ep-btn-settings-orange:hover {
-    background-color: #e66a19 !important;
-    border-color: #e66a19 !important;
-    color: #fff !important;
+#ep-sidebar-push-now {
     text-decoration: none !important;
-}
-
-.ep-sidebar-container {
-    display: block !important;
-    clear: both !important;
-    width: 100% !important;
-    padding: 0 10px !important; /* Match native sidebar padding */
-    margin: 8px 0 15px 0 !important; /* Added 8px top spacing */
-    box-sizing: border-box !important;
+    cursor: pointer !important;
 }
 
 .ep-select-small {
@@ -380,14 +458,57 @@ body.theme-dark .ep-footer {
 }
 .ep-btn-test { border-color: var(--ep-primary) !important; color: var(--ep-primary) !important; }
 .ep-btn-test:hover { background: rgba(0,98,255,0.1) !important; }
-.ep-btn-preview { border-color: #f27d26 !important; color: #f27d26 !important; }
-.ep-btn-preview:hover { background: rgba(242,125,38,0.1) !important; }
+
 
 .ep-mb-20 { margin-bottom: 20px !important; }
 .ep-mt-10 { margin-top: 10px !important; }
+.ep-mt-5 { margin-top: 5px !important; }
+.ep-mt-20 { margin-top: 20px !important; }
 .ep-flex-center-gap-8 { display: flex !important; align-items: center !important; gap: 8px !important; }
 .ep-label-bold-small { font-weight: 700 !important; font-size: 0.8rem !important; }
 .ep-api-examples { font-size: 0.8rem; color: var(--ep-text-muted); line-height: 1.6; }
+
+.ep-last-push-header {
+    font-size: 0.7rem;
+    color: #22c55e;
+    font-weight: 600;
+    margin-top: 4px !important;
+}
+
+.ep-device-info-section {
+    background: var(--ep-bg-hover);
+    padding: 12px;
+    border: 1px solid var(--ep-border);
+}
+.ep-device-info-section h4 {
+    margin: 0 0 10px 0;
+    font-size: 0.85rem;
+    color: var(--ep-primary);
+}
+.ep-device-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+}
+.ep-device-info-item {
+    font-size: 0.75rem;
+    display: flex;
+    gap: 4px;
+}
+.ep-device-info-key {
+    font-weight: 600;
+    color: var(--ep-text-muted);
+}
+.ep-device-info-val {
+    color: var(--ep-text);
+}
+.ep-device-info-raw {
+    font-size: 0.7rem;
+    background: #000;
+    color: #0f0;
+    padding: 8px;
+    overflow-x: auto;
+}
 
 .ep-loading {
     background-color: #f39c12 !important;
@@ -396,7 +517,7 @@ body.theme-dark .ep-footer {
     cursor: wait !important;
     opacity: 1 !important;
     pointer-events: none !important;
-    display: flex !important;
+    display: inline-flex !important;
     justify-content: center !important;
     align-items: center !important;
 }
@@ -452,45 +573,16 @@ body.theme-dark .ep-footer {
     text-align: right;
 }
 
-/* Progress Dashboard */
+/* Progress Modal (centered, theme-aware) */
 .ep-progress-overlay {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 300px;
-    background: var(--ep-bg-card-solid);
-    border: 1px solid var(--ep-primary);
-    border-radius: 8px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-    z-index: 1500;
-    padding: 15px;
-}
-.ep-progress-header {
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
     display: flex;
-    justify-content: space-between;
-    margin-bottom: 10px;
-    font-weight: bold;
-    font-size: 0.9rem;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
 }
-.ep-progress-bar-bg {
-    height: 8px;
-    background: var(--ep-bg-hover);
-    border-radius: 4px;
-    overflow: hidden;
-    margin-bottom: 10px;
-}
-.ep-progress-bar-fill {
-    height: 100%;
-    background: var(--ep-primary);
-    width: 0%;
-    transition: width 0.3s ease;
-}
-.ep-progress-status {
-    font-size: 0.8rem;
-    color: var(--ep-text-muted);
-}
-.ep-progress-close { cursor: pointer; opacity: 0.6; }
-.ep-progress-close:hover { opacity: 1; }
 
 
 

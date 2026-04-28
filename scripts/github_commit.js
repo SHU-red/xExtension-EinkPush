@@ -77,11 +77,12 @@ async function run() {
         });
         const treeData = await treeRes.json();
 
+        const commitMessage = process.argv[2] || 'Update extension';
         const newCommitRes = await fetch(`https://api.github.com/repos/${REPO}/git/commits`, {
             method: 'POST',
             headers,
             body: JSON.stringify({
-                message: 'feat: Auto-Push (Device Status) & Auto-Directory Creation (v1.1.8)\n\n- Implemented device status pinging via /api/status\n- Added configurable ping interval and push cooldown\n- Automated remote directory creation via /mkdir\n- Replaced Cron scheduling with Auto-Push mechanism\n- Updated UI and translations for new features',
+                message: commitMessage,
                 tree: treeData.sha,
                 parents: [latestCommitSha]
             })

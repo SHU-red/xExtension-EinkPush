@@ -1,4 +1,5 @@
 <?php
+// OPcache bust: 2026-04-26 v2 - worker logging + endpoint fix
 error_log('[EinkPush] EinkPushController.php is INCLUDED by PHP!');
 
 class FreshExtension_EinkPush_Controller extends Minz_ActionController {
@@ -40,6 +41,9 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         }
         if ($sourceKey === 'favorites') {
             return ['enabled' => false, 'historyDays' => 7, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 50, 'removeFromFavorites' => false];
+        }
+        if ($sourceKey === 'main') {
+            return ['enabled' => false, 'historyDays' => 7, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 50];
         }
         if (strpos($sourceKey, 'cat_') === 0) {
             return ['enabled' => false, 'historyDays' => 7, 'unreadOnly' => true, 'markAsRead' => false, 'autoPush' => false, 'fetchContent' => true, 'addTimestamp' => false, 'maxArticles' => 50];
@@ -101,50 +105,351 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         }
     }
 
+    private function getEndpoint($conf) {
+        $deviceAddress = rtrim((string)($conf['device_address'] ?? ''), '/');
+        $folderName = ltrim((string)($conf['folder_name'] ?? 'RSSFeeds'), '/');
+        return $deviceAddress . '/upload?path=/' . $folderName;
+    }
+
+    public function pushRunAction(): void {
+        header('Content-Type: application/json');
+
+        $conf = $this->extension->getConfig();
+        $endpoint = $this->getEndpoint($conf);
+        $singleSource = Minz_Request::param('source', '');
+
+        if (empty($endpoint) || $endpoint === '/upload?path=/RSSFeeds') {
+            echo json_encode(['status' => 'error', 'message' => _t('ext.error_no_endpoint')]);
+            exit;
+        }
+
+        // Filter sources if single source requested
+        $sourcesToProcess = $conf['sources'] ?? [];
+        if ($singleSource !== '') {
+            if (!isset($sourcesToProcess[$singleSource])) {
+                echo json_encode(['status' => 'error', 'message' => _t('ext.error_invalid_source')]);
+                exit;
+            }
+            $singleSrc = $sourcesToProcess[$singleSource];
+            $singleSrc['enabled'] = true; // force enable for single source
+            $sourcesToProcess = [$singleSource => $singleSrc];
+        }
+
+        $jobId = bin2hex(random_bytes(4));
+        $progressFile = $this->extension->getEpubDir() . '.push_progress_' . $jobId . '.json';
+        $epubDir = $this->extension->getEpubDir();
+        $screenWidth = (int)($conf['screenWidth'] ?? 800);
+        $screenHeight = (int)($conf['screenHeight'] ?? 600);
+        $fontSize = (float)($conf['fontSize'] ?? 1.0);
+        $readabilityUrl = trim((string)($conf['readability_url'] ?? ''));
+
+        $bgConfig = [
+            'jobId' => $jobId,
+            'mode' => 'push',
+            'endpoint' => $endpoint,
+            'deviceAddress' => rtrim((string)($conf['device_address'] ?? ''), '/'),
+            'folderName' => ltrim((string)($conf['folder_name'] ?? 'RSSFeeds'), '/'),
+            'epubDir' => $epubDir,
+            'sources' => $sourcesToProcess,
+            'pushRetries' => (int)($conf['push_retries'] ?? 3),
+            'pushRetryDelay' => (int)(5 ?? 5),
+            'screenWidth' => $screenWidth,
+            'screenHeight' => $screenHeight,
+            'fontSize' => $fontSize,
+            'readabilityUrl' => $readabilityUrl,
+            'username' => FreshRSS_Context::$user ?? 'shur3d',
+            'step' => 'starting',
+            'message' => 'Starting...',
+            'time' => microtime(true),
+        ];
+        file_put_contents($progressFile, json_encode($bgConfig), LOCK_EX);
+
+        $workerFile = __DIR__ . '/../FreshExtension_EinkPush_Worker.php';
+        $phpBin = PHP_BINARY ?: '/usr/bin/php';
+        $cmd = '/bin/sh -c "nohup ' . escapeshellarg($phpBin) . ' ' . escapeshellarg($workerFile) . ' ' . escapeshellarg($progressFile) . ' > /tmp/einkpush_worker.log 2>&1 &"';
+        error_log('[EinkPush] spawning worker: ' . $cmd);
+        $output = [];
+        $return = 0;
+        exec($cmd, $output, $return);
+        error_log('[EinkPush] worker spawn: return=' . $return . ' output=' . json_encode($output));
+
+        echo json_encode(['status' => 'ok', 'job' => $jobId]);
+        exit;
+    }
+
+    public function generateRunAction(): void {
+        header('Content-Type: application/json');
+
+        $conf = $this->extension->getConfig();
+        $singleSource = Minz_Request::param('source', '');
+
+        $sourcesToProcess = $conf['sources'] ?? [];
+        if ($singleSource !== '') {
+            if (!isset($sourcesToProcess[$singleSource])) {
+                echo json_encode(['status' => 'error', 'message' => _t('ext.error_invalid_source')]);
+                exit;
+            }
+            $singleSrc = $sourcesToProcess[$singleSource];
+            $singleSrc['enabled'] = true;
+            $sourcesToProcess = [$singleSource => $singleSrc];
+        }
+
+        $jobId = bin2hex(random_bytes(4));
+        $progressFile = $this->extension->getEpubDir() . '.push_progress_' . $jobId . '.json';
+        $epubDir = $this->extension->getEpubDir();
+        $screenWidth = (int)($conf['screenWidth'] ?? 800);
+        $screenHeight = (int)($conf['screenHeight'] ?? 600);
+        $fontSize = (float)($conf['fontSize'] ?? 1.0);
+        $readabilityUrl = trim((string)($conf['readability_url'] ?? ''));
+
+        $bgConfig = [
+            'jobId' => $jobId,
+            'mode' => 'generate',
+            'endpoint' => '',
+            'epubDir' => $epubDir,
+            'sources' => $sourcesToProcess,
+            'pushRetries' => 0,
+            'pushRetryDelay' => 0,
+            'screenWidth' => $screenWidth,
+            'screenHeight' => $screenHeight,
+            'fontSize' => $fontSize,
+            'readabilityUrl' => $readabilityUrl,
+            'username' => FreshRSS_Context::$user ?? 'shur3d',
+            'step' => 'starting',
+            'message' => 'Starting...',
+            'time' => microtime(true),
+        ];
+        file_put_contents($progressFile, json_encode($bgConfig), LOCK_EX);
+
+        $workerFile = __DIR__ . '/../FreshExtension_EinkPush_Worker.php';
+        $phpBin = PHP_BINARY ?: '/usr/bin/php';
+        $cmd = '/bin/sh -c "nohup ' . escapeshellarg($phpBin) . ' ' . escapeshellarg($workerFile) . ' ' . escapeshellarg($progressFile) . ' > /tmp/einkpush_worker.log 2>&1 &"';
+        error_log('[EinkPush] spawning generate worker: ' . $cmd);
+        exec($cmd);
+
+        echo json_encode(['status' => 'ok', 'job' => $jobId]);
+        exit;
+    }
+
+    private function doPushWork(string $progressFile, array $conf, string $endpoint, EinkPushHelper $helper): void {
+        set_time_limit(0);
+        error_log('[EinkPush] doPushWork START pid=' . (function_exists('posix_getpid') ? posix_getpid() : 'unknown'));
+
+        $writeProgress = function($step, $extra = []) use ($progressFile) {
+            $payload = ['step' => $step, 'time' => microtime(true)] + $extra;
+            file_put_contents($progressFile, json_encode($payload), LOCK_EX);
+            clearstatcache(true, $progressFile);
+        };
+
+        // Step 1: Test connection
+        $writeProgress('test_connection', ['message' => 'Testing connection...']);
+        error_log('[EinkPush] checking device: ' . $endpoint);
+        $connOk = $helper->checkDeviceStatus($endpoint);
+        error_log('[EinkPush] checkDeviceStatus result: ' . ($connOk ? 'ok' : 'fail'));
+        if (!$connOk) {
+            $writeProgress('error', ['message' => 'Device unreachable']);
+            return;
+        }
+        $writeProgress('connection_ok', ['message' => 'Device online']);
+
+        // Step 2: Generate EPUBs
+        $totalSources = 0;
+        foreach ($conf['sources'] as $srcCfg) {
+            if (!empty($srcCfg['enabled'])) $totalSources++;
+        }
+
+        $paths = [];
+        $totalArticles = 0;
+        $processedArticles = 0;
+        $currentSource = 0;
+
+        foreach ($conf['sources'] as $key => $srcCfg) {
+            if (empty($srcCfg['enabled'])) continue;
+            $currentSource++;
+            $label = $helper->sourceLabel($key);
+            $writeProgress('generating', ['source' => $label, 'sourceIndex' => $currentSource, 'totalSources' => $totalSources]);
+
+            $historyDays = (int) ($srcCfg['historyDays'] ?? 7);
+            $unreadOnly = !empty($srcCfg['unreadOnly']);
+            $markAsRead = !empty($srcCfg['markAsRead']);
+            $fetchContent = !empty($srcCfg['fetchContent']);
+            $maxArticles = (int) ($srcCfg['maxArticles'] ?? 0);
+            $addTimestamp = !empty($srcCfg['addTimestamp']);
+
+            $writeProgress('collecting', ['source' => $label, 'message' => 'Collecting articles...']);
+            $entries = $helper->collectForSource($key, $historyDays, $unreadOnly);
+            if (empty($entries)) {
+                $writeProgress('source_empty', ['source' => $label]);
+                continue;
+            }
+
+            $numEntries = count($entries);
+            $totalArticles += $numEntries;
+            $writeProgress('building', ['source' => $label, 'articles' => $numEntries, 'totalAllArticles' => $totalArticles]);
+
+            $path = $helper->buildEpub($key, $label, $entries, $markAsRead, $fetchContent, $addTimestamp, $maxArticles, function($idx, $total) use ($label, $writeProgress, $totalArticles, $processedArticles) {
+                $all = $processedArticles + $idx;
+                $writeProgress('article', [
+                    'source' => $label, 'articleIndex' => $idx, 'totalInSource' => $total,
+                    'processedAllArticles' => $all, 'totalAllArticles' => $totalArticles,
+                    'percent' => round(($all / max(1, $totalArticles)) * 100)
+                ]);
+            });
+
+            $processedArticles += $numEntries;
+            if ($path !== null) $paths[$key] = $path;
+
+            if ($key === 'favorites' && !empty($srcCfg['removeFromFavorites'])) {
+                $helper->removeFromFavorites(array_map(function($e) { return $e->id(); }, $entries));
+            }
+        }
+
+        if (empty($paths)) {
+            $writeProgress('no_content', ['message' => 'No articles found']);
+            return;
+        }
+
+        // Step 3: Push to device
+        $totalFiles = count($paths);
+        $pushedFiles = 0;
+        $success = 0;
+        $failed = 0;
+
+        foreach ($paths as $sourceKey => $path) {
+            $pushedFiles++;
+            $sourceName = $helper->sourceLabel($sourceKey);
+            $writeProgress('pushing', ['source' => $sourceName, 'fileIndex' => $pushedFiles, 'totalFiles' => $totalFiles]);
+            if ($helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], 5, $sourceName)) $success++; else $failed++;
+        }
+
+        // Save last push time
+        if ($failed === 0) {
+            $uconf = FreshRSS_Context::$user_conf ?? null;
+            if ($uconf) { $uconf->EinkPush_last_push = time(); $uconf->EinkPush_last_push_type = 'manual'; $uconf->save(); }
+        }
+
+        if ($failed === 0) {
+            $writeProgress('done', ['success' => $success, 'message' => 'Successfully pushed ' . $success . ' EPUB(s).']);
+        } else {
+            $writeProgress('done_with_errors', ['success' => $success, 'failed' => $failed,
+                'message' => 'Pushed ' . $success . ', but ' . $failed . ' failed.']);
+        }
+    }
+
+    public function pushStatusAction(): void {
+        header('Content-Type: application/json');
+        $jobId = Minz_Request::param('job', '');
+        if (empty($jobId)) { echo json_encode(['status' => 'error']); exit; }
+
+        $progressFile = $this->extension->getEpubDir() . '.push_progress_' . $jobId . '.json';
+        if (!file_exists($progressFile)) { echo json_encode(['status' => 'unknown']); exit; }
+
+        $data = json_decode(file_get_contents($progressFile), true);
+        if ($data) {
+            $step = $data['step'] ?? '';
+            // Update user config on successful push (worker can't write to DB)
+            if ($step === 'done' && ($data['success'] ?? 0) > 0) {
+                $uconf = FreshRSS_Context::$user_conf ?? null;
+                if ($uconf) { $uconf->EinkPush_last_push = time(); $uconf->EinkPush_last_push_type = 'manual'; $uconf->save(); }
+            }
+            // Don't delete file for done states - return data until it expires naturally
+            // (worker may finish faster than first poll fires)
+            if ($step === 'error' && !isset($data['time'])) {
+                @unlink($progressFile);
+            }
+        }
+        echo json_encode($data ?: ['step' => 'unknown']);
+        exit;
+    }
+
     public function pushAction(): void {
         $conf = $this->extension->getConfig();
-        $endpoint = $conf['push_endpoint'];
-        if (empty($endpoint)) Minz_Request::bad(_t('ext.error_no_endpoint'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+        $endpoint = $this->getEndpoint($conf);
+        $redirect = Minz_Request::param('r', '');
+        $isSilent = Minz_Request::param('silent') === '1';
+        $target = ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']];
+        if ($redirect === 'main') {
+            $target = ['c' => 'index', 'a' => 'index'];
+        }
+
+        if (empty($endpoint)) {
+            if ($isSilent) { header('Content-Type: application/json'); echo json_encode(['status' => 'error', 'message' => _t('ext.error_no_endpoint')]); exit; }
+            Minz_Request::bad(_t('ext.error_no_endpoint'), $target);
+        }
 
         try {
             $paths = $this->helper->generateAll($conf['sources']);
-            if (empty($paths)) Minz_Request::good(_t('ext.msg_no_articles'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+            if (empty($paths)) {
+                if ($isSilent) { header('HTTP/1.1 204 No Content'); exit; }
+                Minz_Request::good(_t('ext.msg_no_articles'), $target);
+            }
 
             $success = 0; $failed = 0;
             foreach ($paths as $sourceKey => $path) {
                 $sourceName = $sourceKey === 'favorites' ? _t('ext.source_favorites') : $sourceKey;
-                if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], $conf['push_retryDelay'], $sourceName)) $success++;
+                if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], 5, $sourceName)) $success++;
                 else $failed++;
             }
 
-            if ($failed === 0) Minz_Request::good(_t('ext.msg_push_success', $success), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
-            else Minz_Request::bad(_t('ext.msg_push_failed', $success, $failed), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+            if ($failed === 0) {
+                $conf = FreshRSS_Context::$user_conf;
+                if ($conf) {
+                    $conf->EinkPush_last_push = time();
+                    $conf->EinkPush_last_push_type = 'manual';
+                    $conf->save();
+                }
+                if ($isSilent) { header('Content-Type: application/json'); echo json_encode(['status' => 'ok', 'message' => _t('ext.msg_push_success', $success)]); exit; }
+                Minz_Request::good(_t('ext.msg_push_success', $success), $target);
+            } else {
+                if ($isSilent) { header('Content-Type: application/json'); echo json_encode(['status' => 'error', 'message' => _t('ext.msg_push_failed', $success, $failed)]); exit; }
+                Minz_Request::bad(_t('ext.msg_push_failed', $success, $failed), $target);
+            }
         } catch (Exception $e) {
-            Minz_Request::bad($e->getMessage(), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+            if ($isSilent) { header('Content-Type: application/json'); echo json_encode(['status' => 'error', 'message' => $e->getMessage()]); exit; }
+            Minz_Request::bad($e->getMessage(), $target);
         }
     }
 
     public function pushSingleAction(): void {
         $sourceKey = Minz_Request::param('source');
         $conf = $this->extension->getConfig();
-        $endpoint = $conf['push_endpoint'];
+        $endpoint = $this->getEndpoint($conf);
+        $isSilent = Minz_Request::param('silent') === '1';
 
-        if (empty($endpoint)) Minz_Request::bad(_t('ext.error_no_endpoint'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+        if (empty($endpoint)) {
+            if ($isSilent) { header('Content-Type: application/json'); echo json_encode(['status' => 'error', 'message' => _t('ext.error_no_endpoint')]); exit; }
+            Minz_Request::bad(_t('ext.error_no_endpoint'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+        }
 
         $srcCfg = $this->getSourceConfig($sourceKey, $conf);
-        if (!$srcCfg) Minz_Request::bad(_t('ext.error_invalid_source'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+        if (!$srcCfg) {
+            if ($isSilent) { header('Content-Type: application/json'); echo json_encode(['status' => 'error', 'message' => _t('ext.error_invalid_source')]); exit; }
+            Minz_Request::bad(_t('ext.error_invalid_source'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+        }
 
         try {
             $path = $this->helper->generateSingle($sourceKey, $srcCfg);
-            if (!$path) Minz_Request::good(_t('ext.msg_no_articles'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+            if (!$path) {
+                if ($isSilent) { header('HTTP/1.1 204 No Content'); exit; }
+                Minz_Request::good(_t('ext.msg_no_articles'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
+            }
 
             $sourceName = $sourceKey === 'favorites' ? _t('ext.source_favorites') : $sourceKey;
-            if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], $conf['push_retryDelay'], $sourceName)) {
+            if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], 5, $sourceName)) {
+                $uconf = FreshRSS_Context::$user_conf;
+                if ($uconf) {
+                    $uconf->EinkPush_last_push = time();
+                    $uconf->EinkPush_last_push_type = 'manual';
+                    $uconf->save();
+                }
+                if ($isSilent) { header('Content-Type: application/json'); echo json_encode(['status' => 'ok', 'message' => _t('ext.msg_push_success_single')]); exit; }
                 Minz_Request::good(_t('ext.msg_push_success_single'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
             } else {
+                if ($isSilent) { header('Content-Type: application/json'); echo json_encode(['status' => 'error', 'message' => _t('ext.msg_push_failed_single')]); exit; }
                 Minz_Request::bad(_t('ext.msg_push_failed_single'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
             }
         } catch (Exception $e) {
+            if ($isSilent) { header('Content-Type: application/json'); echo json_encode(['status' => 'error', 'message' => $e->getMessage()]); exit; }
             Minz_Request::bad($e->getMessage(), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
         }
     }
@@ -165,9 +470,11 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
 
     public function testEndpointAction(): void {
         $conf = $this->extension->getConfig();
-        $endpoint = $conf['push_endpoint'];
-        
-        if (empty($endpoint)) {
+        $endpoint = $this->getEndpoint($conf);
+        $isSilent = Minz_Request::param('silent') === '1';
+
+        if (empty($endpoint) || $endpoint === '/upload?path=/RSSFeeds') {
+            if ($isSilent) { header('Content-Type: application/json'); echo json_encode(['status' => 'error', 'message' => _t('ext.error_no_endpoint')]); exit; }
             Minz_Request::bad(_t('ext.error_no_endpoint'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
         }
 
@@ -176,11 +483,70 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         file_put_contents($testPath, 'Test EPUB content');
 
         if ($this->helper->pushToEndpoint($testPath, $endpoint, 1, 1, 'Connection Test')) {
+            // On successful push, also fetch device status
+            $deviceAddress = $conf['device_address'] ?? 'http://crosspoint.local';
+            $statusUrl = rtrim($deviceAddress, '/') . '/api/status';
+            
+            $deviceInfo = null;
+            try {
+                // Use cURL for better error handling and CSP compliance
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $statusUrl);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+                curl_setopt($ch, CURLOPT_USERAGENT, 'EinkPush/1.0');
+                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/json']);
+                
+                $statusResponse = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+                
+                if ($statusResponse !== false && $httpCode === 200) {
+                    $deviceInfo = json_decode($statusResponse, true);
+                }
+            } catch (Exception $e) {
+                error_log('[EinkPush] Failed to fetch device status: ' . $e->getMessage());
+            }
+            
+            if ($isSilent) { 
+                header('Content-Type: application/json'); 
+                $response = ['status' => 'ok', 'message' => _t('ext.push_test_sent')];
+                if ($deviceInfo) {
+                    $response['deviceInfo'] = $deviceInfo;
+                }
+                echo json_encode($response);
+                exit; 
+            }
             Minz_Request::good(_t('ext.push_test_sent'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
         } else {
+            if ($isSilent) { header('Content-Type: application/json'); echo json_encode(['status' => 'error', 'message' => _t('ext.push_test_failed', 'Check logs')]); exit; }
             Minz_Request::bad(_t('ext.push_test_failed', 'Check logs'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
         }
         @unlink($testPath);
+    }
+
+    public function downloadFileAction(): void {
+        $sourceKey = Minz_Request::param('source', '');
+        if (empty($sourceKey)) {
+            header('HTTP/1.1 400 Bad Request');
+            exit;
+        }
+        $epubDir = $this->extension->getEpubDir();
+        $label = $this->helper->sourceLabel($sourceKey);
+        $pattern = $epubDir . '*' . preg_quote($label, '/') . '*.epub';
+        $files = glob($pattern);
+        if (empty($files)) {
+            // Try without label
+            $pattern = $epubDir . '*' . preg_quote($sourceKey, '/') . '*.epub';
+            $files = glob($pattern);
+        }
+        if (empty($files)) {
+            header('HTTP/1.1 404 Not Found');
+            exit;
+        }
+        $path = max($files, function($a, $b) { return filemtime($a) - filemtime($b); });
+        $this->downloadFile($path);
     }
 
     public function previewAction(): void {
@@ -267,8 +633,8 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
             }
         } else {
             // Default: Push
-            $endpoint = $conf['push_endpoint'];
-            if (empty($endpoint)) {
+            $endpoint = $this->getEndpoint($conf);
+            if (empty($endpoint) || $endpoint === '/upload?path=/RSSFeeds') {
                 header('Content-Type: application/json');
                 echo json_encode(['status' => 'error', 'message' => 'No endpoint configured']);
                 exit;
@@ -284,8 +650,16 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
                 $success = 0; $failed = 0;
                 foreach ($paths as $sk => $path) {
                     $sourceName = $sk === 'favorites' ? _t('ext.source_favorites') : $sk;
-                    if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], $conf['push_retryDelay'], $sourceName)) $success++;
+                    if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], 5, $sourceName)) $success++;
                     else $failed++;
+                }
+                if ($success > 0) {
+                    $uconf = FreshRSS_Context::$user_conf;
+                    if ($uconf) {
+                        $uconf->EinkPush_last_push = time();
+                        $uconf->EinkPush_last_push_type = 'manual';
+                        $uconf->save();
+                    }
                 }
                 header('Content-Type: application/json');
                 echo json_encode(['status' => 'ok', 'success' => $success, 'failed' => $failed]);
@@ -304,7 +678,15 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
                     exit;
                 }
                 $sourceName = $sourceKey === 'favorites' ? _t('ext.source_favorites') : $sourceKey;
-                $res = $this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], $conf['push_retryDelay'], $sourceName);
+                $res = $this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], 5, $sourceName);
+                if ($res) {
+                    $uconf = FreshRSS_Context::$user_conf;
+                    if ($uconf) {
+                        $uconf->EinkPush_last_push = time();
+                        $uconf->EinkPush_last_push_type = 'manual';
+                        $uconf->save();
+                    }
+                }
                 header('Content-Type: application/json');
                 echo json_encode(['status' => $res ? 'ok' : 'error']);
                 exit;

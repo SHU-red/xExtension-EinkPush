@@ -799,22 +799,19 @@
         if (!el) return;
         const lastPing = parseInt(el.dataset.lastPing || '0');
         const intervalMin = parseInt(el.dataset.intervalMin || '5');
-        if (!lastPing) {
-            el.textContent = '—';
-            return;
-        }
         const update = () => {
             const now = Math.floor(Date.now() / 1000);
-            const next = lastPing + (intervalMin * 60);
+            const last = lastPing || now;
+            const next = last + (intervalMin * 60);
             const diff = next - now;
             if (diff <= 0) {
-                el.textContent = 'Due now';
+                el.textContent = '🔔 Next: Due now';
                 el.style.color = '#28a745';
                 return;
             }
             const m = Math.floor(diff / 60);
             const s = diff % 60;
-            el.textContent = m + 'm ' + (s < 10 ? '0' : '') + s + 's';
+            el.textContent = '🔔 Next: ' + m + 'm ' + (s < 10 ? '0' : '') + s + 's';
             el.style.color = '#e66a19';
         };
         update();

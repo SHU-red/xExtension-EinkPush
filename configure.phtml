@@ -23,25 +23,18 @@ $history = $helper->getHistory();
             <h2><?= _t('ext.title') ?> <span class="ep-version"><?= _t('ext.version') ?> <?= $this::VERSION ?></span></h2>
             <p><?= _t('ext.description') ?></p>
             <?php
-            $lastPingStr = '—';
-            if (!empty($cfg['last_ping']) && $cfg['last_ping'] > 0) {
-                $lastPingStr = date('Y-m-d H:i', $cfg['last_ping']);
-                $lastPingStr .= $cfg['last_ping_status'] === 'online' ? ' ✅ Online' : ' ❌ Offline';
-            }
-
             $lastPushStr = '—';
             if (!empty($cfg['last_push']) && $cfg['last_push'] > 0) {
                 $lastPushStr = date('Y-m-d H:i', $cfg['last_push']);
                 $lps = $cfg['last_push_status'] ?? '';
-                if ($lps === 'success') $lastPushStr .= ' ✅ Success';
-                elseif ($lps === 'partial') $lastPushStr .= ' ⚠️ Partial';
+                if ($lps === 'success') $lastPushStr .= ' ✅';
+                elseif ($lps === 'partial') $lastPushStr .= ' ⚠️';
             }
             ?>
             <p class="ep-last-push-header">
-                <span>Last Ping: <?= $lastPingStr ?></span>
-                <span style="margin-left:12px;">Last Push: <?= $lastPushStr ?></span>
+                <span>Last Push: <?= $lastPushStr ?></span>
                 <?php if (!empty($cfg['auto_push_enabled'])): ?>
-                    <span style="margin-left:12px; color:#e66a19;" id="ep-next-ping" data-last-ping="<?= (int)($cfg['last_ping'] ?? 0) ?>" data-interval-min="<?= (int)($cfg['ping_interval'] ?? 5) ?>"></span>
+                    <span id="ep-next-ping" data-last-ping="<?= (int)($cfg['last_ping'] ?? 0) ?>" data-interval-min="<?= (int)($cfg['ping_interval'] ?? 5) ?>"></span>
                 <?php endif; ?>
             </p>
         </div>

@@ -1,7 +1,7 @@
 <?php
 
 class EinkPushExtension extends Minz_Extension {
-    const VERSION = '1.2.0';
+    const VERSION = '1.2.1';
 
     public function init() {
         $this->registerController('EinkPush');

@@ -9,6 +9,7 @@ class EinkPushExtension extends Minz_Extension {
         
         $conf = FreshRSS_Context::$user_conf;
         if ($conf) {
+            $this->ensureDaemon();
             $this->checkAutoPush($conf);
         }
 
@@ -37,6 +38,57 @@ class EinkPushExtension extends Minz_Extension {
         Minz_View::appendScript($scriptUrl);
     }
 
+    private function ensureDaemon() {
+        $conf = FreshRSS_Context::$user_conf;
+        if (empty($conf->EinkPush_auto_push_enabled)) return;
+
+        $pidFile = '/tmp/einkpush_daemon.pid';
+        if (file_exists($pidFile)) {
+            $pid = intval(trim(file_get_contents($pidFile)));
+            if ($pid > 0 && posix_kill($pid, 0)) return; // already running
+            @unlink($pidFile);
+        }
+
+        $daemonFile = $this->getPath() . '/FreshExtension_EinkPush_Daemon.php';
+        $phpBin = PHP_BINARY ?: '/usr/bin/php';
+        $cmd = '/bin/sh -c "nohup ' . escapeshellarg($phpBin) . ' ' . escapeshellarg($daemonFile) . ' > /dev/null 2>&1 &"';
+        exec($cmd, $out, $ret);
+        error_log('[EinkPush] Daemon auto-start: ret=' . $ret);
+    }
+
+    private function manageDaemon(bool $start) {
+        $daemonFile = $this->getPath() . '/FreshExtension_EinkPush_Daemon.php';
+        $phpBin = PHP_BINARY ?: '/usr/bin/php';
+
+        if ($start) {
+            // Check if already running
+            $pidFile = '/tmp/einkpush_daemon.pid';
+            if (file_exists($pidFile)) {
+                $pid = intval(trim(file_get_contents($pidFile)));
+                if ($pid > 0 && posix_kill($pid, 0)) {
+                    error_log('[EinkPush] Daemon already running (PID ' . $pid . ')');
+                    return;
+                }
+                @unlink($pidFile);
+            }
+            $cmd = '/bin/sh -c "nohup ' . escapeshellarg($phpBin) . ' ' . escapeshellarg($daemonFile) . ' > /dev/null 2>&1 &"';
+            exec($cmd, $out, $ret);
+            error_log('[EinkPush] Daemon start: ret=' . $ret);
+        } else {
+            // Stop
+            $pidFile = '/tmp/einkpush_daemon.pid';
+            if (file_exists($pidFile)) {
+                $pid = intval(trim(file_get_contents($pidFile)));
+                if ($pid > 0) {
+                    posix_kill($pid, SIGTERM);
+                    sleep(1);
+                    @unlink($pidFile);
+                }
+            }
+            error_log('[EinkPush] Daemon stopped');
+        }
+    }
+
     public function handleConfigureAction() {
         $this->registerTranslates();
         $this->ensureDefaults();
@@ -52,8 +104,15 @@ class EinkPushExtension extends Minz_Extension {
             $conf->EinkPush_screenHeight = max(100, (int) Minz_Request::param('screenHeight', 800, true));
             $conf->EinkPush_fontSize = max(0.5, min(3.0, (float) Minz_Request::param('fontSize', 1.0, true)));
             $conf->EinkPush_showSidebarButton = !empty($_POST['showSidebarButton']) ? 1 : 0;
+            $autoWasOn = !empty($conf->EinkPush_auto_push_enabled);
             $conf->EinkPush_auto_push_enabled = !empty($_POST['auto_push_enabled']) ? 1 : 0;
-            
+            $autoNowOn = !empty($conf->EinkPush_auto_push_enabled);
+
+            // Start/stop daemon on change
+            if ($autoNowOn !== $autoWasOn) {
+                $this->manageDaemon($autoNowOn);
+            }
+
             error_log('[EinkPush] Saving showSidebarButton: ' . $conf->EinkPush_showSidebarButton);
 
             // Push settings

@@ -62,10 +62,10 @@ if (!$user) exit(1);
 
 $log('User: ' . $user);
 FreshRSS_Context::initUser($user);
-require_once __DIR__ . '/FreshExtension_EinkPush_Helper.php';
-
+$conf = FreshRSS_Context::$user_conf;
 $pingIntervalMin = (int)($conf->EinkPush_ping_interval ?? 5);
 $cooldownH = (int)($conf->EinkPush_push_cooldown ?? 20);
+require_once __DIR__ . '/FreshExtension_EinkPush_Helper.php';
 
 while (true) {
     // Reload config each cycle
@@ -154,5 +154,6 @@ while (true) {
         $conf->save();
         $log('Device offline');
     }
+}
 
 

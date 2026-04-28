@@ -605,53 +605,49 @@
         if (isOnSettingsPage || isSettingsUrl) return;
 
         function createSidebarContent() {
-            // Match native button styles exactly
-            let subBtn = document.querySelector('#btn-subscription');
-            let addBtn = document.querySelector('#btn-add');
+            // Read native button styles from .stick.configure-feeds (the blue "Subscription management" element)
             let stick = document.querySelector('.stick.configure-feeds');
+            let btnWidth = null;
+            let btnBorderRadius = '4px';
+            let btnBorder = '1px solid #333';
+            let btnPadding = '0.5rem';
+            let btnFontFamily, btnFontSize, btnLineHeight;
 
-            let btnWidth, btnBorderRadius, btnBorder;
-            // Read border from container (.stick.configure-feeds) which has the visible border
             if (stick) {
                 let cs = window.getComputedStyle(stick);
-                btnBorderRadius = cs.borderRadius;
-                btnBorder = cs.borderWidth + ' ' + cs.borderStyle + ' ' + cs.borderColor;
                 btnWidth = cs.width;
-            } else if (subBtn) {
-                let cs = window.getComputedStyle(subBtn);
                 btnBorderRadius = cs.borderRadius;
                 btnBorder = cs.borderWidth + ' ' + cs.borderStyle + ' ' + cs.borderColor;
-                let subW = parseFloat(cs.width);
-                let addW = addBtn ? parseFloat(window.getComputedStyle(addBtn).width) : 36;
-                btnWidth = (subW + addW) + 'px';
-            } else {
-                btnWidth = '195px';
-                btnBorderRadius = '3px';
-                btnBorder = '1px solid #333';
+                btnPadding = cs.paddingTop + ' ' + cs.paddingRight + ' ' + cs.paddingBottom + ' ' + cs.paddingLeft;
+                btnFontFamily = cs.fontFamily;
+                btnFontSize = cs.fontSize;
+                btnLineHeight = cs.lineHeight;
             }
 
+            // Wrapper: flex center to match native button position
             const wrapper = document.createElement('div');
+            wrapper.style.display = 'flex';
+            wrapper.style.justifyContent = 'center';
             wrapper.style.padding = '4px 0';
 
-            // Orange button matching native .btn-important specs exactly
+            // Orange button matching native button specs exactly
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.id = 'ep-sidebar-push-now';
             btn.title = 'E-INK PUSH';
-            btn.style.width = btnWidth;
-            btn.style.minHeight = '25px';
+            if (btnWidth) btn.style.width = btnWidth;
             btn.style.boxSizing = 'border-box';
             btn.style.borderRadius = btnBorderRadius;
+            btn.style.setProperty('border-radius', btnBorderRadius, 'important');
             btn.style.background = '#e66a19';
-            btn.style.border = btnBorder || '1px solid #333';
+            btn.style.border = btnBorder;
             btn.style.color = '#fff';
             btn.style.cursor = 'pointer';
-            btn.style.fontFamily = '"OpenSans", Cantarell, Helvetica, Arial, sans-serif';
-            btn.style.fontSize = '0.9rem';
-            btn.style.lineHeight = '1.7';
+            btn.style.fontFamily = btnFontFamily || '"OpenSans", Cantarell, Helvetica, Arial, sans-serif';
+            btn.style.fontSize = btnFontSize || '0.9rem';
+            btn.style.lineHeight = btnLineHeight || '1.7';
             btn.style.fontWeight = 'normal';
-            btn.style.padding = '0.25rem 0.5rem';
-            btn.style.verticalAlign = 'middle';
+            btn.style.padding = btnPadding || '0.5rem';
             btn.style.display = 'flex';
             btn.style.alignItems = 'center';
             btn.style.justifyContent = 'space-between';

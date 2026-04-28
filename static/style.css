@@ -432,10 +432,6 @@ body.theme-dark .ep-footer {
     .ep-grid { grid-template-columns: 1fr; }
 }
 /* --- Sidebar button (matches FreshRSS style, orange) --- */
-.ep-sidebar-box {
-    padding: 0;
-    margin: 0;
-}
 #ep-sidebar-btn-main {
     width: 100%;
     display: block;
@@ -444,6 +440,7 @@ body.theme-dark .ep-footer {
 #ep-sidebar-push-now {
     text-decoration: none !important;
     cursor: pointer !important;
+    border-radius: 4px !important;
 }
 
 .ep-select-small {

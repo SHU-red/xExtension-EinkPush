@@ -801,17 +801,22 @@
         const intervalMin = parseInt(el.dataset.intervalMin || '5');
         const update = () => {
             const now = Math.floor(Date.now() / 1000);
-            const last = lastPing || now;
-            const next = last + (intervalMin * 60);
+            // If never pinged, use current time as baseline
+            const baseline = lastPing > 0 ? lastPing : now;
+            const next = baseline + (intervalMin * 60);
             const diff = next - now;
             if (diff <= 0) {
-                el.textContent = '🔔 Next: Due now';
+                el.textContent = '🔔 Due';
                 el.style.color = '#28a745';
                 return;
             }
-            const m = Math.floor(diff / 60);
+            const h = Math.floor(diff / 3600);
+            const m = Math.floor((diff % 3600) / 60);
             const s = diff % 60;
-            el.textContent = '🔔 Next: ' + m + 'm ' + (s < 10 ? '0' : '') + s + 's';
+            let txt = '';
+            if (h > 0) txt = h + 'h ';
+            txt += (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+            el.textContent = '🔔 ' + txt;
             el.style.color = '#e66a19';
         };
         update();

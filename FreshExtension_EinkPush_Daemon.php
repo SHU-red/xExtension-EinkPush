@@ -64,39 +64,46 @@ $log('User: ' . $user);
 FreshRSS_Context::initUser($user);
 require_once __DIR__ . '/FreshExtension_EinkPush_Helper.php';
 
-$checkEvery = 30; // seconds
+$pingIntervalMin = (int)($conf->EinkPush_ping_interval ?? 5);
+$cooldownH = (int)($conf->EinkPush_push_cooldown ?? 20);
 
 while (true) {
-    $now = time();
+    // Reload config each cycle
+    FreshRSS_Context::initUser($user);
     $conf = FreshRSS_Context::$user_conf;
 
     $autoOn = !empty($conf->EinkPush_auto_push_enabled);
     $endpoint = $conf->EinkPush_push_endpoint ?? '';
-    $lastPing = (int)($conf->EinkPush_last_ping ?? 0);
-    $lastPush = (int)($conf->EinkPush_last_push ?? 0);
-    $pingInt = (int)($conf->EinkPush_ping_interval ?? 5) * 60;
-    $cooldown = (int)($conf->EinkPush_push_cooldown ?? 20) * 3600;
 
     if (!$autoOn || !$endpoint) {
-        sleep($checkEvery);
+        sleep(60);
         continue;
     }
 
+    $pingInt = (int)($conf->EinkPush_ping_interval ?? $pingIntervalMin) * 60;
+    $cooldown = (int)($conf->EinkPush_push_cooldown ?? $cooldownH) * 3600;
+    $lastPush = (int)($conf->EinkPush_last_push ?? 0);
+    $lastPing = (int)($conf->EinkPush_last_ping ?? 0);
+
+    $now = time();
     $cooldownOk = ($now - $lastPush) >= $cooldown;
-    $pingOk = ($now - $lastPing) >= $pingInt;
 
     if (!$cooldownOk) {
+        // Sleep until cooldown expires
         $rem = $cooldown - ($now - $lastPush);
-        sleep(min($checkEvery, $rem));
-        continue;
-    }
-    if (!$pingOk) {
-        $rem = $pingInt - ($now - $lastPing);
-        sleep(min($checkEvery, $rem));
+        sleep($rem);
         continue;
     }
 
-    $log('Check device...');
+    // Sleep until ping interval expires
+    $nextPing = $lastPing + $pingInt;
+    $sleepUntil = $nextPing - $now;
+    if ($sleepUntil > 0) {
+        sleep($sleepUntil);
+        continue;
+    }
+
+    $log('Ping...');
     $conf->EinkPush_last_ping = $now;
     $conf->save();
 
@@ -148,5 +155,4 @@ while (true) {
         $log('Device offline');
     }
 
-    sleep($checkEvery);
-}
+

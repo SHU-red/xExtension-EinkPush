@@ -661,13 +661,14 @@
             }
             btnMain.style.background = '#c45510';
             btnMain.style.color = '#ffffff';
+            btnMain.style.border = '1px solid #e87a30';
             btnMain.style.cursor = 'pointer';
             btnMain.style.whiteSpace = 'nowrap';
             btnMain.style.overflow = 'hidden';
             btnMain.style.textOverflow = 'ellipsis';
             btnMain.style.outline = 'none';
             btnMain.style.flex = '1';
-            btnMain.style.textAlign = 'left';
+            btnMain.style.textAlign = 'center';
             btnMain.textContent = 'E-INK PUSH';
             btnMain.onmouseover = () => btnMain.style.background = '#a84810';
             btnMain.onmouseout = () => btnMain.style.background = '#c45510';

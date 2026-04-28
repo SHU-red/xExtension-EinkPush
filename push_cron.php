@@ -46,7 +46,7 @@ $conf     = FreshRSS_Context::$user_conf;
 $sources  = $conf->EinkPush_sources ?? [];
 $endpoint = $conf->EinkPush_push_endpoint ?? '';
 $retries  = max(0, (int) ($conf->EinkPush_push_retries ?? 3));
-$delay    = max(1, (int) ($conf->EinkPush_push_retryDelay ?? 10));
+$delay    = 5; // Fixed 5s retry delay
 
 if ($endpoint === '') {
     fwrite(STDERR, "Error: No push endpoint configured for user '{$username}'.\n");

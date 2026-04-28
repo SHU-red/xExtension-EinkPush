@@ -118,7 +118,7 @@ $history = $helper->getHistory();
                     <div class="ep-form-group" style="flex:1;">
                         <label><?= _t('ext.push_ping_interval') ?></label>
                         <input type="number" name="ping_interval" value="<?= (int)($cfg['ping_interval'] ?? 5) ?>" min="1">
-                        <p class="help"><?= _t('ext.push_ping_interval_help') ?></p>
+                        <p class="help"><?= _t('ext.push_ping_interval_help') ?> (Checked on every page visit)</p>
                     </div>
                     <div class="ep-form-group" style="flex:1;">
                         <label><?= _t('ext.push_cooldown') ?></label>
@@ -131,10 +131,7 @@ $history = $helper->getHistory();
                     <div class="ep-form-group" style="flex:1;">
                         <label><?= _t('ext.push_retries') ?></label>
                         <input type="number" name="push_retries" value="<?= (int)$cfg['push_retries'] ?>" min="0" max="20">
-                    </div>
-                    <div class="ep-form-group" style="flex:1;">
-                        <label><?= _t('ext.push_retryDelay') ?> (s)</label>
-                        <input type="number" name="push_retryDelay" value="<?= (int)$cfg['push_retryDelay'] ?>" min="1" max="300">
+                        <p class="help">Retries per source on push error. 5s delay between retries.</p>
                     </div>
                 </div>
 

@@ -1,7 +1,7 @@
 <?php
 
 class EinkPushExtension extends Minz_Extension {
-    const VERSION = '1.1.8';
+    const VERSION = '1.1.9';
 
     public function init() {
         $this->registerController('EinkPush');
@@ -67,7 +67,6 @@ class EinkPushExtension extends Minz_Extension {
             $conf->EinkPush_ping_interval = max(1, (int) Minz_Request::param('ping_interval', 5, true));
             $conf->EinkPush_push_cooldown = max(1, (int) Minz_Request::param('push_cooldown', 20, true));
             $conf->EinkPush_push_retries = max(0, min(20, (int) Minz_Request::param('push_retries', 3, true)));
-            $conf->EinkPush_push_retryDelay = max(1, min(300, (int) Minz_Request::param('push_retryDelay', 10, true)));
 
             // Device address and folder name for push endpoint
             $deviceAddress = trim((string) Minz_Request::param('device_address', 'http://crosspoint.local', true));
@@ -179,7 +178,7 @@ class EinkPushExtension extends Minz_Extension {
             'ping_interval'   => $conf->EinkPush_ping_interval,
             'push_cooldown'   => $conf->EinkPush_push_cooldown,
             'push_retries'    => $conf->EinkPush_push_retries,
-            'push_retryDelay' => $conf->EinkPush_push_retryDelay,
+
             'push_token'      => $conf->EinkPush_push_token,
             'readability_url' => $conf->EinkPush_readability_url,
             'device_address' => $conf->EinkPush_device_address,
@@ -215,7 +214,6 @@ class EinkPushExtension extends Minz_Extension {
             'EinkPush_last_push_type' => '',
             'EinkPush_last_push_status' => '',
             'EinkPush_push_retries'   => 3,
-            'EinkPush_push_retryDelay'=> 10,
             'EinkPush_push_token'     => '',
             'EinkPush_readability_url'=> '',
         ];
@@ -255,19 +253,24 @@ class EinkPushExtension extends Minz_Extension {
         $pingInterval = (int) ($conf->EinkPush_ping_interval ?? 5) * 60;
         $cooldown = (int) ($conf->EinkPush_push_cooldown ?? 20) * 3600;
 
+        error_log('[EinkPush] AutoPush check: now=' . $now . ' lastPing=' . $lastPing . ' lastPush=' . $lastPush . ' pingInterval=' . $pingInterval . ' cooldown=' . $cooldown);
+
         // 1. Check cooldown
         if (($now - $lastPush) < $cooldown) {
+            error_log('[EinkPush] AutoPush blocked: cooldown not expired');
             return;
         }
 
         // 2. Check ping interval
         if (($now - $lastPing) < $pingInterval) {
+            error_log('[EinkPush] AutoPush blocked: ping interval not expired');
             return;
         }
 
         // 3. Update last ping time immediately to avoid concurrent pings if possible
         $conf->EinkPush_last_ping = $now;
-        $conf->save();
+        $saved = $conf->save();
+        error_log('[EinkPush] Pinging device... save=' . var_export($saved, true));
 
         // 4. Ping device
         $endpoint = $conf->EinkPush_push_endpoint;
@@ -295,7 +298,7 @@ class EinkPushExtension extends Minz_Extension {
                     if (empty($srcCfg['autoPush'])) continue;
 
                     $sourceName = $key === 'favorites' ? _t('ext.source_favorites') : $key;
-                    if ($helper->pushToEndpoint($path, $endpoint, (int)$conf->EinkPush_push_retries, (int)$conf->EinkPush_push_retryDelay, $sourceName)) {
+                    if ($helper->pushToEndpoint($path, $endpoint, (int)$conf->EinkPush_push_retries, 5, $sourceName)) {
                         $success++;
                     } else {
                         $failed++;

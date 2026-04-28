@@ -152,7 +152,7 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
             'epubDir' => $epubDir,
             'sources' => $sourcesToProcess,
             'pushRetries' => (int)($conf['push_retries'] ?? 3),
-            'pushRetryDelay' => (int)($conf['push_retryDelay'] ?? 5),
+            'pushRetryDelay' => (int)(5 ?? 5),
             'screenWidth' => $screenWidth,
             'screenHeight' => $screenHeight,
             'fontSize' => $fontSize,
@@ -319,7 +319,7 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
             $pushedFiles++;
             $sourceName = $helper->sourceLabel($sourceKey);
             $writeProgress('pushing', ['source' => $sourceName, 'fileIndex' => $pushedFiles, 'totalFiles' => $totalFiles]);
-            if ($helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], $conf['push_retryDelay'], $sourceName)) $success++; else $failed++;
+            if ($helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], 5, $sourceName)) $success++; else $failed++;
         }
 
         // Save last push time
@@ -387,7 +387,7 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
             $success = 0; $failed = 0;
             foreach ($paths as $sourceKey => $path) {
                 $sourceName = $sourceKey === 'favorites' ? _t('ext.source_favorites') : $sourceKey;
-                if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], $conf['push_retryDelay'], $sourceName)) $success++;
+                if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], 5, $sourceName)) $success++;
                 else $failed++;
             }
 
@@ -435,7 +435,7 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
             }
 
             $sourceName = $sourceKey === 'favorites' ? _t('ext.source_favorites') : $sourceKey;
-            if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], $conf['push_retryDelay'], $sourceName)) {
+            if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], 5, $sourceName)) {
                 $uconf = FreshRSS_Context::$user_conf;
                 if ($uconf) {
                     $uconf->EinkPush_last_push = time();
@@ -650,7 +650,7 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
                 $success = 0; $failed = 0;
                 foreach ($paths as $sk => $path) {
                     $sourceName = $sk === 'favorites' ? _t('ext.source_favorites') : $sk;
-                    if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], $conf['push_retryDelay'], $sourceName)) $success++;
+                    if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], 5, $sourceName)) $success++;
                     else $failed++;
                 }
                 if ($success > 0) {
@@ -678,7 +678,7 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
                     exit;
                 }
                 $sourceName = $sourceKey === 'favorites' ? _t('ext.source_favorites') : $sourceKey;
-                $res = $this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], $conf['push_retryDelay'], $sourceName);
+                $res = $this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], 5, $sourceName);
                 if ($res) {
                     $uconf = FreshRSS_Context::$user_conf;
                     if ($uconf) {

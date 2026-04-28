@@ -793,39 +793,77 @@
         }
     }
 
-    // Next ping countdown timer
+    // Next ping countdown timer (3 states: countdown, pushing, cooldown)
     function setupNextPingTimer() {
         const el = document.getElementById('ep-next-ping');
         if (!el) return;
+        const daemonUrl = el.dataset.daemonUrl || '';
         const lastPing = parseInt(el.dataset.lastPing || '0');
         const intervalMin = parseInt(el.dataset.intervalMin || '5');
         const lastPush = parseInt(el.dataset.lastPush || '0');
         const cooldownH = parseInt(el.dataset.cooldownH || '20');
+
+        const fmtTime = (diff) => {
+            if (diff <= 0) return 'Due';
+            const h = Math.floor(diff / 3600);
+            const m = Math.floor((diff % 3600) / 60);
+            const s = diff % 60;
+            let t = '';
+            if (h > 0) t = h + ':';
+            t += (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+            return t;
+        };
+
         const update = () => {
+            // Fallback: compute from config timestamps
             const now = Math.floor(Date.now() / 1000);
             const baselinePing = lastPing > 0 ? lastPing : now;
             const baselinePush = lastPush > 0 ? lastPush : 0;
             const nextPing = baselinePing + (intervalMin * 60);
             const nextCoold = baselinePush + (cooldownH * 3600);
-            // next check = max of ping interval expiry and cooldown expiry
             const nextCheck = Math.max(nextPing, baselinePush > 0 ? nextCoold : nextPing);
             let diff = nextCheck - now;
+
             if (diff <= 0) {
                 el.textContent = '🔔 Due';
                 el.style.color = '#28a745';
                 return;
             }
-            const h = Math.floor(diff / 3600);
-            const m = Math.floor((diff % 3600) / 60);
-            const s = diff % 60;
-            let txt = '';
-            if (h > 0) txt = h + ':';
-            txt += (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
-            el.textContent = '🔔 ' + txt;
-            el.style.color = '#e66a19';
+
+            // Poll daemon status for real state
+            if (daemonUrl) {
+                fetch(daemonUrl, { cache: 'no-store' })
+                    .then(r => r.json())
+                    .then(d => {
+                        const n = Math.floor(Date.now() / 1000);
+                        if (d.state === 'pushing') {
+                            el.textContent = '⚡ ' + (d.msg || 'Pushing...');
+                            el.style.color = '#28a745';
+                        } else if (d.state === 'cooldown') {
+                            const cd = (d.next || nextCoold) - n;
+                            el.textContent = '⏸️ ' + (d.msg || 'Cooldown') + ': ' + fmtTime(cd);
+                            el.style.color = '#ff9800';
+                        } else if (d.state === 'countdown') {
+                            const pc = (d.next || nextPing) - n;
+                            el.textContent = '🔔 ' + fmtTime(pc);
+                            el.style.color = '#e66a19';
+                        } else {
+                            el.textContent = '🔔 ' + fmtTime(diff);
+                            el.style.color = '#e66a19';
+                        }
+                    })
+                    .catch(() => {
+                        el.textContent = '🔔 ' + fmtTime(diff);
+                        el.style.color = '#e66a19';
+                    });
+            } else {
+                el.textContent = '🔔 ' + fmtTime(diff);
+                el.style.color = '#e66a19';
+            }
         };
+
         update();
-        setInterval(update, 1000);
+        setInterval(update, 2000);
     }
 
     if (document.readyState === 'loading') {

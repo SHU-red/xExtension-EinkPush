@@ -20,8 +20,21 @@ if (file_exists($pidFile)) {
 }
 
 file_put_contents($pidFile, getmypid());
-register_shutdown_function(function() use ($pidFile) {
+
+$statusFile = '/tmp/einkpush_daemon_status.json';
+$writeStatus = function($state, $nextAction, $msg = '') {
+    global $statusFile;
+    file_put_contents($statusFile, json_encode([
+        'state' => $state,
+        'next'  => $nextAction,
+        'msg'   => $msg,
+        'time'  => time(),
+    ], JSON_UNESCAPED_SLASHES));
+};
+
+register_shutdown_function(function() use ($pidFile, $statusFile) {
     @unlink($pidFile);
+    @unlink($statusFile);
 });
 
 $log = function($msg) {
@@ -82,6 +95,7 @@ while (true) {
     $endpoint = (string)($conf->EinkPush_push_endpoint ?? '');
 
     if (!$autoOn || !$endpoint) {
+        $writeStatus('off', 0, 'Auto-push disabled');
         $log('Auto-push=' . ($autoOn ? 'on' : 'off') . ' endpoint=' . ($endpoint ? 'set' : 'none'));
         sleep(60);
         continue;
@@ -96,6 +110,7 @@ while (true) {
     $cooldownOk = ($now - $lastPush) >= $cooldown;
     if (!$cooldownOk) {
         $rem = $cooldown - ($now - $lastPush);
+        $writeStatus('cooldown', $lastPush + $cooldown, 'Push cooldown');
         $log('Cooldown: ' . gmdate('H:i:s', $rem) . ' remaining');
         sleep($rem);
         continue;
@@ -104,12 +119,13 @@ while (true) {
     $nextPing = $lastPing + $pingInt;
     $sleepUntil = $nextPing - $now;
     if ($sleepUntil > 0) {
+        $writeStatus('countdown', $nextPing, 'Next ping');
         $log('Ping in: ' . gmdate('H:i:s', $sleepUntil));
         sleep($sleepUntil);
         continue;
     }
 
-    $log('Ping...');
+    $writeStatus('pushing', 0, 'Checking device...');
     $conf->EinkPush_last_ping = $now;
     $conf->save();
 

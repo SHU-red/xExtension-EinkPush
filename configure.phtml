@@ -34,7 +34,7 @@ $history = $helper->getHistory();
             <p class="ep-last-push-header">
                 <span>Last Push: <?= $lastPushStr ?></span>
                 <?php if (!empty($cfg['auto_push_enabled'])): ?>
-                    <span id="ep-next-ping" data-last-ping="<?= (int)($cfg['last_ping'] ?? 0) ?>" data-interval-min="<?= (int)($cfg['ping_interval'] ?? 5) ?>" data-last-push="<?= (int)($cfg['last_push'] ?? 0) ?>" data-cooldown-h="<?= (int)($cfg['push_cooldown'] ?? 20) ?>"></span>
+                    <span id="ep-next-ping" data-last-ping="<?= (int)($cfg['last_ping'] ?? 0) ?>" data-interval-min="<?= (int)($cfg['ping_interval'] ?? 5) ?>" data-last-push="<?= (int)($cfg['last_push'] ?? 0) ?>" data-cooldown-h="<?= (int)($cfg['push_cooldown'] ?? 20) ?>" data-daemon-url="<?= _url('EinkPush', 'daemonStatus') ?>"></span>
                 <?php endif; ?>
             </p>
         </div>

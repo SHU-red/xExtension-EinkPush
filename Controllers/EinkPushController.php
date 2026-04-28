@@ -177,6 +177,16 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         exit;
     }
 
+    public function daemonStatusAction(): void {
+        $sf = '/tmp/einkpush_daemon_status.json';
+        if (!file_exists($sf)) {
+            echo json_encode(['state' => 'off', 'next' => 0, 'msg' => 'Daemon not running', 'time' => time()]);
+            exit;
+        }
+        echo file_get_contents($sf);
+        exit;
+    }
+
     public function generateRunAction(): void {
         header('Content-Type: application/json');
 

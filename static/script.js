@@ -605,7 +605,7 @@
         if (isOnSettingsPage || isSettingsUrl) return;
 
         function createSidebarContent() {
-            // Read styles from .stick.configure-feeds (has border, border-radius, padding, font)
+            // Read width/font from #btn-subscription, border/radius from .stick.configure-feeds
             let stick = document.querySelector('.stick.configure-feeds');
             let nativeBtn = document.querySelector('#btn-subscription');
 
@@ -616,14 +616,15 @@
             let btnFontFamily = '"OpenSans", Cantarell, Helvetica, Arial, sans-serif';
             let btnFontSize = '0.9rem';
             let btnLineHeight = '1.7';
-            let btnColor = '#fff';
 
             if (stick) {
                 let cs = window.getComputedStyle(stick);
-                btnWidth = cs.width;
                 btnBorderRadius = cs.borderRadius;
                 btnBorder = cs.border;
                 btnPadding = cs.paddingTop + ' ' + cs.paddingRight + ' ' + cs.paddingBottom + ' ' + cs.paddingLeft;
+            }
+            if (nativeBtn) {
+                let cs = window.getComputedStyle(nativeBtn);
                 btnFontFamily = cs.fontFamily;
                 btnFontSize = cs.fontSize;
                 btnLineHeight = cs.lineHeight;

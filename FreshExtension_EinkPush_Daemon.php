@@ -82,6 +82,7 @@ while (true) {
     $endpoint = $conf->EinkPush_push_endpoint ?? '';
 
     if (!$autoOn || !$endpoint) {
+        $log('Auto-push off or no endpoint');
         sleep(60);
         continue;
     }
@@ -90,21 +91,20 @@ while (true) {
     $cooldown = (int)($conf->EinkPush_push_cooldown ?? $cooldownH) * 3600;
     $lastPush = (int)($conf->EinkPush_last_push ?? 0);
     $lastPing = (int)($conf->EinkPush_last_ping ?? 0);
-
     $now = time();
-    $cooldownOk = ($now - $lastPush) >= $cooldown;
 
+    $cooldownOk = ($now - $lastPush) >= $cooldown;
     if (!$cooldownOk) {
-        // Sleep until cooldown expires
         $rem = $cooldown - ($now - $lastPush);
+        $log('Cooldown: ' . gmdate('H:i:s', $rem) . ' remaining');
         sleep($rem);
         continue;
     }
 
-    // Sleep until ping interval expires
     $nextPing = $lastPing + $pingInt;
     $sleepUntil = $nextPing - $now;
     if ($sleepUntil > 0) {
+        $log('Ping in: ' . gmdate('H:i:s', $sleepUntil));
         sleep($sleepUntil);
         continue;
     }

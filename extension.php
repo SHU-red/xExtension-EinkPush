@@ -40,7 +40,7 @@ class EinkPushExtension extends Minz_Extension {
 
     private function ensureDaemon() {
         $conf = FreshRSS_Context::$user_conf;
-        if (empty($conf->EinkPush_auto_push_enabled)) return;
+        if ((int)($conf->EinkPush_auto_push_enabled) <= 0) return;
 
         $pidFile = '/tmp/einkpush_daemon.pid';
         if (file_exists($pidFile)) {
@@ -104,9 +104,9 @@ class EinkPushExtension extends Minz_Extension {
             $conf->EinkPush_screenHeight = max(100, (int) Minz_Request::param('screenHeight', 800, true));
             $conf->EinkPush_fontSize = max(0.5, min(3.0, (float) Minz_Request::param('fontSize', 1.0, true)));
             $conf->EinkPush_showSidebarButton = !empty($_POST['showSidebarButton']) ? 1 : 0;
-            $autoWasOn = !empty($conf->EinkPush_auto_push_enabled);
+            $autoWasOn = (int)($conf->EinkPush_auto_push_enabled) > 0;
             $conf->EinkPush_auto_push_enabled = !empty($_POST['auto_push_enabled']) ? 1 : 0;
-            $autoNowOn = !empty($conf->EinkPush_auto_push_enabled);
+            $autoNowOn = (int)($conf->EinkPush_auto_push_enabled) > 0;
 
             // Start/stop daemon on change
             if ($autoNowOn !== $autoWasOn) {
@@ -302,7 +302,7 @@ class EinkPushExtension extends Minz_Extension {
     }
 
     private function checkAutoPush($conf) {
-        if (empty($conf->EinkPush_auto_push_enabled)) {
+        if ((int)($conf->EinkPush_auto_push_enabled) <= 0) {
             return;
         }
 

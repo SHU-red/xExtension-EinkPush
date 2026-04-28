@@ -78,11 +78,11 @@ while (true) {
     FreshRSS_Context::initUser($user);
     $conf = FreshRSS_Context::$user_conf;
 
-    $autoOn = !empty($conf->EinkPush_auto_push_enabled);
-    $endpoint = $conf->EinkPush_push_endpoint ?? '';
+    $autoOn = (int)($conf->EinkPush_auto_push_enabled) > 0;
+    $endpoint = (string)($conf->EinkPush_push_endpoint ?? '');
 
     if (!$autoOn || !$endpoint) {
-        $log('Auto-push=' . var_export($autoOn, true) . ' endpoint=' . var_export($endpoint, true));
+        $log('Auto-push=' . ($autoOn ? 'on' : 'off') . ' endpoint=' . ($endpoint ? 'set' : 'none'));
         sleep(60);
         continue;
     }

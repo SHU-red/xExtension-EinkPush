@@ -70,6 +70,7 @@ $trans = [
     'push_ping_interval_help' => 'How often to check if the device is online. Default: 5 minutes.',
     'push_cooldown' => 'Push Cooldown (hours)',
     'push_cooldown_help' => 'Wait this long after a successful push before checking again. Default: 20 hours.',
+    'push_retries' => 'Retries',
     'auto_push_last_ping' => 'Last Ping',
     'auto_push_last_push' => 'Last Push',
     'auto_push_next_ping' => 'Next Ping',

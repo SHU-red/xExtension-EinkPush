@@ -90,87 +90,86 @@ $history = $helper->getHistory();
         </div>
         </div>
 
-        <!-- Auto Push Settings Section -->
+        <!-- Push Settings Section -->
         <div id="push" class="ep-section">
             <div class="ep-section-body ep-card-form">
+                <!-- Settings subsection -->
                 <h3 class="ep-card-form-title"><?= _t('ext.upload_settings') ?></h3>
-                <p class="ep-mt-10 ep-mb-20"><?= _t('ext.upload_settings_desc') ?></p>
-
                 <div class="ep-form-group ep-mb-20">
                     <label><?= _t('ext.folder_name') ?></label>
                     <input type="text" name="folder_name" value="<?= htmlspecialchars($cfg['folder_name'] ?? 'RSSFeeds', ENT_QUOTES) ?>" placeholder="RSSFeeds" style="width: 100%;">
                     <input type="hidden" name="push_endpoint" value="<?= htmlspecialchars(rtrim($cfg['device_address'] ?? '', '/') . '/upload?path=/' . ltrim($cfg['folder_name'] ?? 'RSSFeeds', '/'), ENT_QUOTES) ?>">
-                    <p class="help"><?= _t('ext.folder_name_help') ?></p>
                 </div>
+
+                <!-- Auto Push subsection -->
+                <div class="ep-section-separator" style="margin: 20px 0; border: 0; border-top: 1px solid #ddd;"></div>
+                <h3 class="ep-card-form-title"><?= _t('ext.push_auto_enabled') ?></h3>
+                <p class="ep-mt-10 ep-mb-15"><?= _t('ext.push_auto_enabled_help') ?></p>
 
                 <div class="ep-form-group ep-mb-20">
                     <div class="ep-source-info" style="display: flex; align-items: center; gap: 10px;">
-                        <label class="ep-switch" title="<?= _t('ext.push_auto_enabled') ?>">
+                        <label class="ep-switch">
                             <input type="checkbox" name="auto_push_enabled" value="1" <?= !empty($cfg['auto_push_enabled']) ? 'checked' : '' ?>>
                             <span class="ep-slider"></span>
                         </label>
                         <span class="ep-source-name"><?= _t('ext.push_auto_enabled') ?></span>
                     </div>
-                    <p class="help"><?= _t('ext.push_auto_enabled_help') ?></p>
                 </div>
 
+                <!-- 3 number inputs in a row -->
                 <div class="ep-flex-center-gap-8 ep-mb-15">
                     <div class="ep-form-group" style="flex:1;">
                         <label><?= _t('ext.push_ping_interval') ?></label>
                         <input type="number" name="ping_interval" value="<?= (int)($cfg['ping_interval'] ?? 5) ?>" min="1">
-                        <p class="help"><?= _t('ext.push_ping_interval_help') ?> (Checked on every page visit)</p>
+                        <p class="help"><?= _t('ext.push_ping_interval_help') ?></p>
                     </div>
                     <div class="ep-form-group" style="flex:1;">
                         <label><?= _t('ext.push_cooldown') ?></label>
                         <input type="number" name="push_cooldown" value="<?= (int)($cfg['push_cooldown'] ?? 20) ?>" min="1">
                         <p class="help"><?= _t('ext.push_cooldown_help') ?></p>
                     </div>
-                </div>
-
-                <div class="ep-flex-center-gap-8">
                     <div class="ep-form-group" style="flex:1;">
                         <label><?= _t('ext.push_retries') ?></label>
-                        <input type="number" name="push_retries" value="<?= (int)$cfg['push_retries'] ?>" min="0" max="20">
-                        <p class="help">Retries per source on push error. 5s delay between retries.</p>
+                        <input type="number" name="push_retries" value="<?= (int)($cfg['push_retries'] ?? 0) ?>" min="0" max="20">
+                        <p class="help">5s delay between retries</p>
                     </div>
                 </div>
 
-                <!-- Auto Push Status -->
+                <!-- Auto Push Status (only when enabled) -->
                 <?php if (!empty($cfg['auto_push_enabled'])): ?>
-                <div class="ep-auto-push-status" style="margin-top:20px; padding:12px; background:#f0f4f8; border-radius:4px; border:1px solid #d0d7de;">
+                <div class="ep-auto-push-status" style="margin-top:15px; padding:12px; background:#f0f4f8; border-radius:4px; border:1px solid #d0d7de;">
+                    <?php
+                    $lastPingStr = '';
+                    if (!empty($cfg['last_ping']) && $cfg['last_ping'] > 0) {
+                        $lastPingStr = date('Y-m-d H:i', $cfg['last_ping']) . ' — ';
+                        $lastPingStr .= $cfg['last_ping_status'] === 'online' ? '✅ Online' : '❌ Offline';
+                    } else {
+                        $lastPingStr = '—';
+                    }
+
+                    $lastPushStr = '';
+                    if (!empty($cfg['last_push']) && $cfg['last_push'] > 0) {
+                        $lastPushStr = date('Y-m-d H:i', $cfg['last_push']) . ' — ';
+                        $lps = $cfg['last_push_status'] ?? '';
+                        if ($lps === 'success') $lastPushStr .= '✅ Success';
+                        elseif ($lps === 'partial') $lastPushStr .= '⚠️ Partial';
+                        else $lastPushStr .= '⚠️';
+                    } else {
+                        $lastPushStr = '—';
+                    }
+                    ?>
                     <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
-                        <div style="flex:1; min-width:180px;">
-                            <div style="font-size:0.75rem; color:#666; margin-bottom:2px;"><?= _t('ext.auto_push_last_ping') ?></div>
-                            <div style="display:flex; align-items:center; gap:6px;">
-                                <?php if (!empty($cfg['last_ping']) && $cfg['last_ping'] > 0): ?>
-                                    <span style="font-size:0.85rem; color:#333;"><?= date('Y-m-d H:i', $cfg['last_ping']) ?></span>
-                                    <span><?= $cfg['last_ping_status'] === 'online' ? _t('ext.auto_push_status_online') : _t('ext.auto_push_status_offline') ?></span>
-                                <?php else: ?>
-                                    <span style="font-size:0.85rem; color:#999;"><?= _t('ext.auto_push_status_never_ping') ?></span>
-                                <?php endif; ?>
-                            </div>
+                        <div style="flex:1; min-width:150px;">
+                            <div style="font-size:0.7rem; color:#888; text-transform:uppercase; margin-bottom:2px;">Last Ping</div>
+                            <div style="font-size:0.85rem;"><?= $lastPingStr ?></div>
                         </div>
-                        <div style="flex:1; min-width:180px;">
-                            <div style="font-size:0.75rem; color:#666; margin-bottom:2px;"><?= _t('ext.auto_push_last_push') ?></div>
-                            <div style="display:flex; align-items:center; gap:6px;">
-                                <?php if (!empty($cfg['last_push']) && $cfg['last_push'] > 0): ?>
-                                    <span style="font-size:0.85rem; color:#333;"><?= date('Y-m-d H:i', $cfg['last_push']) ?></span>
-                                    <span><?php
-                                        $ps = $cfg['last_push_status'] ?? '';
-                                        if ($ps === 'success') echo _t('ext.auto_push_status_success');
-                                        elseif ($ps === 'partial') echo _t('ext.auto_push_status_partial');
-                                        else echo '⚠️';
-                                    ?></span>
-                                <?php else: ?>
-                                    <span style="font-size:0.85rem; color:#999;"><?= _t('ext.auto_push_status_never_push') ?></span>
-                                <?php endif; ?>
-                            </div>
+                        <div style="flex:1; min-width:150px;">
+                            <div style="font-size:0.7rem; color:#888; text-transform:uppercase; margin-bottom:2px;">Last Push</div>
+                            <div style="font-size:0.85rem;"><?= $lastPushStr ?></div>
                         </div>
-                        <div style="flex:1; min-width:180px;">
-                            <div style="font-size:0.75rem; color:#666; margin-bottom:2px;"><?= _t('ext.auto_push_next_ping') ?></div>
-                            <div>
-                                <span id="ep-next-ping" data-last-ping="<?= (int)($cfg['last_ping'] ?? 0) ?>" data-interval-min="<?= (int)($cfg['ping_interval'] ?? 5) ?>" style="font-size:0.85rem; font-weight:600; color:#e66a19;"></span>
-                            </div>
+                        <div style="flex:1; min-width:150px;">
+                            <div style="font-size:0.7rem; color:#888; text-transform:uppercase; margin-bottom:2px;">Next Ping</div>
+                            <div><span id="ep-next-ping" data-last-ping="<?= (int)($cfg['last_ping'] ?? 0) ?>" data-interval-min="<?= (int)($cfg['ping_interval'] ?? 5) ?>" style="font-size:0.85rem; font-weight:600; color:#e66a19;"></span></div>
                         </div>
                     </div>
                 </div>

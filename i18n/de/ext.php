@@ -70,6 +70,7 @@ return [
     'push_ping_interval_help' => 'Wie oft geprüft werden soll, ob das Gerät online ist. Standard: 5 Minuten.',
     'push_cooldown' => 'Push-Cooldown (Stunden)',
     'push_cooldown_help' => 'Warten Sie so lange nach einem erfolgreichen Push, bevor erneut geprüft wird. Standard: 20 Stunden.',
+    'push_retries' => 'Wiederholungen',
     'auto_push_last_ping' => 'Letzter Ping',
     'auto_push_last_push' => 'Letzter Push',
     'auto_push_next_ping' => 'Nächster Ping',

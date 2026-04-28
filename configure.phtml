@@ -43,7 +43,7 @@ $history = $helper->getHistory();
     <!-- Navigation -->
     <nav class="ep-nav">
         <button type="button" class="ep-nav-item active" data-target="sources"><?= _t('ext.nav_sources') ?></button>
-        <button type="button" class="ep-nav-item" data-target="push"><?= _t('ext.nav_push') ?></button>
+        <button type="button" class="ep-nav-item" data-target="push">Push</button>
         <button type="button" class="ep-nav-item" data-target="api"><?= _t('ext.nav_api') ?></button>
         <button type="button" class="ep-nav-item" data-target="ep-global"><?= _t('ext.nav_global') ?></button>
         <button type="button" class="ep-nav-item" data-target="history"><?= _t('ext.nav_history') ?></button>
@@ -103,7 +103,7 @@ $history = $helper->getHistory();
 
                 <!-- Auto Push subsection -->
                 <div class="ep-section-separator" style="margin: 20px 0; border: 0; border-top: 1px solid #ddd;"></div>
-                <h3 class="ep-card-form-title"><?= _t('ext.push_auto_enabled') ?></h3>
+                <h3 class="ep-card-form-title">Push</h3>
                 <p class="ep-mt-10 ep-mb-15"><?= _t('ext.push_auto_enabled_help') ?></p>
 
                 <div class="ep-form-group ep-mb-20">
@@ -112,7 +112,7 @@ $history = $helper->getHistory();
                             <input type="checkbox" name="auto_push_enabled" value="1" <?= !empty($cfg['auto_push_enabled']) ? 'checked' : '' ?>>
                             <span class="ep-slider"></span>
                         </label>
-                        <span class="ep-source-name"><?= _t('ext.push_auto_enabled') ?></span>
+                        <span class="ep-source-name">Auto Push</span>
                     </div>
                 </div>
 

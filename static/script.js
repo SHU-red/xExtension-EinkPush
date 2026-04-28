@@ -753,14 +753,44 @@
         }
     }
 
+    // Next ping countdown timer
+    function setupNextPingTimer() {
+        const el = document.getElementById('ep-next-ping');
+        if (!el) return;
+        const lastPing = parseInt(el.dataset.lastPing || '0');
+        const intervalMin = parseInt(el.dataset.intervalMin || '5');
+        if (!lastPing) {
+            el.textContent = '—';
+            return;
+        }
+        const update = () => {
+            const now = Math.floor(Date.now() / 1000);
+            const next = lastPing + (intervalMin * 60);
+            const diff = next - now;
+            if (diff <= 0) {
+                el.textContent = 'Due now';
+                el.style.color = '#28a745';
+                return;
+            }
+            const m = Math.floor(diff / 60);
+            const s = diff % 60;
+            el.textContent = m + 'm ' + (s < 10 ? '0' : '') + s + 's';
+            el.style.color = '#e66a19';
+        };
+        update();
+        setInterval(update, 1000);
+    }
+
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() {
             startInjection();
             setupEndpointUpdater();
+            setupNextPingTimer();
         });
     } else {
         startInjection();
         setupEndpointUpdater();
+        setupNextPingTimer();
     }
 
     setInterval(injectSidebarButton, 2000);

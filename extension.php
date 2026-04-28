@@ -171,6 +171,9 @@ class EinkPushExtension extends Minz_Extension {
             'device_info'     => $conf->EinkPush_device_info,
             'last_push'       => $conf->EinkPush_last_push,
             'last_push_type'  => $conf->EinkPush_last_push_type,
+            'last_ping'       => $conf->EinkPush_last_ping,
+            'last_ping_status' => $conf->EinkPush_last_ping_status,
+            'last_push_status' => $conf->EinkPush_last_push_status,
             'sources'         => $conf->EinkPush_sources,
             'push_endpoint'   => $conf->EinkPush_push_endpoint,
             'ping_interval'   => $conf->EinkPush_ping_interval,
@@ -207,8 +210,10 @@ class EinkPushExtension extends Minz_Extension {
             'EinkPush_ping_interval'  => 5,
             'EinkPush_push_cooldown'  => 20,
             'EinkPush_last_ping'      => 0,
+            'EinkPush_last_ping_status' => '',
             'EinkPush_last_push'      => 0,
             'EinkPush_last_push_type' => '',
+            'EinkPush_last_push_status' => '',
             'EinkPush_push_retries'   => 3,
             'EinkPush_push_retryDelay'=> 10,
             'EinkPush_push_token'     => '',
@@ -270,21 +275,21 @@ class EinkPushExtension extends Minz_Extension {
 
         require_once $this->getPath() . '/FreshExtension_EinkPush_Helper.php';
         $helper = new EinkPushHelper($this->getEpubDir());
-        
+
         $statusResponse = $helper->checkDeviceStatus($endpoint);
         if ($statusResponse !== false) {
-            error_log('[EinkPush] Device is ONLINE. Triggering auto-push.');
-            
-            // Store device info
+            $conf->EinkPush_last_ping_status = 'online';
             $conf->EinkPush_device_info = $statusResponse;
             $conf->save();
+            error_log('[EinkPush] Device is ONLINE. Triggering auto-push.');
 
             // Trigger push for all enabled sources that have autoPush=true
             $sources = $conf->EinkPush_sources;
             $paths = $helper->generateAll($sources);
-            
+
             if (!empty($paths)) {
                 $success = 0;
+                $failed = 0;
                 foreach ($paths as $key => $path) {
                     $srcCfg = $sources[$key] ?? [];
                     if (empty($srcCfg['autoPush'])) continue;
@@ -292,17 +297,20 @@ class EinkPushExtension extends Minz_Extension {
                     $sourceName = $key === 'favorites' ? _t('ext.source_favorites') : $key;
                     if ($helper->pushToEndpoint($path, $endpoint, (int)$conf->EinkPush_push_retries, (int)$conf->EinkPush_push_retryDelay, $sourceName)) {
                         $success++;
+                    } else {
+                        $failed++;
                     }
                 }
-                
-                if ($success > 0) {
-                    $conf->EinkPush_last_push = time();
-                    $conf->EinkPush_last_push_type = 'auto';
-                    $conf->save();
-                    error_log('[EinkPush] Auto-push completed. Success: ' . $success);
-                }
+
+                $conf->EinkPush_last_push = time();
+                $conf->EinkPush_last_push_type = 'auto';
+                $conf->EinkPush_last_push_status = $failed > 0 ? 'partial' : 'success';
+                $conf->save();
+                error_log('[EinkPush] Auto-push completed. ' . $success . ' success, ' . $failed . ' failed.');
             }
         } else {
+            $conf->EinkPush_last_ping_status = 'offline';
+            $conf->save();
             error_log('[EinkPush] Device is OFFLINE.');
         }
     }

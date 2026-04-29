@@ -607,16 +607,111 @@ body.theme-dark .ep-footer {
     text-align: right;
 }
 
-/* Progress Modal (centered, theme-aware) */
-.ep-progress-overlay {
+/* Progress Stack (lower-right corner, compact bars) */
+.ep-progress-stack {
     position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.5);
+    bottom: 12px;
+    right: 12px;
+    z-index: 2100;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 6px;
+    max-width: 380px;
+    width: calc(100% - 24px);
+    pointer-events: none;
+}
+
+.ep-progress-bar {
+    pointer-events: auto;
+    background: var(--panel-bg, #fff);
+    border: 1px solid var(--border-color, #ccc);
+    border-radius: 6px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+    overflow: hidden;
+    min-height: 28px;
+    display: flex;
+    align-items: stretch;
+    animation: ep-slide-in 0.2s ease-out;
+}
+
+@keyframes ep-slide-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.ep-progress-bar-inner {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    position: relative;
+    padding: 0 8px;
+    height: 28px;
+    min-width: 0;
+}
+
+.ep-progress-bar-fill-bg {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    background: rgba(0,0,0,0.04);
+    border-radius: 0;
+}
+
+.ep-progress-bar-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 0%;
+    background: #e66a19;
+    transition: width 0.3s ease;
+    opacity: 0.2;
+}
+
+.ep-progress-bar-text {
+    position: relative;
+    z-index: 1;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-main, #333);
+    flex: 1;
+    min-width: 0;
+}
+
+.ep-progress-bar-text.error {
+    color: #d32f2f;
+}
+
+.ep-progress-bar-close {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 2000;
+    width: 24px;
+    height: 24px;
+    margin: 2px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 14px;
+    color: var(--text-light, #888);
+    flex-shrink: 0;
+    border: none;
+    background: none;
+    line-height: 1;
+    padding: 0;
 }
+
+.ep-progress-bar-close:hover {
+    background: rgba(0,0,0,0.08);
+    color: var(--text-main, #333);
+}
+
+/* Progress Modal legacy (keep for preview) */
+.ep-modal-overlay {
 
 
 

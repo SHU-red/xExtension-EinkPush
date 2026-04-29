@@ -726,86 +726,152 @@ class EinkPushHelper {
      *   ['ok' => false, 'error' => '...', 'debug' => '...'] — endpoint failed (4xx/5xx/curl)
      */
     private function callReadabilityApi(string $articleUrl, string $pattern): array {
-        $ch = curl_init();
-        $headers = ['Connection: close'];
-        $baseOpts = [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => 8,
-            CURLOPT_CONNECTTIMEOUT => 3,
-            CURLOPT_NOSIGNAL       => true,
-            CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_FORBID_REUSE   => true,
-            CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
-            CURLOPT_HTTPHEADER     => $headers,
-            CURLOPT_DNS_CACHE_TIMEOUT => 0,
-            CURLOPT_IPRESOLVE        => CURL_IPRESOLVE_V4,
-            CURLOPT_TIMEOUT          => 15,
-            CURLOPT_CONNECTTIMEOUT   => 5,
-        ];
+        // ── Socket-based HTTP (bypass curl entirely - curl_exec hangs in Docker CLI on host network) ──
+        $parsed = parse_url($this->readabilityUrl);
+        if (!$parsed || !isset($parsed['host'])) {
+            return ['ok' => false, 'error' => 'Invalid readability URL', 'debug' => $this->readabilityUrl];
+        }
+
+        $host = $parsed['host'];
+        $port = $parsed['port'] ?? 80;
+        $path = '';
+        $method = 'POST';
+        $body = '';
+        $contentType = 'application/json';
 
         switch ($pattern) {
             case 'post_parse':
-                $baseOpts[CURLOPT_URL] = $this->readabilityUrl . '/parse';
-                $baseOpts[CURLOPT_POST] = true;
-                $baseOpts[CURLOPT_POSTFIELDS] = json_encode(['url' => $articleUrl]);
-                $baseOpts[CURLOPT_HTTPHEADER] = array_merge($headers, ['Content-Type: application/json', 'Accept: application/json']);
+                $path = '/parse';
+                $body = json_encode(['url' => $articleUrl]);
                 break;
             case 'get_parse':
-                $baseOpts[CURLOPT_URL] = $this->readabilityUrl . '/parse?url=' . urlencode($articleUrl);
+                $path = '/parse?url=' . urlencode($articleUrl);
+                $method = 'GET';
+                $body = '';
                 break;
             case 'post_api_parse':
-                $baseOpts[CURLOPT_URL] = $this->readabilityUrl . '/api/parse';
-                $baseOpts[CURLOPT_POST] = true;
-                $baseOpts[CURLOPT_POSTFIELDS] = json_encode(['url' => $articleUrl]);
-                $baseOpts[CURLOPT_HTTPHEADER] = array_merge($headers, ['Content-Type: application/json', 'Accept: application/json']);
+                $path = '/api/parse';
+                $body = json_encode(['url' => $articleUrl]);
                 break;
             case 'get_extract':
-                $baseOpts[CURLOPT_URL] = $this->readabilityUrl . '/extract?url=' . urlencode($articleUrl);
+                $path = '/extract?url=' . urlencode($articleUrl);
+                $method = 'GET';
+                $body = '';
                 break;
             case 'post_root':
-                $baseOpts[CURLOPT_URL] = $this->readabilityUrl . '/';
-                $baseOpts[CURLOPT_POST] = true;
-                $baseOpts[CURLOPT_POSTFIELDS] = json_encode(['url' => $articleUrl]);
-                $baseOpts[CURLOPT_HTTPHEADER] = array_merge($headers, ['Content-Type: application/json', 'Accept: application/json']);
+                $path = '/';
+                $body = json_encode(['url' => $articleUrl]);
                 break;
             default:
                 return ['ok' => false, 'error' => 'Unknown pattern: ' . $pattern, 'debug' => ''];
         }
 
-        $requestUrl = $baseOpts[CURLOPT_URL];
-        curl_setopt_array($ch, $baseOpts);
-        error_log('[EinkPush] curl_exec START: ' . $requestUrl . ' (pattern=' . $pattern . ')');
+        $requestUrl = $this->readabilityUrl . $path;
+        error_log('[EinkPush] readability fetch START: ' . $requestUrl . ' (pattern=' . $pattern . ') socket://' . $host . ':' . $port);
         $t0 = microtime(true);
-        $response = curl_exec($ch);
-        $t1 = microtime(true);
-        error_log('[EinkPush] curl_exec END: ' . round(($t1 - $t0) * 1000) . 'ms, response=' . ($response === false ? 'false' : strlen($response)) . ', url=' . $requestUrl);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlError = curl_error($ch);
-        $curlErrno = curl_errno($ch);
-        curl_close($ch);
 
+        $fp = @fsockopen($host, $port, $errno, $errstr, 5);
+        if (!$fp) {
+            error_log('[EinkPush] readability fetch FAIL: fsockopen error ' . $errno . ' ' . $errstr);
+            return ['ok' => false, 'error' => 'Connection failed: ' . $errstr, 'debug' => 'fsockopen ' . $errno];
+        }
+
+        stream_set_timeout($fp, 20);
+        stream_set_blocking($fp, true);
+
+        $httpBody = $body;
+        $request = $method . ' ' . $path . ' HTTP/1.1' . "\r\n"
+            . 'Host: ' . $host . ':' . $port . "\r\n"
+            . 'Content-Type: ' . $contentType . "\r\n"
+            . 'Accept: application/json' . "\r\n"
+            . 'Connection: close' . "\r\n";
+        if ($body !== '') {
+            $request .= 'Content-Length: ' . strlen($body) . "\r\n";
+        }
+        $request .= "\r\n";
+        if ($body !== '') {
+            $request .= $body;
+        }
+
+        fwrite($fp, $request);
+
+        $response = '';
+        $headerEnd = false;
+        $contentLength = null;
+        $bytesRead = 0;
+        $timeoutHit = false;
+
+        while (!feof($fp)) {
+            $chunk = fread($fp, 8192);
+            if ($chunk === false || $chunk === '') {
+                break;
+            }
+            $bytesRead += strlen($chunk);
+            $response .= $chunk;
+
+            if (!$headerEnd && strpos($response, "\r\n\r\n") !== false) {
+                $headerEnd = true;
+                $headerPart = substr($response, 0, strpos($response, "\r\n\r\n"));
+                if (preg_match('/HTTP\/\d\.\d\s+(\d+)/', $headerPart, $m)) {
+                    // HTTP code captured
+                }
+                if (preg_match('/Content-Length:\s*(\d+)/i', $headerPart, $m)) {
+                    $contentLength = (int)$m[1];
+                }
+            }
+
+            // Check for timeout (stream_set_timeout makes feof return on timeout)
+            $meta = stream_get_meta_data($fp);
+            if ($meta['timed_out']) {
+                $timeoutHit = true;
+                break;
+            }
+
+            // If we have content-length, stop when full body received
+            if ($contentLength !== null && $headerEnd) {
+                $bodyStart = strpos($response, "\r\n\r\n") + 4;
+                $bodyRead = strlen($response) - $bodyStart;
+                if ($bodyRead >= $contentLength) {
+                    break;
+                }
+            }
+        }
+
+        fclose($fp);
         $t1 = microtime(true);
-        error_log('[EinkPush] curl_exec END: ' . round(($t1 - $t0) * 1000) . 'ms, response=' . ($response === false ? 'false' : strlen($response)) . ', url=' . $requestUrl);
+        $elapsed = round(($t1 - $t0) * 1000);
+        error_log('[EinkPush] readability fetch END: ' . $elapsed . 'ms bytes=' . $bytesRead . ', url=' . $requestUrl);
+
+        // Parse response
+        $httpCode = 0;
+        $responseBody = '';
+        if (strpos($response, "\r\n\r\n") !== false) {
+            $headerPart = substr($response, 0, strpos($response, "\r\n\r\n"));
+            $responseBody = substr($response, strpos($response, "\r\n\r\n") + 4);
+            if (preg_match('/HTTP\/\d\.\d\s+(\d+)/', $headerPart, $m)) {
+                $httpCode = (int)$m[1];
+            }
+        } else {
+            $responseBody = $response;
+        }
 
         $debugSnippet = 'Pattern: ' . $pattern . ' | URL: ' . $requestUrl
             . ' | HTTP ' . $httpCode
-            . ' | Response: ' . mb_substr((string)$response, 0, 300);
+            . ' | Response: ' . mb_substr((string)$responseBody, 0, 300);
 
-        if ($response === false || $curlErrno !== 0) {
-            return ['ok' => false, 'error' => 'Curl error: ' . $curlError . ' (errno=' . $curlErrno . ')', 'debug' => $debugSnippet];
+        if ($timeoutHit || $httpCode === 0) {
+            return ['ok' => false, 'error' => 'Timeout connecting to readability server (' . $elapsed . 'ms)', 'debug' => $debugSnippet];
         }
 
         if ($httpCode < 200 || $httpCode >= 300) {
             return ['ok' => false, 'error' => 'HTTP ' . $httpCode, 'debug' => $debugSnippet];
         }
 
-        // HTTP 200 — endpoint is reachable, now check for content
-        $data = json_decode($response, true);
+        $data = json_decode($responseBody, true);
         if (!is_array($data)) {
             return ['ok' => false, 'reachable' => true, 'error' => 'Response is not valid JSON', 'debug' => $debugSnippet];
         }
 
-        // Try common response field names
         $html = $data['content'] ?? $data['html'] ?? $data['article'] ?? null;
         if (empty($html) || !is_string($html)) {
             $keys = implode(', ', array_keys($data));

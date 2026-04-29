@@ -333,12 +333,16 @@
     function triggerDownloads(jobId, data) {
         const sources = data.generatedSources || [];
         if (sources.length > 0) {
-            sources.forEach(function(src) {
-                const iframe = document.createElement('iframe');
-                iframe.className = 'ep-hidden';
-                iframe.src = './?c=EinkPush&a=downloadFile&source=' + encodeURIComponent(src) + '&_=' + Date.now();
-                document.body.appendChild(iframe);
-                setTimeout(() => iframe.remove(), 60000);
+            sources.forEach(function(src, i) {
+                // Use <a download> - iframe blocks silent downloads in modern browsers
+                setTimeout(function() {
+                    const a = document.createElement('a');
+                    a.href = './?c=EinkPush&a=downloadFile&source=' + encodeURIComponent(src) + '&_=' + Date.now();
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => a.remove(), 10000);
+                }, i * 500);
             });
         } else {
             window.location.reload();

@@ -734,12 +734,15 @@ class EinkPushHelper {
      */
     private function callReadabilityApi(string $articleUrl, string $pattern): array {
         $ch = curl_init();
+        $headers = ['Connection: close'];
         $baseOpts = [
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT_MS     => 5000,
-            CURLOPT_CONNECTTIMEOUT_MS => 3000,
+            CURLOPT_TIMEOUT        => 8,
+            CURLOPT_CONNECTTIMEOUT => 3,
+            CURLOPT_NOSIGNAL       => true,
             CURLOPT_FOLLOWLOCATION => false,
             CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+            CURLOPT_HTTPHEADER     => $headers,
         ];
 
         switch ($pattern) {
@@ -747,7 +750,7 @@ class EinkPushHelper {
                 $baseOpts[CURLOPT_URL] = $this->readabilityUrl . '/parse';
                 $baseOpts[CURLOPT_POST] = true;
                 $baseOpts[CURLOPT_POSTFIELDS] = json_encode(['url' => $articleUrl]);
-                $baseOpts[CURLOPT_HTTPHEADER] = ['Content-Type: application/json', 'Accept: application/json'];
+                $baseOpts[CURLOPT_HTTPHEADER] = array_merge($headers, ['Content-Type: application/json', 'Accept: application/json']);
                 break;
             case 'get_parse':
                 $baseOpts[CURLOPT_URL] = $this->readabilityUrl . '/parse?url=' . urlencode($articleUrl);
@@ -756,7 +759,7 @@ class EinkPushHelper {
                 $baseOpts[CURLOPT_URL] = $this->readabilityUrl . '/api/parse';
                 $baseOpts[CURLOPT_POST] = true;
                 $baseOpts[CURLOPT_POSTFIELDS] = json_encode(['url' => $articleUrl]);
-                $baseOpts[CURLOPT_HTTPHEADER] = ['Content-Type: application/json', 'Accept: application/json'];
+                $baseOpts[CURLOPT_HTTPHEADER] = array_merge($headers, ['Content-Type: application/json', 'Accept: application/json']);
                 break;
             case 'get_extract':
                 $baseOpts[CURLOPT_URL] = $this->readabilityUrl . '/extract?url=' . urlencode($articleUrl);
@@ -765,7 +768,7 @@ class EinkPushHelper {
                 $baseOpts[CURLOPT_URL] = $this->readabilityUrl . '/';
                 $baseOpts[CURLOPT_POST] = true;
                 $baseOpts[CURLOPT_POSTFIELDS] = json_encode(['url' => $articleUrl]);
-                $baseOpts[CURLOPT_HTTPHEADER] = ['Content-Type: application/json', 'Accept: application/json'];
+                $baseOpts[CURLOPT_HTTPHEADER] = array_merge($headers, ['Content-Type: application/json', 'Accept: application/json']);
                 break;
             default:
                 return ['ok' => false, 'error' => 'Unknown pattern: ' . $pattern, 'debug' => ''];
@@ -773,7 +776,11 @@ class EinkPushHelper {
 
         $requestUrl = $baseOpts[CURLOPT_URL];
         curl_setopt_array($ch, $baseOpts);
+        error_log('[EinkPush] curl_exec START: ' . $requestUrl . ' (pattern=' . $pattern . ')');
+        $t0 = microtime(true);
         $response = curl_exec($ch);
+        $t1 = microtime(true);
+        error_log('[EinkPush] curl_exec END: ' . round(($t1 - $t0) * 1000) . 'ms, response=' . ($response === false ? 'false' : strlen($response)) . ', url=' . $requestUrl);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlError = curl_error($ch);
         $curlErrno = curl_errno($ch);

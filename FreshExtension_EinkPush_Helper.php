@@ -774,13 +774,35 @@ class EinkPushHelper {
         curl_setopt_array($ch, $baseOpts);
         error_log('[EinkPush] curl_exec START: ' . $requestUrl . ' (pattern=' . $pattern . ')');
         $t0 = microtime(true);
-        $response = curl_exec($ch);
-        $t1 = microtime(true);
-        error_log('[EinkPush] curl_exec END: ' . round(($t1 - $t0) * 1000) . 'ms, response=' . ($response === false ? 'false' : strlen($response)) . ', url=' . $requestUrl);
+
+        // curl_multi with hard timeout - curl_exec hangs in Docker CLI despite NOSIGNAL
+        $mh = curl_multi_init();
+        curl_multi_add_handle($mh, $ch);
+        $running = null;
+        $loop = 0;
+        while (curl_multi_exec($mh, $running) === CURLM_CALL_MULTI_PERFORM) {
+            if (++$loop > 100) break;
+        }
+        $deadline = microtime(true) + 10;
+        while ($running > 0 && microtime(true) < $deadline) {
+            usleep(20000);
+            if (curl_multi_exec($mh, $running) === CURLM_CALL_MULTI_PERFORM) continue;
+            curl_multi_info_read($mh);
+        }
+        if ($running > 0) {
+            error_log('[EinkPush] curl_multi CANCELLED after ' . round((microtime(true) - $t0) * 1000) . 'ms');
+        }
+
+        $response = curl_multi_getcontent($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlError = curl_error($ch);
         $curlErrno = curl_errno($ch);
+        curl_multi_remove_handle($mh, $ch);
+        curl_multi_close($mh);
         curl_close($ch);
+
+        $t1 = microtime(true);
+        error_log('[EinkPush] curl_exec END: ' . round(($t1 - $t0) * 1000) . 'ms, response=' . ($response === false ? 'false' : strlen($response)) . ', url=' . $requestUrl);
 
         $debugSnippet = 'Pattern: ' . $pattern . ' | URL: ' . $requestUrl
             . ' | HTTP ' . $httpCode

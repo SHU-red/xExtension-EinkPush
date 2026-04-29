@@ -545,6 +545,11 @@ class EinkPushHelper {
         }
 
         // ── HTTP HEAD with redirect following ──
+        usleep(100000); // 100ms delay to avoid socket exhaustion in host network
+        $t0 = microtime(true);
+        $fd = count(glob('/proc/self/fd/*'));
+        error_log('[EinkPush] resolveRedirects HEAD START fd=' . $fd . ': ' . $url);
+
         $ch = curl_init();
         curl_setopt_array($ch, [
             CURLOPT_URL            => $url,
@@ -560,12 +565,38 @@ class EinkPushHelper {
             CURLOPT_FORBID_REUSE   => true,
             CURLOPT_DNS_CACHE_TIMEOUT => 0,
             CURLOPT_IPRESOLVE        => CURL_IPRESOLVE_V4,
+            CURLOPT_TCP_KEEPIDLE     => 30,
+            CURLOPT_TCP_KEEPINTVL    => 5,
         ]);
 
-        curl_exec($ch);
+        // Use curl_multi with hard time limit - curl_exec hangs despite NOSIGNAL in Docker
+        $mh = curl_multi_init();
+        curl_multi_add_handle($mh, $ch);
+        $running = null;
+        $loop = 0;
+        while (curl_multi_exec($mh, $running) === CURLM_CALL_MULTI_PERFORM) {
+            if (++$loop > 100) break;
+        }
+
+        $deadline = microtime(true) + 4;
+        while ($running > 0 && microtime(true) < $deadline) {
+            usleep(20000);
+            if (curl_multi_exec($mh, $running) === CURLM_CALL_MULTI_PERFORM) continue;
+            curl_multi_info_read($mh);
+        }
+        if ($running > 0) {
+            error_log('[EinkPush] resolveRedirects HEAD CANCELLED running=' . $running . ' after ' . round((microtime(true) - $t0) * 1000) . 'ms');
+        }
+
         $finalUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $elapsed = round((microtime(true) - $t0) * 1000);
+
+        curl_multi_remove_handle($mh, $ch);
+        curl_multi_close($mh);
         curl_close($ch);
+
+        error_log('[EinkPush] resolveRedirects HEAD DONE: ' . $elapsed . 'ms code=' . $httpCode . ' final=' . $finalUrl);
 
         if ($httpCode >= 200 && $httpCode < 400 && !empty($finalUrl) && $finalUrl !== $url) {
             return $finalUrl;

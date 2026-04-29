@@ -790,19 +790,18 @@ class EinkPushHelper {
         $running = null;
         $timeout = 8;
         $start = microtime(true);
+        $iteration = 0;
         while (curl_multi_exec($mh, $running) === CURLM_CALL_MULTI_PERFORM) {}
         while ($running > 0 && (microtime(true) - $start) < $timeout) {
-            // Wait for activity with 100ms granularity
-            if (curl_multi_select($mh, 0.1) === -1) {
-                usleep(10000); // fallback sleep on select failure
-                continue;
-            }
-            while (curl_multi_exec($mh, $running) === CURLM_CALL_MULTI_PERFORM) {}
+            $iteration++;
+            // Always use usleep as fallback - curl_multi_select can block indefinitely on broken connections
+            usleep(50000); // 50ms polling
+            if (curl_multi_exec($mh, $running) === CURLM_CALL_MULTI_PERFORM) continue;
+            curl_multi_info_read($mh);
         }
         // If still running after timeout, cancel
         if ($running > 0) {
-            error_log('[EinkPush] curl_multi timeout after ' . round((microtime(true) - $start) * 1000) . 'ms');
-            curl_multi_remove_handle($mh, $ch);
+            error_log('[EinkPush] curl_multi timeout after ' . round((microtime(true) - $start) * 1000) . 'ms (iter=' . $iteration . ')');
         }
         $response = curl_multi_getcontent($ch);
         curl_multi_remove_handle($mh, $ch);

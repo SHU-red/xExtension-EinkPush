@@ -101,6 +101,60 @@ $history = $helper->getHistory();
         <!-- Push Settings Section -->
         <div id="push" class="ep-section">
             <div class="ep-section-body ep-card-form">
+                <!-- Device Connection Cluster -->
+                <div class="ep-settings-cluster ep-mb-25">
+                    <h3 class="ep-card-form-title"><?= _t('ext.device_connection') ?></h3>
+                    <p class="ep-mt-10 ep-mb-15">Connect to readers using CrossPoint firmware</p>
+
+                    <!-- Device address + Test button -->
+                    <div class="ep-form-group ep-mb-10">
+                        <label><?= _t('ext.device_address') ?></label>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <input type="url" name="device_address" value="<?= htmlspecialchars($cfg['device_address'] ?? 'http://crosspoint.local', ENT_QUOTES) ?>" placeholder="http://crosspoint.local" style="width: 100%; flex:1;">
+                            <a href="<?= _url('EinkPush', 'testEndpoint') ?>" class="ep-btn ep-btn-test ep-inline-test-btn" id="ep-test-conn-btn"><?= _t('ext.test_connection') ?></a>
+                        </div>
+                        <p class="help"><?= _t('ext.device_address_help') ?></p>
+                    </div>
+
+                    <!-- Device Status Information -->
+                    <div class="ep-device-status ep-mt-10">
+                        <?php if (!empty($cfg['device_info'])): ?>
+                            <?php
+                            $info = json_decode($cfg['device_info'], true);
+                            if ($info && is_array($info)):
+                            ?>
+                                <div class="ep-device-badges">
+                                    <span class="ep-badge">📦 <?= htmlspecialchars($info['version'] ?? _t('ext.device_info_unknown')) ?></span>
+                                    <span class="ep-badge">📡 <?= htmlspecialchars($info['ip'] ?? _t('ext.device_info_unknown')) ?></span>
+                                    <span class="ep-badge">⚡ <?= htmlspecialchars($info['mode'] ?? _t('ext.device_info_unknown')) ?></span>
+                                    <span class="ep-badge">📶 <?= $info['rssi'] ?? _t('ext.device_info_unknown') ?> dBm</span>
+                                    <span class="ep-badge">💾 <?= $info['freeHeap'] ?? _t('ext.device_info_unknown') ?> B</span>
+                                    <span class="ep-badge">⏱
+                                        <?php
+                                        $uptime = $info['uptime'] ?? null;
+                                        if ($uptime !== null && is_numeric($uptime)):
+                                            $hours = floor($uptime / 3600);
+                                            $minutes = floor(($uptime % 3600) / 60);
+                                            echo $hours . "h " . $minutes . "m";
+                                        else:
+                                            echo _t('ext.device_info_unknown');
+                                        endif;
+                                        ?>
+                                    </span>
+                                </div>
+                            <?php else: ?>
+                                <pre class="ep-device-info-raw" style="padding:10px; background:#f5f5f5; border-radius:4px;"><?= htmlspecialchars($cfg['device_info']) ?></pre>
+                            <?php endif; ?>
+                        <?php else: ?>
+                            <div id="device-status-placeholder" class="ep-inactive-help">
+                                <?= _t('ext.device_status_not_available_yet') ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <hr class="ep-section-separator" style="margin: 25px 0; border: 0; border-top: 1px solid #ddd;">
+
                 <!-- Settings subsection -->
                 <h3 class="ep-card-form-title"><?= _t('ext.upload_settings') ?></h3>
                 <div class="ep-form-group ep-mb-20">
@@ -185,58 +239,6 @@ $history = $helper->getHistory();
         <!-- Device & Display Settings Section -->
         <div id="ep-global" class="ep-section">
             <div class="ep-section-body ep-card-form">
-
-                <!-- Device Connection Cluster -->
-                <div class="ep-settings-cluster ep-mb-25">
-                    <h3 class="ep-card-form-title"><?= _t('ext.device_connection') ?></h3>
-                    <p class="ep-mt-10 ep-mb-15">Connect to readers using CrossPoint firmware</p>
-
-                    <!-- Device address + Test button -->
-                    <div class="ep-form-group ep-mb-10">
-                        <label><?= _t('ext.device_address') ?></label>
-                        <div style="display:flex; gap:10px; align-items:center;">
-                            <input type="url" name="device_address" value="<?= htmlspecialchars($cfg['device_address'] ?? 'http://crosspoint.local', ENT_QUOTES) ?>" placeholder="http://crosspoint.local" style="width: 100%; flex:1;">
-                            <a href="<?= _url('EinkPush', 'testEndpoint') ?>" class="ep-btn ep-btn-test ep-inline-test-btn" id="ep-test-conn-btn"><?= _t('ext.test_connection') ?></a>
-                        </div>
-                        <p class="help"><?= _t('ext.device_address_help') ?></p>
-                    </div>
-
-                    <!-- Device Status Information -->
-                    <div class="ep-device-status ep-mt-10">
-                        <?php if (!empty($cfg['device_info'])): ?>
-                            <?php
-                            $info = json_decode($cfg['device_info'], true);
-                            if ($info && is_array($info)):
-                            ?>
-                                <div class="ep-device-badges">
-                                    <span class="ep-badge">📦 <?= htmlspecialchars($info['version'] ?? _t('ext.device_info_unknown')) ?></span>
-                                    <span class="ep-badge">📡 <?= htmlspecialchars($info['ip'] ?? _t('ext.device_info_unknown')) ?></span>
-                                    <span class="ep-badge">⚡ <?= htmlspecialchars($info['mode'] ?? _t('ext.device_info_unknown')) ?></span>
-                                    <span class="ep-badge">📶 <?= $info['rssi'] ?? _t('ext.device_info_unknown') ?> dBm</span>
-                                    <span class="ep-badge">💾 <?= $info['freeHeap'] ?? _t('ext.device_info_unknown') ?> B</span>
-                                    <span class="ep-badge">⏱
-                                        <?php
-                                        $uptime = $info['uptime'] ?? null;
-                                        if ($uptime !== null && is_numeric($uptime)):
-                                            $hours = floor($uptime / 3600);
-                                            $minutes = floor(($uptime % 3600) / 60);
-                                            echo $hours . "h " . $minutes . "m";
-                                        else:
-                                            echo _t('ext.device_info_unknown');
-                                        endif;
-                                        ?>
-                                    </span>
-                                </div>
-                            <?php else: ?>
-                                <pre class="ep-device-info-raw" style="padding:10px; background:#f5f5f5; border-radius:4px;"><?= htmlspecialchars($cfg['device_info']) ?></pre>
-                            <?php endif; ?>
-                        <?php else: ?>
-                            <div id="device-status-placeholder" class="ep-inactive-help">
-                                <?= _t('ext.device_status_not_available_yet') ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
 
                 <!-- Visual separator between device and display settings -->
                 <hr class="ep-section-separator" style="margin: 25px 0; border: 0; border-top: 1px solid #ddd;">

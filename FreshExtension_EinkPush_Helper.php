@@ -361,7 +361,9 @@ class EinkPushHelper {
                             if ($wasResolved) {
                                 error_log('[EinkPush] Resolved redirect: ' . $url . ' → ' . $resolvedUrl);
                             }
+                            error_log('[EinkPush] Readability fetch START: ' . $resolvedUrl);
                             $result = $this->fetchViaReadability($resolvedUrl);
+                            error_log('[EinkPush] Readability fetch END: ok=' . ($result['ok'] ? 'yes' : 'no'));
                             if ($result['ok']) {
                                 $rawContent = $result['html'];
                                 $this->fetchSuccessCount++;
@@ -547,8 +549,8 @@ class EinkPushHelper {
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS      => 10,
-            CURLOPT_TIMEOUT        => 15,
-            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_TIMEOUT_MS     => 8000,
+            CURLOPT_CONNECTTIMEOUT_MS => 3000,
             CURLOPT_NOBODY         => true,
             CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
             CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -570,8 +572,8 @@ class EinkPushHelper {
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS      => 10,
-            CURLOPT_TIMEOUT        => 15,
-            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_TIMEOUT_MS     => 8000,
+            CURLOPT_CONNECTTIMEOUT_MS => 3000,
             CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
             CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         ]);
@@ -732,8 +734,8 @@ class EinkPushHelper {
         $ch = curl_init();
         $baseOpts = [
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => 5,
-            CURLOPT_CONNECTTIMEOUT => 3,
+            CURLOPT_TIMEOUT_MS     => 5000,
+            CURLOPT_CONNECTTIMEOUT_MS => 3000,
             CURLOPT_FOLLOWLOCATION => false,
             CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
         ];

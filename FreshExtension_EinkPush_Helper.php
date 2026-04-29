@@ -348,7 +348,9 @@ class EinkPushHelper {
                     if (!empty($url)) {
                         // Check if this is an unresolvable Google News URL before wasting time
                         $isGoogleNews = (bool) preg_match('#^https?://news\.google\.com/rss/articles/#', $url);
+                        error_log('[EinkPush] resolveRedirects START: ' . $url);
                         $resolvedUrl = $this->resolveRedirects($url);
+                        error_log('[EinkPush] resolveRedirects END: ' . $resolvedUrl);
                         $wasResolved = ($resolvedUrl !== $url);
 
                         if ($isGoogleNews && !$wasResolved) {
@@ -549,8 +551,8 @@ class EinkPushHelper {
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS      => 10,
-            CURLOPT_TIMEOUT_MS     => 8000,
-            CURLOPT_CONNECTTIMEOUT_MS => 3000,
+            CURLOPT_TIMEOUT_MS     => 3000,
+            CURLOPT_CONNECTTIMEOUT_MS => 2000,
             CURLOPT_NOBODY         => true,
             CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
             CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -572,8 +574,8 @@ class EinkPushHelper {
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS      => 10,
-            CURLOPT_TIMEOUT_MS     => 8000,
-            CURLOPT_CONNECTTIMEOUT_MS => 3000,
+            CURLOPT_TIMEOUT_MS     => 3000,
+            CURLOPT_CONNECTTIMEOUT_MS => 2000,
             CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
             CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         ]);

@@ -559,9 +559,21 @@ class EinkPushHelper {
             CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         ]);
 
-        curl_exec($ch);
+        // curl_multi for reliable timeout
+        $mh = curl_multi_init();
+        curl_multi_add_handle($mh, $ch);
+        $running = null;
+        $start = microtime(true);
+        while (curl_multi_exec($mh, $running) === CURLM_CALL_MULTI_PERFORM) {}
+        while ($running > 0 && (microtime(true) - $start) < 5) {
+            usleep(50000);
+            if (curl_multi_exec($mh, $running) === CURLM_CALL_MULTI_PERFORM) continue;
+            curl_multi_info_read($mh);
+        }
         $finalUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_multi_remove_handle($mh, $ch);
+        curl_multi_close($mh);
         curl_close($ch);
 
         if ($httpCode >= 200 && $httpCode < 400 && !empty($finalUrl) && $finalUrl !== $url) {
@@ -569,6 +581,10 @@ class EinkPushHelper {
         }
 
         // ── HTTP GET — scrape body for meta-refresh / JS redirect (only if HEAD didn't resolve) ──
+        $body = null;
+        $finalUrl = $url;
+        $curlError = '';
+
         $ch = curl_init();
         curl_setopt_array($ch, [
             CURLOPT_URL            => $url,
@@ -582,9 +598,22 @@ class EinkPushHelper {
             CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         ]);
 
-        $body = curl_exec($ch);
+        // Use curl_multi for reliable timeout (curl_exec hangs in Docker CLI despite NOSIGNAL)
+        $mh = curl_multi_init();
+        curl_multi_add_handle($mh, $ch);
+        $running = null;
+        $start = microtime(true);
+        while (curl_multi_exec($mh, $running) === CURLM_CALL_MULTI_PERFORM) {}
+        while ($running > 0 && (microtime(true) - $start) < 5) {
+            usleep(50000);
+            if (curl_multi_exec($mh, $running) === CURLM_CALL_MULTI_PERFORM) continue;
+            curl_multi_info_read($mh);
+        }
+        $body = curl_multi_getcontent($ch);
         $finalUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
         $curlError = curl_error($ch);
+        curl_multi_remove_handle($mh, $ch);
+        curl_multi_close($mh);
         curl_close($ch);
 
         if ($body === false) {

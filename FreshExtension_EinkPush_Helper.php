@@ -551,97 +551,28 @@ class EinkPushHelper {
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS      => 10,
-            CURLOPT_TIMEOUT        => 4,
+            CURLOPT_TIMEOUT        => 3,
             CURLOPT_CONNECTTIMEOUT => 2,
             CURLOPT_NOSIGNAL       => true,
             CURLOPT_NOBODY         => true,
             CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
             CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            CURLOPT_FORBID_REUSE   => true,
+            CURLOPT_DNS_CACHE_TIMEOUT => 0,
+            CURLOPT_IPRESOLVE        => CURL_IPRESOLVE_V4,
         ]);
 
-        // curl_multi for reliable timeout
-        $mh = curl_multi_init();
-        curl_multi_add_handle($mh, $ch);
-        $running = null;
-        $start = microtime(true);
-        while (curl_multi_exec($mh, $running) === CURLM_CALL_MULTI_PERFORM) {}
-        while ($running > 0 && (microtime(true) - $start) < 5) {
-            usleep(50000);
-            if (curl_multi_exec($mh, $running) === CURLM_CALL_MULTI_PERFORM) continue;
-            curl_multi_info_read($mh);
-        }
+        curl_exec($ch);
         $finalUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_multi_remove_handle($mh, $ch);
-        curl_multi_close($mh);
         curl_close($ch);
 
         if ($httpCode >= 200 && $httpCode < 400 && !empty($finalUrl) && $finalUrl !== $url) {
             return $finalUrl;
         }
 
-        // ── HTTP GET — scrape body for meta-refresh / JS redirect (only if HEAD didn't resolve) ──
-        $body = null;
-        $finalUrl = $url;
-        $curlError = '';
-
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL            => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_MAXREDIRS      => 10,
-            CURLOPT_TIMEOUT        => 4,
-            CURLOPT_CONNECTTIMEOUT => 2,
-            CURLOPT_NOSIGNAL       => true,
-            CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
-            CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        ]);
-
-        // Use curl_multi for reliable timeout (curl_exec hangs in Docker CLI despite NOSIGNAL)
-        $mh = curl_multi_init();
-        curl_multi_add_handle($mh, $ch);
-        $running = null;
-        $start = microtime(true);
-        while (curl_multi_exec($mh, $running) === CURLM_CALL_MULTI_PERFORM) {}
-        while ($running > 0 && (microtime(true) - $start) < 5) {
-            usleep(50000);
-            if (curl_multi_exec($mh, $running) === CURLM_CALL_MULTI_PERFORM) continue;
-            curl_multi_info_read($mh);
-        }
-        $body = curl_multi_getcontent($ch);
-        $finalUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
-        $curlError = curl_error($ch);
-        curl_multi_remove_handle($mh, $ch);
-        curl_multi_close($mh);
-        curl_close($ch);
-
-        if ($body === false) {
-            error_log('[EinkPush] resolveRedirects curl error for ' . $url . ': ' . $curlError);
-            return $url;
-        }
-
-        if (!empty($finalUrl) && $finalUrl !== $url) {
-            $url = $finalUrl;
-        }
-
-        // Meta-refresh redirect
-        if (preg_match('/<meta[^>]+http-equiv\s*=\s*["\']?refresh["\']?[^>]+content\s*=\s*["\']?\d+;\s*url=([^"\'>\s]+)/i', $body, $m)) {
-            $target = html_entity_decode($m[1], ENT_QUOTES, 'UTF-8');
-            if (filter_var($target, FILTER_VALIDATE_URL)) {
-                return $target;
-            }
-        }
-
-        // JS redirect (window.location = "..." or location.href = "..." or location.replace("..."))
-        if (preg_match('/(?:window\.location|location\.(?:href|replace))\s*[=(]\s*["\']([^"\']+)["\']/i', $body, $m)) {
-            $target = $m[1];
-            if (filter_var($target, FILTER_VALIDATE_URL)) {
-                return $target;
-            }
-        }
-
-        return $url;
+        // Skip GET scrape - meta-refresh/JS redirects rare, GET hangs in Docker host network
+        return $finalUrl ?: $url;
     }
 
     /**
@@ -812,30 +743,7 @@ class EinkPushHelper {
         curl_setopt_array($ch, $baseOpts);
         error_log('[EinkPush] curl_exec START: ' . $requestUrl . ' (pattern=' . $pattern . ')');
         $t0 = microtime(true);
-
-        // Use curl_multi for reliable timeout (curl_exec hangs in FPM/CLI despite NOSIGNAL)
-        $mh = curl_multi_init();
-        curl_multi_add_handle($mh, $ch);
-        $running = null;
-        $timeout = 8;
-        $start = microtime(true);
-        $iteration = 0;
-        while (curl_multi_exec($mh, $running) === CURLM_CALL_MULTI_PERFORM) {}
-        while ($running > 0 && (microtime(true) - $start) < $timeout) {
-            $iteration++;
-            // Always use usleep as fallback - curl_multi_select can block indefinitely on broken connections
-            usleep(50000); // 50ms polling
-            if (curl_multi_exec($mh, $running) === CURLM_CALL_MULTI_PERFORM) continue;
-            curl_multi_info_read($mh);
-        }
-        // If still running after timeout, cancel
-        if ($running > 0) {
-            error_log('[EinkPush] curl_multi timeout after ' . round((microtime(true) - $start) * 1000) . 'ms (iter=' . $iteration . ')');
-        }
-        $response = curl_multi_getcontent($ch);
-        curl_multi_remove_handle($mh, $ch);
-        curl_multi_close($mh);
-
+        $response = curl_exec($ch);
         $t1 = microtime(true);
         error_log('[EinkPush] curl_exec END: ' . round(($t1 - $t0) * 1000) . 'ms, response=' . ($response === false ? 'false' : strlen($response)) . ', url=' . $requestUrl);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);

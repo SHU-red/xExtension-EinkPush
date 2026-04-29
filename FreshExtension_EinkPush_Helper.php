@@ -551,8 +551,9 @@ class EinkPushHelper {
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS      => 10,
-            CURLOPT_TIMEOUT_MS     => 3000,
-            CURLOPT_CONNECTTIMEOUT_MS => 2000,
+            CURLOPT_TIMEOUT        => 4,
+            CURLOPT_CONNECTTIMEOUT => 2,
+            CURLOPT_NOSIGNAL       => true,
             CURLOPT_NOBODY         => true,
             CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
             CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -567,15 +568,16 @@ class EinkPushHelper {
             return $finalUrl;
         }
 
-        // ── HTTP GET — scrape body for meta-refresh / JS redirect ──
+        // ── HTTP GET — scrape body for meta-refresh / JS redirect (only if HEAD didn't resolve) ──
         $ch = curl_init();
         curl_setopt_array($ch, [
             CURLOPT_URL            => $url,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS      => 10,
-            CURLOPT_TIMEOUT_MS     => 3000,
-            CURLOPT_CONNECTTIMEOUT_MS => 2000,
+            CURLOPT_TIMEOUT        => 4,
+            CURLOPT_CONNECTTIMEOUT => 2,
+            CURLOPT_NOSIGNAL       => true,
             CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
             CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         ]);

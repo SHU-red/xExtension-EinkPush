@@ -83,10 +83,12 @@
     }
 
     // ── Progress Stack (compact, persistent, lower-right) ──
-    let activePushAbort = null;
-    let pushPollTimer = null;
     let activeJobId = null;
     let activeJobMode = null;
+    let activePushAbort = null;
+    let pushPollTimer = null;
+    // concurrent support
+    let activeJobs = {}; // jobId -> { abort, poll, bar }
 
     function getStack() {
         let s = document.getElementById('ep-progress-stack');
@@ -112,10 +114,12 @@
             </div>
             <button class="ep-progress-bar-close" title="Cancel">✕</button>`;
         bar.querySelector('.ep-progress-bar-close').onclick = () => {
-            if (activePushAbort && activeJobId === jobId) activePushAbort.abort();
-            if (pushPollTimer && activeJobId === jobId) {
-                clearInterval(pushPollTimer);
-                pushPollTimer = null;
+            const cjId = jobId;
+            const jobRef = activeJobs[cjId];
+            if (jobRef) {
+                if (jobRef.abort) jobRef.abort.abort();
+                if (jobRef.poll) clearInterval(jobRef.poll);
+                delete activeJobs[cjId];
             }
             bar.remove();
             if (stack.children.length === 0) stack.remove();
@@ -148,7 +152,11 @@
     function epHandleProgress(data) {
         const bar = epFindBar(activeJobId);
         if (!bar) return;
-        const src = data.source || '';
+        epHandleProgressForBar(bar, data);
+    }
+
+    function epHandleProgressForBar(bar, data, srcOverride) {
+        const src = srcOverride || data.source || '';
         let pct = 0, text = '', isError = false;
         switch(data.step) {
             case 'starting':
@@ -212,72 +220,72 @@
 
     // ── Unified Push (with optional source) ──
     function epStreamPush(source) {
-        if (activePushAbort) activePushAbort.abort();
-        if (pushPollTimer) clearInterval(pushPollTimer);
-        activePushAbort = new AbortController();
+        const jobId = 'job_' + Date.now();
+        const abort = new AbortController();
+        activeJobs[jobId] = { abort: abort, poll: null, bar: null };
 
         let url = './?c=EinkPush&a=pushRun&' + Date.now();
         if (source) url += '&source=' + encodeURIComponent(source);
 
-        fetch(url, { signal: activePushAbort.signal })
+        fetch(url, { signal: abort.signal })
             .then(r => r.json())
             .then(data => {
                 if (data.status === 'error') {
-                    const bar = epCreateBar(null, 'Error: ' + (data.message || ''));
+                    const bar = epCreateBar(jobId, 'Error: ' + (data.message || ''));
                     epUpdateBar(bar, 100, 'Error: ' + (data.message || ''), true);
                     setTimeout(() => bar.remove(), 3000);
-                    activePushAbort = null;
+                    delete activeJobs[jobId];
                     return;
                 }
-                if (data.job) startPushPoll(data.job, 'push');
+                if (data.job) startPushPoll(data.job, 'push', jobId);
             })
             .catch(err => {
                 if (err.name !== 'AbortError') {
-                    const bar = epCreateBar(null, 'Error: ' + err.message);
+                    const bar = epCreateBar(jobId, 'Error: ' + err.message);
                     epUpdateBar(bar, 100, err.message, true);
                     setTimeout(() => bar.remove(), 3000);
                 }
-                activePushAbort = null;
+                delete activeJobs[jobId];
             });
     }
 
     // ── Unified Generate (EPUB generation with progress) ──
     function epStreamGenerate(source) {
-        if (activePushAbort) activePushAbort.abort();
-        if (pushPollTimer) clearInterval(pushPollTimer);
-        activePushAbort = new AbortController();
+        const jobId = 'job_' + Date.now();
+        const abort = new AbortController();
+        activeJobs[jobId] = { abort: abort, poll: null, bar: null };
 
         let url = './?c=EinkPush&a=generateRun&' + Date.now();
         if (source) url += '&source=' + encodeURIComponent(source);
 
-        fetch(url, { signal: activePushAbort.signal })
+        fetch(url, { signal: abort.signal })
             .then(r => r.json())
             .then(data => {
                 if (data.status === 'error') {
-                    const bar = epCreateBar(null, 'Error: ' + (data.message || ''));
+                    const bar = epCreateBar(jobId, 'Error: ' + (data.message || ''));
                     epUpdateBar(bar, 100, 'Error: ' + (data.message || ''), true);
                     setTimeout(() => bar.remove(), 3000);
-                    activePushAbort = null;
+                    delete activeJobs[jobId];
                     return;
                 }
-                if (data.job) startPushPoll(data.job, 'generate');
+                if (data.job) startPushPoll(data.job, 'generate', jobId);
             })
             .catch(err => {
                 if (err.name !== 'AbortError') {
-                    const bar = epCreateBar(null, 'Error: ' + err.message);
+                    const bar = epCreateBar(jobId, 'Error: ' + err.message);
                     epUpdateBar(bar, 100, err.message, true);
                     setTimeout(() => bar.remove(), 3000);
                 }
-                activePushAbort = null;
+                delete activeJobs[jobId];
             });
     }
 
-    // ── Polling ──
-    function startPushPoll(jobId, mode) {
-        activeJobId = jobId;
-        activeJobMode = mode;
+    // ── Polling (per-job, concurrent) ──
+    function startPushPoll(jobId, mode, clientJobId) {
         var currentSource = null;
-        const bar = epCreateBar(jobId, mode === 'push' ? 'Pushing...' : 'Generating EPUB...');
+        const bar = epCreateBar(clientJobId, mode === 'push' ? 'Pushing...' : 'Generating EPUB...');
+        const jobRef = activeJobs[clientJobId];
+        if (jobRef) jobRef.bar = bar;
 
         let lastStep = '';
         let lastTime = 0;
@@ -285,7 +293,7 @@
         let timeout = 600000;
         let timedOut = false;
 
-        pushPollTimer = setInterval(() => {
+        const pollTimer = setInterval(() => {
             if (timedOut) return;
             fetch('./?c=EinkPush&a=pushStatus&job=' + encodeURIComponent(jobId) + '&_=' + Date.now())
                 .then(r => r.json())
@@ -296,11 +304,9 @@
                         var ts = Math.floor(data.time * 1000);
                         if (lastTime > 0 && ts === lastTime && (Date.now() - lastTime) > timeout) {
                             timedOut = true;
-                            clearInterval(pushPollTimer);
-                            pushPollTimer = null;
+                            clearInterval(pollTimer);
                             epUpdateBar(bar, 100, 'Timeout - worker may have crashed', true);
                             setTimeout(() => bar.remove(), 3000);
-                            activePushAbort = null;
                             return;
                         }
                         lastTime = ts;
@@ -308,11 +314,10 @@
                     if (data.step !== lastStep || (data.message && data.message !== lastMessage)) {
                         lastStep = data.step;
                         lastMessage = data.message || '';
-                        epHandleProgress(data);
+                        epHandleProgressForBar(bar, data, currentSource);
                     }
                     if (in_array(data.step, ['done', 'done_with_errors', 'no_content'])) {
-                        clearInterval(pushPollTimer);
-                        pushPollTimer = null;
+                        clearInterval(pollTimer);
                         if (mode === 'generate' && (data.step === 'done' || data.step === 'done_with_errors')) {
                             setTimeout(() => {
                                 triggerDownloads(jobId, data);
@@ -321,16 +326,17 @@
                         } else {
                             setTimeout(() => window.location.reload(), 1500);
                         }
-                        activePushAbort = null;
+                        if (activeJobs[clientJobId]) delete activeJobs[clientJobId];
                     } else if (data.step === 'error') {
-                        clearInterval(pushPollTimer);
-                        pushPollTimer = null;
+                        clearInterval(pollTimer);
                         setTimeout(() => bar.remove(), 3000);
-                        activePushAbort = null;
+                        if (activeJobs[clientJobId]) delete activeJobs[clientJobId];
                     }
                 })
                 .catch(() => {});
         }, 400);
+
+        if (jobRef) jobRef.poll = pollTimer;
     }
 
     // After generate completes, trigger browser downloads

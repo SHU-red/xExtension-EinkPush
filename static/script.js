@@ -148,6 +148,7 @@
     function epHandleProgress(data) {
         const bar = epFindBar(activeJobId);
         if (!bar) return;
+        const src = data.source || '';
         let pct = 0, text = '', isError = false;
         switch(data.step) {
             case 'starting':
@@ -158,51 +159,51 @@
                 break;
             case 'connection_ok':
                 pct = 5;
-                text = data.message || 'Connection OK';
+                text = 'Connection OK' + (src ? ' — ' + src : '');
                 break;
             case 'generating':
                 pct = 5;
-                text = 'Generating: ' + (data.source || '');
+                text = 'Generating — ' + src;
                 break;
             case 'collecting':
                 pct = 5;
-                text = 'Collecting: ' + (data.source || '');
+                text = 'Collecting — ' + src;
                 break;
             case 'building':
                 pct = 10;
-                text = 'Building: ' + (data.source || '') + ' (' + (data.articles || 0) + ' articles)';
+                text = 'Building — ' + src + ' (' + (data.articles || 0) + ' articles)';
                 break;
             case 'source_progress':
                 pct = 5;
-                text = 'Collecting: ' + (data.source || '');
+                text = 'Collecting — ' + src;
                 break;
             case 'source_empty':
-                text = (data.source || '') + ': no articles';
+                text = src + ': no articles';
                 break;
             case 'article':
                 pct = data.percent || 50;
-                text = 'Article ' + (data.processedAllArticles || 0) + '/' + (data.totalAllArticles || 0);
+                text = src + ' — Article ' + (data.processedAllArticles || 0) + '/' + (data.totalAllArticles || 0);
                 break;
             case 'pushing':
                 pct = 90;
-                text = 'Pushing: ' + (data.source || '');
+                text = 'Pushing — ' + src;
                 break;
             case 'no_content':
                 pct = 100;
-                text = 'No articles';
+                text = src ? src + ': no articles' : 'No articles';
                 break;
             case 'done':
                 pct = 100;
-                text = data.message || 'Done!';
+                text = (data.message || 'Done!') + (src ? ' — ' + src : '');
                 break;
             case 'done_with_errors':
                 pct = 100;
-                text = (data.success || 0) + ' ok, ' + (data.failed || 0) + ' failed';
+                text = (data.success || 0) + ' ok, ' + (data.failed || 0) + ' failed' + (src ? ' — ' + src : '');
                 isError = true;
                 break;
             case 'error':
                 pct = 100;
-                text = data.message || 'Error';
+                text = (data.message || 'Error') + (src ? ' — ' + src : '');
                 isError = true;
                 break;
         }
@@ -275,6 +276,7 @@
     function startPushPoll(jobId, mode) {
         activeJobId = jobId;
         activeJobMode = mode;
+        var currentSource = null;
         const bar = epCreateBar(jobId, mode === 'push' ? 'Pushing...' : 'Generating EPUB...');
 
         let lastStep = '';
@@ -289,6 +291,7 @@
                 .then(r => r.json())
                 .then(data => {
                     if (!data || !data.step) return;
+                    if (data.source && !currentSource) currentSource = data.source;
                     if (data.time) {
                         var ts = Math.floor(data.time * 1000);
                         if (lastTime > 0 && ts === lastTime && (Date.now() - lastTime) > timeout) {

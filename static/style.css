@@ -616,17 +616,18 @@ body.theme-dark .ep-footer {
     display: flex;
     flex-direction: column-reverse;
     gap: 6px;
-    max-width: 380px;
+    max-width: 420px;
     width: calc(100% - 24px);
     pointer-events: none;
 }
 
 .ep-progress-bar {
     pointer-events: auto;
-    background: var(--panel-bg, #fff);
-    border: 1px solid var(--border-color, #ccc);
+    background: var(--panel-bg, #ffffff);
+    color: var(--text-main, #1a1a1a);
+    border: 1px solid var(--border-color, rgba(128,128,128,0.3));
     border-radius: 6px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.25);
     overflow: hidden;
     min-height: 28px;
     display: flex;
@@ -644,7 +645,7 @@ body.theme-dark .ep-footer {
     display: flex;
     align-items: center;
     position: relative;
-    padding: 0 8px;
+    padding: 0 10px;
     height: 28px;
     min-width: 0;
 }
@@ -655,7 +656,7 @@ body.theme-dark .ep-footer {
     top: 0;
     bottom: 0;
     right: 0;
-    background: rgba(0,0,0,0.04);
+    background: var(--ep-progress-track, rgba(230,106,25,0.08));
     border-radius: 0;
 }
 
@@ -665,22 +666,23 @@ body.theme-dark .ep-footer {
     top: 0;
     bottom: 0;
     width: 0%;
-    background: #e66a19;
+    background: var(--ep-progress-fill, #ff6b00);
     transition: width 0.3s ease;
-    opacity: 0.2;
+    opacity: 0.35;
 }
 
 .ep-progress-bar-text {
     position: relative;
     z-index: 1;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    color: var(--text-main, #333);
+    color: var(--text-main, #1a1a1a);
     flex: 1;
     min-width: 0;
+    text-shadow: var(--ep-text-shadow, none);
 }
 
 .ep-progress-bar-text.error {
@@ -706,8 +708,34 @@ body.theme-dark .ep-footer {
 }
 
 .ep-progress-bar-close:hover {
-    background: rgba(0,0,0,0.08);
-    color: var(--text-main, #333);
+    background: var(--hover-bg, rgba(0,0,0,0.08));
+    color: var(--text-main, #1a1a1a);
+}
+
+/* Dark theme overrides */
+@media (prefers-color-scheme: dark) {
+    .ep-progress-bar {
+        background: var(--panel-bg, #1e1e1e);
+        color: var(--text-main, #e0e0e0);
+        border-color: var(--border-color, rgba(255,255,255,0.1));
+    }
+    .ep-progress-bar-text {
+        color: var(--text-main, #e0e0e0);
+        text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+    }
+    .ep-progress-bar-fill-bg {
+        background: rgba(255,107,0,0.06);
+    }
+    .ep-progress-bar-fill {
+        background: #ff8a33;
+    }
+    .ep-progress-bar-close {
+        color: var(--text-light, #999);
+    }
+    .ep-progress-bar-close:hover {
+        background: rgba(255,255,255,0.08);
+        color: var(--text-main, #e0e0e0);
+    }
 }
 
 /* Progress Modal legacy (keep for preview) */

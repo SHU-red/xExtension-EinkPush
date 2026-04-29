@@ -746,6 +746,8 @@ class EinkPushHelper {
             CURLOPT_FORBID_REUSE   => true,
             CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
             CURLOPT_HTTPHEADER     => $headers,
+            CURLOPT_DNS_CACHE_TIMEOUT => 0,
+            CURLOPT_IPRESOLVE        => CURL_IPRESOLVE_V4,
         ];
 
         switch ($pattern) {
@@ -781,7 +783,31 @@ class EinkPushHelper {
         curl_setopt_array($ch, $baseOpts);
         error_log('[EinkPush] curl_exec START: ' . $requestUrl . ' (pattern=' . $pattern . ')');
         $t0 = microtime(true);
-        $response = curl_exec($ch);
+
+        // Use curl_multi for reliable timeout (curl_exec hangs in FPM/CLI despite NOSIGNAL)
+        $mh = curl_multi_init();
+        curl_multi_add_handle($mh, $ch);
+        $running = null;
+        $timeout = 8;
+        $start = microtime(true);
+        while (curl_multi_exec($mh, $running) === CURLM_CALL_MULTI_PERFORM) {}
+        while ($running > 0 && (microtime(true) - $start) < $timeout) {
+            // Wait for activity with 100ms granularity
+            if (curl_multi_select($mh, 0.1) === -1) {
+                usleep(10000); // fallback sleep on select failure
+                continue;
+            }
+            while (curl_multi_exec($mh, $running) === CURLM_CALL_MULTI_PERFORM) {}
+        }
+        // If still running after timeout, cancel
+        if ($running > 0) {
+            error_log('[EinkPush] curl_multi timeout after ' . round((microtime(true) - $start) * 1000) . 'ms');
+            curl_multi_remove_handle($mh, $ch);
+        }
+        $response = curl_multi_getcontent($ch);
+        curl_multi_remove_handle($mh, $ch);
+        curl_multi_close($mh);
+
         $t1 = microtime(true);
         error_log('[EinkPush] curl_exec END: ' . round(($t1 - $t0) * 1000) . 'ms, response=' . ($response === false ? 'false' : strlen($response)) . ', url=' . $requestUrl);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);

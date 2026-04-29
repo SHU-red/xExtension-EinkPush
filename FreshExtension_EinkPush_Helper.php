@@ -741,6 +741,7 @@ class EinkPushHelper {
             CURLOPT_CONNECTTIMEOUT => 3,
             CURLOPT_NOSIGNAL       => true,
             CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_FORBID_REUSE   => true,
             CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
             CURLOPT_HTTPHEADER     => $headers,
         ];

@@ -24,19 +24,30 @@ $history = $helper->getHistory();
             <p><?= _t('ext.description') ?></p>
             <?php
             $lastPushStr = '—';
+            $pushTypeBadge = '';
             if (!empty($cfg['last_push']) && $cfg['last_push'] > 0) {
                 $lastPushStr = date('Y-m-d H:i', $cfg['last_push']);
                 $lps = $cfg['last_push_status'] ?? '';
                 if ($lps === 'success') $lastPushStr .= ' ✅';
                 elseif ($lps === 'partial') $lastPushStr .= ' ⚠️';
+                $lpt = $cfg['last_push_type'] ?? '';
+                if ($lpt === 'auto') {
+                    $pushTypeBadge = '<span class="ep-push-type-badge ep-badge-auto">Auto</span>';
+                } elseif ($lpt === 'manual') {
+                    $pushTypeBadge = '<span class="ep-push-type-badge ep-badge-manual">Manual</span>';
+                }
             }
             ?>
-            <p class="ep-last-push-header">
+            <p class="ep-last-push-row">
                 <span>Last Push: <?= $lastPushStr ?></span>
-                <?php if (!empty($cfg['auto_push_enabled'])): ?>
-                    <span id="ep-next-ping" data-last-ping="<?= (int)($cfg['last_ping'] ?? 0) ?>" data-interval-min="<?= (int)($cfg['ping_interval'] ?? 5) ?>" data-last-push="<?= (int)($cfg['last_push'] ?? 0) ?>" data-cooldown-h="<?= (int)($cfg['push_cooldown'] ?? 20) ?>" data-daemon-url="<?= _url('EinkPush', 'daemonStatus') ?>"></span>
-                <?php endif; ?>
+                <?= $pushTypeBadge ?>
             </p>
+            <?php if (!empty($cfg['auto_push_enabled'])): ?>
+                <p class="ep-auto-push-row">
+                    <span>Auto Push: </span>
+                    <span id="ep-next-ping" data-last-ping="<?= (int)($cfg['last_ping'] ?? 0) ?>" data-interval-min="<?= (int)($cfg['ping_interval'] ?? 5) ?>" data-last-push="<?= (int)($cfg['last_push'] ?? 0) ?>" data-cooldown-h="<?= (int)($cfg['push_cooldown'] ?? 20) ?>" data-daemon-url="<?= _url('EinkPush', 'daemonStatus') ?>"></span>
+                </p>
+            <?php endif; ?>
         </div>
         <div class="ep-quick-actions">
             <a class="ep-btn" href="<?= _url('EinkPush', 'generate') ?>">

@@ -478,6 +478,37 @@ body.theme-dark .ep-footer {
     gap: 6px;
 }
 
+.ep-last-push-row,
+.ep-auto-push-row {
+    font-size: 0.72rem;
+    color: #888;
+    font-weight: 500;
+    margin: 3px 0 !important;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.ep-push-type-badge {
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.ep-badge-auto {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.ep-badge-manual {
+    background: #fff3e0;
+    color: #e65100;
+}
+
 .ep-device-info-section {
     background: var(--ep-bg-hover);
     padding: 12px;

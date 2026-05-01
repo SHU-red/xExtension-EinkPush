@@ -838,41 +838,55 @@
             const nextCheck = Math.max(nextPing, baselinePush > 0 ? nextCoold : nextPing);
             let diff = nextCheck - now;
 
-            if (diff <= 0) {
-                el.textContent = '🔔 Due';
-                el.style.color = '#28a745';
-                return;
-            }
-
-            // Poll daemon status for real state
+            // Poll daemon status for real state (always when URL exists)
             if (daemonUrl) {
                 fetch(daemonUrl, { cache: 'no-store' })
                     .then(r => r.json())
                     .then(d => {
                         const n = Math.floor(Date.now() / 1000);
                         if (d.state === 'pushing') {
-                            el.textContent = '⚡ ' + (d.msg || 'Pushing...');
+                            el.textContent = '⚡ Pushing...';
                             el.style.color = '#28a745';
                         } else if (d.state === 'cooldown') {
                             const cd = (d.next || nextCoold) - n;
-                            el.textContent = '⏸️ ' + (d.msg || 'Cooldown') + ': ' + fmtTime(cd);
+                            el.textContent = '⏸️ Cooldown: ' + (cd > 0 ? fmtTime(cd) : '0:00');
                             el.style.color = '#ff9800';
                         } else if (d.state === 'countdown') {
                             const pc = (d.next || nextPing) - n;
-                            el.textContent = '🔔 ' + fmtTime(pc);
+                            el.textContent = '🔔 Next: ' + (pc > 0 ? fmtTime(pc) : '0:00');
                             el.style.color = '#e66a19';
+                        } else if (d.state === 'off') {
+                            el.textContent = '🛑 ' + (d.msg || 'Daemon off');
+                            el.style.color = '#dc3545';
                         } else {
-                            el.textContent = '🔔 ' + fmtTime(diff);
-                            el.style.color = '#e66a19';
+                            // no daemon state — fallback to local calc
+                            if (diff <= 0) {
+                                el.textContent = '🔔 Ready';
+                                el.style.color = '#28a745';
+                            } else {
+                                el.textContent = '🔔 Next: ' + fmtTime(diff);
+                                el.style.color = '#e66a19';
+                            }
                         }
                     })
                     .catch(() => {
-                        el.textContent = '🔔 ' + fmtTime(diff);
-                        el.style.color = '#e66a19';
+                        // daemon unreachable — fallback to local calc
+                        if (diff <= 0) {
+                            el.textContent = '🔔 Ready';
+                            el.style.color = '#28a745';
+                        } else {
+                            el.textContent = '🔔 Next: ' + fmtTime(diff);
+                            el.style.color = '#e66a19';
+                        }
                     });
             } else {
-                el.textContent = '🔔 ' + fmtTime(diff);
-                el.style.color = '#e66a19';
+                if (diff <= 0) {
+                    el.textContent = '🔔 Ready';
+                    el.style.color = '#28a745';
+                } else {
+                    el.textContent = '🔔 Next: ' + fmtTime(diff);
+                    el.style.color = '#e66a19';
+                }
             }
         };
 

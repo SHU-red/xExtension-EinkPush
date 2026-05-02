@@ -83,12 +83,64 @@
     }
 
     // ── Progress Stack (compact, persistent, lower-right) ──
-    let activeJobId = null;
-    let activeJobMode = null;
-    let activePushAbort = null;
-    let pushPollTimer = null;
-    // concurrent support
-    let activeJobs = {}; // jobId -> { abort, poll, bar }
+    let activeJobs = {}; // clientJobId -> { abort, poll, bar, mode, serverJobId, sourceKey, sourceLabel }
+
+    function epSaveJobs() {
+        try {
+            var snapshot = {};
+            for (var k in activeJobs) {
+                var j = activeJobs[k];
+                if (!j) continue;
+                var barEl = j.bar;
+                snapshot[k] = {
+                    serverJobId: j.serverJobId || '',
+                    mode: j.mode || 'push',
+                    sourceKey: j.sourceKey || '',
+                    sourceLabel: j.sourceLabel || '',
+                    text: barEl ? (barEl.querySelector('.ep-progress-bar-text') || {}).textContent || '' : '',
+                    percent: barEl ? (barEl.querySelector('.ep-progress-bar-fill') || {}).style.width || '0%' : '0%',
+                    isError: barEl ? (barEl.querySelector('.ep-progress-bar-text.error') !== null) : false,
+                    hasDownload: barEl ? (barEl.querySelector('.ep-progress-bar-dl.ep-dl-visible') !== null) : false,
+                    done: false
+                };
+            }
+            localStorage.setItem('ep_active_jobs', JSON.stringify(snapshot));
+        } catch(e) {}
+    }
+
+    function epRestoreJobs() {
+        try {
+            var raw = localStorage.getItem('ep_active_jobs');
+            if (!raw) return;
+            var snapshot = JSON.parse(raw);
+            for (var k in snapshot) {
+                var j = snapshot[k];
+                if (!j.serverJobId) continue;
+                var bar = epCreateBar(k, j.text, j.mode);
+                epUpdateBar(bar, parseInt(j.percent) || 0, j.text, j.isError);
+                var jobRef = {
+                    abort: new AbortController(),
+                    poll: null,
+                    bar: bar,
+                    mode: j.mode,
+                    serverJobId: j.serverJobId,
+                    sourceKey: j.sourceKey,
+                    sourceLabel: j.sourceLabel || j.sourceKey
+                };
+                activeJobs[k] = jobRef;
+
+                // If done, show download and skip polling
+                if (j.hasDownload) {
+                    epShowDownload(bar, j.sourceKey);
+                    continue;
+                }
+                // Resume polling for active jobs
+                startPushPoll(j.serverJobId, j.mode, k, j.sourceLabel || j.sourceKey);
+            }
+        } catch(e) {
+            console.error('[EinkPush] restore jobs error:', e);
+        }
+    }
 
     function getStack() {
         let s = document.getElementById('ep-progress-stack');
@@ -101,7 +153,7 @@
         return s;
     }
 
-    function epCreateBar(jobId, title) {
+    function epCreateBar(jobId, title, mode) {
         const stack = getStack();
         const bar = document.createElement('div');
         bar.className = 'ep-progress-bar';
@@ -112,17 +164,19 @@
                 <div class="ep-progress-bar-fill"></div>
                 <span class="ep-progress-bar-text">${title || 'Starting...'}</span>
             </div>
+            ${mode === 'generate' ? '<button class="ep-progress-bar-dl" title="Download EPUB" data-source="">💾</button>' : ''}
             <button class="ep-progress-bar-close" title="Cancel">✕</button>`;
         bar.querySelector('.ep-progress-bar-close').onclick = () => {
-            const cjId = jobId;
-            const jobRef = activeJobs[cjId];
+            const jobRef = activeJobs[jobId];
             if (jobRef) {
                 if (jobRef.abort) jobRef.abort.abort();
                 if (jobRef.poll) clearInterval(jobRef.poll);
-                delete activeJobs[cjId];
+                delete activeJobs[jobId];
             }
+            if (bar._dismissTimer) clearTimeout(bar._dismissTimer);
             bar.remove();
             if (stack.children.length === 0) stack.remove();
+            epSaveJobs();
         };
         stack.appendChild(bar);
         return bar;
@@ -143,6 +197,54 @@
             txt.textContent = text || '';
             txt.classList.toggle('error', !!isError);
         }
+    }
+
+    function epShowDownload(bar, sourceKey) {
+        if (!bar) return;
+        const dl = bar.querySelector('.ep-progress-bar-dl');
+        if (dl) {
+            dl.dataset.source = sourceKey;
+            dl.classList.add('ep-dl-visible');
+            dl.onclick = (e) => {
+                e.stopPropagation();
+                window.open('./?c=EinkPush&a=downloadFile&source=' + encodeURIComponent(sourceKey), '_blank');
+            };
+        }
+    }
+
+    function epAutoDismiss(bar, jobId) {
+        // Bars with download button never auto-dismiss
+        if (bar && bar.querySelector('.ep-progress-bar-dl.ep-dl-visible')) return;
+        // Clear any existing timer bar
+        var oldTimer = bar.querySelector('.ep-progress-bar-timer');
+        if (oldTimer) oldTimer.remove();
+        if (bar._dismissTimer) clearTimeout(bar._dismissTimer);
+        // Insert countdown strip inside inner content (after fill-bg)
+        var inner = bar.querySelector('.ep-progress-bar-inner');
+        if (!inner) return;
+        var timerBar = document.createElement('div');
+        timerBar.className = 'ep-progress-bar-timer';
+        timerBar.style.width = '100%';
+        var fillBg = inner.querySelector('.ep-progress-bar-fill-bg');
+        if (fillBg) {
+            inner.insertBefore(timerBar, fillBg.nextSibling);
+        } else {
+            inner.insertBefore(timerBar, inner.firstChild);
+        }
+        // Force reflow then start animation
+        void timerBar.offsetWidth;
+        timerBar.style.width = '0%';
+        bar._dismissTimer = setTimeout(function() {
+            if (activeJobs[jobId]) {
+                if (activeJobs[jobId].abort) activeJobs[jobId].abort.abort();
+                if (activeJobs[jobId].poll) clearInterval(activeJobs[jobId].poll);
+                delete activeJobs[jobId];
+            }
+            if (bar && bar.parentNode) bar.remove();
+            var stack = document.getElementById('ep-progress-stack');
+            if (stack && stack.children.length === 0) stack.remove();
+            epSaveJobs();
+        }, 30000);
     }
 
     function in_array(needle, haystack) {
@@ -218,95 +320,166 @@
         epUpdateBar(bar, pct, text, isError);
     }
 
-    // ── Unified Push (with optional source) ──
-    function epStreamPush(source) {
-        const jobId = 'job_' + Date.now();
-        const abort = new AbortController();
-        activeJobs[jobId] = { abort: abort, poll: null, bar: null };
-
-        let url = './?c=EinkPush&a=pushRun&' + Date.now();
-        if (source) url += '&source=' + encodeURIComponent(source);
-
-        fetch(url, { signal: abort.signal })
-            .then(r => r.json())
-            .then(data => {
-                if (data.status === 'error') {
-                    const bar = epCreateBar(jobId, 'Error: ' + (data.message || ''));
-                    epUpdateBar(bar, 100, 'Error: ' + (data.message || ''), true);
-                    setTimeout(() => bar.remove(), 3000);
-                    delete activeJobs[jobId];
-                    return;
-                }
-                if (data.job) startPushPoll(data.job, 'push', jobId);
-            })
-            .catch(err => {
-                if (err.name !== 'AbortError') {
-                    const bar = epCreateBar(jobId, 'Error: ' + err.message);
-                    epUpdateBar(bar, 100, err.message, true);
-                    setTimeout(() => bar.remove(), 3000);
-                }
-                delete activeJobs[jobId];
-            });
+    // ── Concurrent job spawner (push or generate) ──
+    function epSpawnJobs(mode) {
+        // Check DOM for source items (settings page)
+        var items = document.querySelectorAll('.ep-source-item');
+        if (items.length > 0) {
+            epSpawnJobsFromDom(mode, items);
+            return;
+        }
+        // Not on settings page (e.g. sidebar). Fetch sources from server.
+        epSpawnJobsFromServer(mode);
     }
 
-    // ── Unified Generate (EPUB generation with progress) ──
-    function epStreamGenerate(source) {
-        const jobId = 'job_' + Date.now();
-        const abort = new AbortController();
-        activeJobs[jobId] = { abort: abort, poll: null, bar: null };
+    function epSpawnJobsFromDom(mode, items) {
+        var sources = [];
+        items.forEach(function(item) {
+            var chk = item.querySelector('input[name$="[enabled]"]');
+            if (chk && chk.checked) {
+                var nameEl = item.querySelector('.ep-source-name');
+                var name = nameEl ? nameEl.textContent.trim() : 'Unknown';
+                var keyMatch = chk.name.match(/sources\[(.+)\]\[enabled\]/);
+                sources.push({ key: keyMatch ? keyMatch[1] : 'main', label: name });
+            }
+        });
+        if (sources.length === 0) {
+            var bar = epCreateBar('job_none', 'No sources enabled', mode);
+            epUpdateBar(bar, 100, 'No sources enabled', false);
+            epAutoDismiss(bar, 'job_none');
+            return;
+        }
+        epSpawnJobsExecute(mode, sources);
+    }
 
-        let url = './?c=EinkPush&a=generateRun&' + Date.now();
-        if (source) url += '&source=' + encodeURIComponent(source);
+    function epSpawnJobsFromServer(mode) {
+        var url = './?c=EinkPush&a=listSources&_=' + Date.now();
+        fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+            if (data.status !== 'ok' || !data.sources || data.sources.length === 0) {
+                var bar = epCreateBar('job_none', 'No sources configured', mode);
+                epUpdateBar(bar, 100, 'No sources configured', false);
+                epAutoDismiss(bar, 'job_none');
+                return;
+            }
+            var enabled = data.sources.filter(function(s) { return s.enabled; });
+            if (enabled.length === 0) {
+                var bar = epCreateBar('job_none', 'No sources enabled', mode);
+                epUpdateBar(bar, 100, 'No sources enabled', false);
+                epAutoDismiss(bar, 'job_none');
+                return;
+            }
+            epSpawnJobsExecute(mode, enabled);
+        }).catch(function(err) {
+            var bar = epCreateBar('job_err', 'Error: ' + err.message, mode);
+            epUpdateBar(bar, 100, 'Error: ' + err.message, true);
+            epAutoDismiss(bar, 'job_err');
+        });
+    }
+
+    function epSpawnJobsExecute(mode, sources) {
+
+        sources.forEach(function(src) {
+            var jobId = 'job_' + Date.now() + '_' + src.key;
+            var abort = new AbortController();
+            var bar = epCreateBar(jobId, src.label + ': Starting...', mode);
+            activeJobs[jobId] = { abort: abort, poll: null, bar: bar, mode: mode, sourceKey: src.key };
+
+            var action = mode === 'push' ? 'pushRun' : 'generateRun';
+            var url = './?c=EinkPush&a=' + action + '&source=' + encodeURIComponent(src.key) + '&_=' + Date.now();
+
+            fetch(url, { signal: abort.signal })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.status === 'error') {
+                        epUpdateBar(bar, 100, 'Error: ' + (data.message || ''), true);
+                        return;
+                    }
+                    if (data.job) {
+                        startPushPoll(data.job, mode, jobId, src.label);
+                        epSaveJobs();
+                    }
+                })
+                .catch(function(err) {
+                    if (err.name !== 'AbortError') {
+                        epUpdateBar(bar, 100, err.message, true);
+                    }
+                });
+        });
+    }
+
+    // ── Legacy single-source push/generate ──
+    function epStreamPush(source) {
+        if (source) {
+            epSpawnJobsForSource('push', source);
+        } else {
+            epSpawnJobs('push');
+        }
+    }
+    function epStreamGenerate(source) {
+        if (source) {
+            epSpawnJobsForSource('generate', source);
+        } else {
+            epSpawnJobs('generate');
+        }
+    }
+
+    function epSpawnJobsForSource(mode, sourceKey) {
+        var jobId = 'job_' + Date.now() + '_' + sourceKey;
+        var abort = new AbortController();
+        var bar = epCreateBar(jobId, sourceKey + ': Starting...', mode);
+        activeJobs[jobId] = { abort: abort, poll: null, bar: bar, mode: mode, sourceKey: sourceKey };
+
+        var action = mode === 'push' ? 'pushRun' : 'generateRun';
+        var url = './?c=EinkPush&a=' + action + '&source=' + encodeURIComponent(sourceKey) + '&_=' + Date.now();
 
         fetch(url, { signal: abort.signal })
-            .then(r => r.json())
-            .then(data => {
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
                 if (data.status === 'error') {
-                    const bar = epCreateBar(jobId, 'Error: ' + (data.message || ''));
                     epUpdateBar(bar, 100, 'Error: ' + (data.message || ''), true);
-                    setTimeout(() => bar.remove(), 3000);
-                    delete activeJobs[jobId];
                     return;
                 }
-                if (data.job) startPushPoll(data.job, 'generate', jobId);
-            })
-            .catch(err => {
-                if (err.name !== 'AbortError') {
-                    const bar = epCreateBar(jobId, 'Error: ' + err.message);
-                    epUpdateBar(bar, 100, err.message, true);
-                    setTimeout(() => bar.remove(), 3000);
+                if (data.job) {
+                    startPushPoll(data.job, mode, jobId, sourceKey);
                 }
-                delete activeJobs[jobId];
+            })
+            .catch(function(err) {
+                if (err.name !== 'AbortError') {
+                    epUpdateBar(bar, 100, err.message, true);
+                }
             });
     }
 
     // ── Polling (per-job, concurrent) ──
-    function startPushPoll(jobId, mode, clientJobId) {
-        var currentSource = null;
-        const bar = epCreateBar(clientJobId, mode === 'push' ? 'Pushing...' : 'Generating EPUB...');
-        const jobRef = activeJobs[clientJobId];
-        if (jobRef) jobRef.bar = bar;
+    function startPushPoll(jobId, mode, clientJobId, sourceLabel) {
+        var bar = activeJobs[clientJobId] ? activeJobs[clientJobId].bar : null;
+        if (!bar) return;
+        // Store server jobId for persistence
+        if (activeJobs[clientJobId]) {
+            activeJobs[clientJobId].serverJobId = jobId;
+            activeJobs[clientJobId].sourceLabel = sourceLabel;
+            epSaveJobs();
+        }
 
-        let lastStep = '';
-        let lastTime = 0;
-        let lastMessage = '';
-        let timeout = 600000;
-        let timedOut = false;
+        var lastStep = '';
+        var lastTime = 0;
+        var lastMessage = '';
+        var timeout = 600000;
+        var timedOut = false;
 
-        const pollTimer = setInterval(() => {
+        var pollTimer = setInterval(function() {
             if (timedOut) return;
             fetch('./?c=EinkPush&a=pushStatus&job=' + encodeURIComponent(jobId) + '&_=' + Date.now())
-                .then(r => r.json())
-                .then(data => {
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
                     if (!data || !data.step) return;
-                    if (data.source && !currentSource) currentSource = data.source;
                     if (data.time) {
                         var ts = Math.floor(data.time * 1000);
                         if (lastTime > 0 && ts === lastTime && (Date.now() - lastTime) > timeout) {
                             timedOut = true;
                             clearInterval(pollTimer);
-                            epUpdateBar(bar, 100, 'Timeout - worker may have crashed', true);
-                            setTimeout(() => bar.remove(), 3000);
+                            epUpdateBar(bar, 100, 'Timeout', true);
+                            epAutoDismiss(bar, clientJobId);
                             return;
                         }
                         lastTime = ts;
@@ -314,49 +487,26 @@
                     if (data.step !== lastStep || (data.message && data.message !== lastMessage)) {
                         lastStep = data.step;
                         lastMessage = data.message || '';
-                        epHandleProgressForBar(bar, data, currentSource);
+                        epHandleProgressForBar(bar, data, sourceLabel || data.source || '');
                     }
+                    // Done states — auto-dismiss after 30s unless download button visible
                     if (in_array(data.step, ['done', 'done_with_errors', 'no_content'])) {
                         clearInterval(pollTimer);
-                        if (mode === 'generate' && (data.step === 'done' || data.step === 'done_with_errors')) {
-                            setTimeout(() => {
-                                triggerDownloads(jobId, data);
-                                setTimeout(() => bar.remove(), 1000);
-                            }, 1000);
-                        } else {
-                            setTimeout(() => window.location.reload(), 1500);
+                        if (mode === 'generate' && data.step === 'done') {
+                            epShowDownload(bar, activeJobs[clientJobId] ? activeJobs[clientJobId].sourceKey : '');
                         }
-                        if (activeJobs[clientJobId]) delete activeJobs[clientJobId];
+                        epSaveJobs();
+                        epAutoDismiss(bar, clientJobId);
                     } else if (data.step === 'error') {
                         clearInterval(pollTimer);
-                        setTimeout(() => bar.remove(), 3000);
-                        if (activeJobs[clientJobId]) delete activeJobs[clientJobId];
+                        epUpdateBar(bar, 100, data.message || 'Error', true);
+                        epAutoDismiss(bar, clientJobId);
                     }
                 })
-                .catch(() => {});
+                .catch(function() {});
         }, 400);
 
-        if (jobRef) jobRef.poll = pollTimer;
-    }
-
-    // After generate completes, trigger browser downloads
-    function triggerDownloads(jobId, data) {
-        const sources = data.generatedSources || [];
-        if (sources.length > 0) {
-            sources.forEach(function(src, i) {
-                // Use <a download> - iframe blocks silent downloads in modern browsers
-                setTimeout(function() {
-                    const a = document.createElement('a');
-                    a.href = './?c=EinkPush&a=downloadFile&source=' + encodeURIComponent(src) + '&_=' + Date.now();
-                    a.style.display = 'none';
-                    document.body.appendChild(a);
-                    a.click();
-                    setTimeout(() => a.remove(), 10000);
-                }, i * 500);
-            });
-        } else {
-            window.location.reload();
-        }
+        if (activeJobs[clientJobId]) activeJobs[clientJobId].poll = pollTimer;
     }
 
     // ── Cookie polling (legacy for download) ──
@@ -586,6 +736,13 @@
         } catch (err) {}
     }
     document.addEventListener('DOMContentLoaded', restoreTab);
+
+    // ── Persist bars across navigation ──
+    window.addEventListener('beforeunload', epSaveJobs);
+    document.addEventListener('DOMContentLoaded', function() {
+        // Restore bars after short delay to let DOM settle
+        setTimeout(epRestoreJobs, 100);
+    });
 
     // ── Sidebar Injection ──
     function injectSidebarButton() {

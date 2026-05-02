@@ -249,11 +249,8 @@ class EinkPushHelper {
             $idMin = $minDate . '000000';
         }
 
-        if ($unreadOnly) {
-            $state = FreshRSS_Entry::STATE_NOT_READ | FreshRSS_Entry::STATE_FAVORITE | FreshRSS_Entry::STATE_NOT_FAVORITE;
-        } else {
-            $state = FreshRSS_Entry::STATE_READ | FreshRSS_Entry::STATE_NOT_READ | FreshRSS_Entry::STATE_FAVORITE | FreshRSS_Entry::STATE_NOT_FAVORITE;
-        }
+        // state=STATE_ALL (3) means no filter. state=0 = no flags set = nothing matches.
+        $state = $unreadOnly ? FreshRSS_Entry::STATE_NOT_READ : FreshRSS_Entry::STATE_ALL;
 
         $entries = [];
 

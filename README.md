@@ -14,10 +14,18 @@ Export feeds to EPUB, download or push to your e-ink reader.
 
 ## Screenshots
 
+### Settings & Sidebar
+
 <p align="center">
   <img src="assets/screenshot3.png" alt="Sidebar button" width="35%" />
-  <img src="assets/screenshot2.png" alt="Settings" width="35%" />
-  <img src="assets/screenshot1.png" alt="Progress" width="35%" />
+  <img src="assets/screenshot2.png" alt="Settings page" width="35%" />
+</p>
+
+### Push Progress Bars
+
+<p align="center">
+  <img src="assets/screenshot.png" alt="Progress bars" width="35%" />
+  <img src="assets/screenshot4.png" alt="Auto-dismiss timer" width="35%" />
 </p>
 
 ## Install

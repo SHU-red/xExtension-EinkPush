@@ -137,6 +137,9 @@ require_once $helperPath;
 $helper = new EinkPushHelper($epubDir, $screenWidth, $screenHeight, $fontSize, $readabilityUrl);
 $log('Helper created');
 
+require_once __DIR__ . '/FreshExtension_EinkPush_PostPush.php';
+$log('PostPush class loaded');
+
 // ============================================================
 // CONNECTION TEST (push mode only)
 // ============================================================
@@ -162,6 +165,7 @@ $paths = [];
 $totalArticles = 0;
 $processedArticles = 0;
 $currentSource = 0;
+$sourceEntryIds = []; // sourceKey => [entry_id, ...]
 
 foreach ($sources as $key => $srcCfg) {
     if (empty($srcCfg['enabled'])) continue;
@@ -184,9 +188,15 @@ foreach ($sources as $key => $srcCfg) {
         continue;
     }
 
+    // Collect entry IDs for post-push cleanup
+    $entryIds = [];
+    foreach ($entries as $entry) {
+        $entryIds[] = $entry->id();
+    }
+
     $numEntries = count($entries);
     $totalArticles += $numEntries;
-    $write('building', $label . ': ' . $numEntries . ' articles', ['source' => $label, 'articles' => $numEntries, 'totalAllArticles' => $totalArticles]);
+    $write('building', $label . ': ' . $numEntries . ' articles', ['source' => $label, 'articles' => $numEntries, 'totalAllArticles' => $totalArticles, 'entry_ids' => $entryIds]);
 
     try {
         $log('buildEpub START: ' . $numEntries . ' entries, fetchContent=' . ($fetchContent ? 'yes' : 'no') . ', readability=' . ($readabilityUrl ?: 'none'));
@@ -209,7 +219,14 @@ foreach ($sources as $key => $srcCfg) {
     }
 
     $processedArticles += $numEntries;
-    if ($path !== null) $paths[$key] = $path;
+    if ($path !== null) {
+        $paths[$key] = $path;
+        $sourceEntryIds[$key] = $entryIds;
+        // Write sidecar file for download cleanup
+        $sidecarFile = dirname($path) . '/' . basename($path, '.epub') . '_entries.json';
+        file_put_contents($sidecarFile, json_encode(['source' => $key, 'entry_ids' => $entryIds, 'ts' => time()]));
+        $log('Sidecar: ' . $sidecarFile . ' (' . count($entryIds) . ' entries)');
+    }
 }
 
 if (empty($paths)) {
@@ -236,12 +253,22 @@ if ($mode === 'push') {
     }
 
     if ($failed === 0) {
+        // Post-push cleanup: mark as read + un-favorite for all pushed sources
+        $log('Post-push cleanup START');
+        EinkPush_PostPush::cleanupEntries($sourceEntryIds, $sources, $sources);
+        $log('Post-push cleanup DONE');
         $write('done', 'Pushed ' . $success . ' EPUB(s)', ['success' => $success, 'generatedSources' => array_keys($paths)]);
     } else {
+        // Partial push: cleanup only for successfully pushed sources
+        $log('Partial push - no cleanup for failed sources');
         $write('done_with_errors', $success . ' ok, ' . $failed . ' failed', ['success' => $success, 'failed' => $failed, 'generatedSources' => array_keys($paths)]);
     }
     $log('DONE success=' . $success . ' failed=' . $failed);
 } else {
+    // Generate-only mode: cleanup after EPUB creation
+    $log('Post-generate cleanup START');
+    EinkPush_PostPush::cleanupEntries($sourceEntryIds, $sources, $paths);
+    $log('Post-generate cleanup DONE');
     $write('done', 'Generated ' . count($paths) . ' EPUB(s)', ['success' => count($paths), 'generatedSources' => array_keys($paths)]);
     $log('DONE generated=' . count($paths));
 }

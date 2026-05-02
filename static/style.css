@@ -617,6 +617,7 @@ body.theme-dark .ep-footer {
     flex-direction: column-reverse;
     gap: 6px;
     max-width: 420px;
+    min-width: 260px;
     width: calc(100% - 24px);
     pointer-events: none;
 }
@@ -628,11 +629,23 @@ body.theme-dark .ep-footer {
     border: 1px solid var(--border-color, rgba(128,128,128,0.3));
     border-radius: 6px;
     box-shadow: 0 2px 12px rgba(0,0,0,0.25);
-    overflow: hidden;
     min-height: 28px;
     display: flex;
     align-items: stretch;
     animation: ep-slide-in 0.2s ease-out;
+    position: relative;
+}
+
+.ep-progress-bar-timer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    background: rgba(255, 0, 0, 0.3);
+    border-radius: 0;
+    transition: width 30s linear;
+    z-index: 1;
 }
 
 @keyframes ep-slide-in {
@@ -648,6 +661,9 @@ body.theme-dark .ep-footer {
     padding: 0 10px;
     height: 28px;
     min-width: 0;
+    overflow: hidden;
+    border-radius: 6px;
+    z-index: 1;
 }
 
 .ep-progress-bar-fill-bg {
@@ -687,6 +703,33 @@ body.theme-dark .ep-footer {
 
 .ep-progress-bar-text.error {
     color: #d32f2f;
+}
+
+.ep-progress-bar-dl {
+    display: none;
+    position: absolute;
+    top: 50%;
+    right: 36px;
+    transform: translateY(-50%);
+    z-index: 5;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    border: none;
+    border-radius: 50%;
+    font-size: 15px;
+    color: var(--text-main, #555);
+    flex-shrink: 0;
+    background: var(--bg-hover, rgba(128,128,128,0.15));
+    transition: background 0.15s;
+}
+.ep-progress-bar-dl.ep-dl-visible {
+    display: flex;
+}
+.ep-progress-bar-dl:hover {
+    background: var(--bg-hover, rgba(128,128,128,0.3));
 }
 
 .ep-progress-bar-close {

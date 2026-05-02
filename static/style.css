@@ -642,10 +642,10 @@ body.theme-dark .ep-footer {
     top: 0;
     bottom: 0;
     width: 100%;
-    background: rgba(180, 40, 5, 0.55);
+    background: rgba(160, 30, 10, 0.6);
     border-radius: 0;
     transition: width 30s linear;
-    z-index: 2;
+    z-index: 1;
 }
 
 @keyframes ep-slide-in {

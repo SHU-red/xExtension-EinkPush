@@ -286,6 +286,7 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         }
 
         $paths = [];
+        $sourceEntryIds = [];
         $totalArticles = 0;
         $processedArticles = 0;
         $currentSource = 0;
@@ -310,6 +311,8 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
                 continue;
             }
 
+            $entryIds = array_map(function($e) { return $e->id(); }, $entries);
+
             $numEntries = count($entries);
             $totalArticles += $numEntries;
             $writeProgress('building', ['source' => $label, 'articles' => $numEntries, 'totalAllArticles' => $totalArticles]);
@@ -324,10 +327,9 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
             });
 
             $processedArticles += $numEntries;
-            if ($path !== null) $paths[$key] = $path;
-
-            if ($key === 'favorites' && !empty($srcCfg['removeFromFavorites'])) {
-                $helper->removeFromFavorites(array_map(function($e) { return $e->id(); }, $entries));
+            if ($path !== null) {
+                $paths[$key] = $path;
+                $sourceEntryIds[$key] = $entryIds;
             }
         }
 
@@ -354,6 +356,10 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
             $uconf = FreshRSS_Context::$user_conf ?? null;
             if ($uconf) { $uconf->EinkPush_last_push = time(); $uconf->EinkPush_last_push_type = 'manual'; $uconf->save(); }
         }
+
+        // Post-push cleanup: mark as read + un-favorite
+        require_once __DIR__ . '/../FreshExtension_EinkPush_PostPush.php';
+        EinkPush_PostPush::cleanupEntries($sourceEntryIds, $conf['sources'] ?? [], $paths);
 
         if ($failed === 0) {
             $writeProgress('done', ['success' => $success, 'message' => 'Successfully pushed ' . $success . ' EPUB(s).']);
@@ -579,7 +585,21 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
             exit;
         }
         usort($files, function($a, $b) { return filemtime($b) - filemtime($a); });
-        $this->downloadFile($files[0]);
+        $epubPath = $files[0];
+
+        // Post-download cleanup: read sidecar and mark as read / un-favorite
+        $sidecarPath = dirname($epubPath) . '/' . basename($epubPath, '.epub') . '_entries.json';
+        if (file_exists($sidecarPath)) {
+            $sidecar = json_decode(file_get_contents($sidecarPath), true);
+            if ($sidecar && !empty($sidecar['entry_ids'])) {
+                require_once __DIR__ . '/../FreshExtension_EinkPush_PostPush.php';
+                $sources = $this->extension->getConfig()['sources'] ?? [];
+                EinkPush_PostPush::cleanupEntries([$sourceKey => $sidecar['entry_ids']], $sources, [$sourceKey => $epubPath]);
+            }
+            @unlink($sidecarPath);
+        }
+
+        $this->downloadFile($epubPath);
     }
 
     public function previewAction(): void {

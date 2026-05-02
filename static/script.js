@@ -106,7 +106,7 @@
                 <div class="ep-progress-bar-fill-bg"></div>
                 <div class="ep-progress-bar-fill"></div>
                 <span class="ep-progress-bar-text">${title || 'Starting...'}</span>
-                ${mode === 'generate' ? '<a class="ep-progress-bar-dl" title="Download EPUB">⬇</a>' : ''}
+                ${mode === 'generate' ? '<button class="ep-progress-bar-dl" title="Download EPUB" data-source="">💾</button>' : ''}
             </div>
             <button class="ep-progress-bar-close" title="Cancel">✕</button>`;
         bar.querySelector('.ep-progress-bar-close').onclick = () => {
@@ -144,8 +144,12 @@
         if (!bar) return;
         const dl = bar.querySelector('.ep-progress-bar-dl');
         if (dl) {
-            dl.href = './?c=EinkPush&a=downloadFile&source=' + encodeURIComponent(sourceKey);
+            dl.dataset.source = sourceKey;
             dl.classList.add('ep-dl-visible');
+            dl.onclick = (e) => {
+                e.stopPropagation();
+                window.open('./?c=EinkPush&a=downloadFile&source=' + encodeURIComponent(sourceKey), '_blank');
+            };
         }
     }
 

@@ -693,23 +693,24 @@ body.theme-dark .ep-footer {
     display: none;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
-    margin: 2px;
+    width: 28px;
+    height: 28px;
+    margin: 1px;
     cursor: pointer;
-    border-radius: 4px;
-    font-size: 16px;
-    color: var(--ep-primary);
+    border-radius: 6px;
+    font-size: 18px;
+    color: #fff;
     flex-shrink: 0;
-    border: none;
-    background: none;
-    text-decoration: none;
+    border: 2px solid var(--ep-primary);
+    background: var(--ep-primary);
 }
 .ep-progress-bar-dl.ep-dl-visible {
     display: flex;
 }
 .ep-progress-bar-dl:hover {
-    background: var(--hover-bg, rgba(0,0,0,0.08));
+    background: var(--ep-primary-hover, #0052d6);
+    border-color: var(--ep-primary-hover, #0052d6);
+    transform: scale(1.1);
 }
 
 .ep-progress-bar-close {

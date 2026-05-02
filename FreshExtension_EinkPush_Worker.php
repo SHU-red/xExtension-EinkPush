@@ -265,12 +265,11 @@ if ($mode === 'push') {
     }
     $log('DONE success=' . $success . ' failed=' . $failed);
 } else {
-    // Generate-only mode: cleanup after EPUB creation
-    $log('Post-generate cleanup START');
-    EinkPush_PostPush::cleanupEntries($sourceEntryIds, $sources, $paths);
-    $log('Post-generate cleanup DONE');
+    // Generate-only mode: no immediate cleanup.
+    // Sidecar files written above track entry IDs.
+    // Cleanup happens when user clicks download (💾) in downloadFileAction().
     $write('done', 'Generated ' . count($paths) . ' EPUB(s)', ['success' => count($paths), 'generatedSources' => array_keys($paths)]);
-    $log('DONE generated=' . count($paths));
+    $log('DONE generated=' . count($paths) . ' (cleanup deferred to download)');
 }
 
 exit(0);

@@ -53,10 +53,7 @@ class EinkPushHelper {
             $entryIds = array_map(function($entry) { return $entry->id(); }, $entries);
             try { $path = $this->buildEpub($key, $label, $entries, $markAsRead, $fetchContent, $addTimestamp, $maxArticles); } catch (Exception $e) { throw new Exception("Source '{$label}': " . $e->getMessage()); }
             
-            // Handle remove from favorites if enabled and this is the favorites source
-            if ($key === 'favorites' && !empty($srcCfg['removeFromFavorites'])) {
-                $this->removeFromFavorites($entryIds);
-            }
+            // Cleanup deferred to post-push or download click
             
             if ($path !== null) {
                 $results[$key] = $path;
@@ -94,10 +91,7 @@ class EinkPushHelper {
         $entryIds = array_map(function($entry) { return $entry->id(); }, $entries);
         $path = $this->buildEpub($key, $label, $entries, $markAsRead, $fetchContent, $addTimestamp, $maxArticles);
         
-        // Handle remove from favorites if enabled and this is the favorites source
-        if ($key === 'favorites' && !empty($srcCfg['removeFromFavorites'])) {
-            $this->removeFromFavorites($entryIds);
-        }
+        // Cleanup deferred to post-push or download click
         
         return $path;
     }
@@ -443,14 +437,11 @@ class EinkPushHelper {
 
             $chapters[] = ['file' => $chapterFile, 'title' => $safeTitle, 'body' => $chapterBody];
 
-            if ($markAsRead && !$entry->isRead()) {
-                $entryDAO = FreshRSS_Factory::createEntryDao();
-                $entryDAO->markRead($entry->id(), true);
-            }
+            // Cleanup (markAsRead, un-fav) deferred to post-push or download click.
+            // No longer done inline during EPUB generation.
         }
 
         if (empty($chapters)) {
-            error_log('[EinkPush] DEBUG buildEpub: chapters empty! entries=' . count($entries) . ' includedCount=' . $includedCount . ' chapterIndex=' . $chapterIndex . ' fetchSuccess=' . $this->fetchSuccessCount . ' fetchFail=' . $this->fetchFailCount);
             return null;
         }
 

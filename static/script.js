@@ -219,11 +219,18 @@
         var oldTimer = bar.querySelector('.ep-progress-bar-timer');
         if (oldTimer) oldTimer.remove();
         if (bar._dismissTimer) clearTimeout(bar._dismissTimer);
-        // Insert countdown bar behind content
+        // Insert countdown strip inside inner content (after fill-bg)
+        var inner = bar.querySelector('.ep-progress-bar-inner');
+        if (!inner) return;
         var timerBar = document.createElement('div');
         timerBar.className = 'ep-progress-bar-timer';
         timerBar.style.width = '100%';
-        bar.insertBefore(timerBar, bar.firstChild);
+        var fillBg = inner.querySelector('.ep-progress-bar-fill-bg');
+        if (fillBg) {
+            inner.insertBefore(timerBar, fillBg.nextSibling);
+        } else {
+            inner.insertBefore(timerBar, inner.firstChild);
+        }
         // Force reflow then start animation
         void timerBar.offsetWidth;
         timerBar.style.width = '0%';

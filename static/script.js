@@ -215,6 +215,18 @@
     function epAutoDismiss(bar, jobId) {
         // Bars with download button never auto-dismiss
         if (bar && bar.querySelector('.ep-progress-bar-dl.ep-dl-visible')) return;
+        // Clear any existing timer bar
+        var oldTimer = bar.querySelector('.ep-progress-bar-timer');
+        if (oldTimer) oldTimer.remove();
+        if (bar._dismissTimer) clearTimeout(bar._dismissTimer);
+        // Insert countdown bar behind content
+        var timerBar = document.createElement('div');
+        timerBar.className = 'ep-progress-bar-timer';
+        timerBar.style.width = '100%';
+        bar.insertBefore(timerBar, bar.firstChild);
+        // Force reflow then start animation
+        void timerBar.offsetWidth;
+        timerBar.style.width = '0%';
         bar._dismissTimer = setTimeout(function() {
             if (activeJobs[jobId]) {
                 if (activeJobs[jobId].abort) activeJobs[jobId].abort.abort();

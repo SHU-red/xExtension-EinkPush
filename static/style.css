@@ -636,6 +636,18 @@ body.theme-dark .ep-footer {
     position: relative;
 }
 
+.ep-progress-bar-timer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    background: rgba(230, 80, 18, 0.12);
+    border-radius: 6px;
+    transition: width 1s linear;
+    z-index: 0;
+}
+
 @keyframes ep-slide-in {
     from { opacity: 0; transform: translateY(12px); }
     to { opacity: 1; transform: translateY(0); }
@@ -651,6 +663,7 @@ body.theme-dark .ep-footer {
     min-width: 0;
     overflow: hidden;
     border-radius: 6px;
+    z-index: 1;
 }
 
 .ep-progress-bar-fill-bg {

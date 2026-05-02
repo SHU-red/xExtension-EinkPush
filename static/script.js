@@ -106,8 +106,8 @@
                 <div class="ep-progress-bar-fill-bg"></div>
                 <div class="ep-progress-bar-fill"></div>
                 <span class="ep-progress-bar-text">${title || 'Starting...'}</span>
-                ${mode === 'generate' ? '<button class="ep-progress-bar-dl" title="Download EPUB" data-source="">💾</button>' : ''}
             </div>
+            ${mode === 'generate' ? '<button class="ep-progress-bar-dl" title="Download EPUB" data-source="">💾</button>' : ''}
             <button class="ep-progress-bar-close" title="Cancel">✕</button>`;
         bar.querySelector('.ep-progress-bar-close').onclick = () => {
             const jobRef = activeJobs[jobId];

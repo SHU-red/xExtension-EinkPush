@@ -249,8 +249,8 @@ class EinkPushHelper {
             $idMin = $minDate . '000000';
         }
 
-        // state=0 means "no filter" (match all). OR-ing READ|NOT_READ produces invalid bitmask.
-        $state = $unreadOnly ? FreshRSS_Entry::STATE_NOT_READ : 0;
+        // state=STATE_ALL (3) means no filter. state=0 = no flags set = nothing matches.
+        $state = $unreadOnly ? FreshRSS_Entry::STATE_NOT_READ : FreshRSS_Entry::STATE_ALL;
 
         $entries = [];
 

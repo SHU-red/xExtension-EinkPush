@@ -17,13 +17,13 @@ $progressFile = $argv[1] ?? '';
 
 // Catch fatal errors
 set_error_handler(function($severity, $message, $file, $line) use ($progressFile) {
-    $log("ERROR [$severity] $message at $file:$line");
+    file_put_contents('/tmp/einkpush_worker.log', '[' . date('H:i:s') . '] [Worker] ERROR [' . $severity . '] ' . $message . ' at ' . $file . ':' . $line . PHP_EOL, FILE_APPEND);
     @file_put_contents($progressFile, json_encode([
         'step' => 'error',
         'message' => "PHP Error: $message at $file:$line",
         'time' => microtime(true),
     ]), LOCK_EX);
-    return false;
+    return true;
 });
 
 set_exception_handler(function($e) use ($progressFile) {

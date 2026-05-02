@@ -555,8 +555,8 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
             header('HTTP/1.1 404 Not Found');
             exit;
         }
-        $path = max($files, function($a, $b) { return filemtime($a) - filemtime($b); });
-        $this->downloadFile($path);
+        usort($files, function($a, $b) { return filemtime($b) - filemtime($a); });
+        $this->downloadFile($files[0]);
     }
 
     public function previewAction(): void {

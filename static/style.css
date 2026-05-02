@@ -478,6 +478,37 @@ body.theme-dark .ep-footer {
     gap: 6px;
 }
 
+.ep-last-push-row,
+.ep-auto-push-row {
+    font-size: 0.72rem;
+    color: #888;
+    font-weight: 500;
+    margin: 3px 0 !important;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.ep-push-type-badge {
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.ep-badge-auto {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.ep-badge-manual {
+    background: #fff3e0;
+    color: #e65100;
+}
+
 .ep-device-info-section {
     background: var(--ep-bg-hover);
     padding: 12px;
@@ -576,16 +607,139 @@ body.theme-dark .ep-footer {
     text-align: right;
 }
 
-/* Progress Modal (centered, theme-aware) */
-.ep-progress-overlay {
+/* Progress Stack (lower-right corner, compact bars) */
+.ep-progress-stack {
     position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.5);
+    bottom: 12px;
+    right: 12px;
+    z-index: 2100;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 6px;
+    max-width: 420px;
+    width: calc(100% - 24px);
+    pointer-events: none;
+}
+
+.ep-progress-bar {
+    pointer-events: auto;
+    background: var(--panel-bg, #ffffff);
+    color: var(--text-main, #1a1a1a);
+    border: 1px solid var(--border-color, rgba(128,128,128,0.3));
+    border-radius: 6px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+    overflow: hidden;
+    min-height: 28px;
+    display: flex;
+    align-items: stretch;
+    animation: ep-slide-in 0.2s ease-out;
+}
+
+@keyframes ep-slide-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.ep-progress-bar-inner {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    position: relative;
+    padding: 0 10px;
+    height: 28px;
+    min-width: 0;
+}
+
+.ep-progress-bar-fill-bg {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    background: var(--ep-progress-track, rgba(230,106,25,0.08));
+    border-radius: 0;
+}
+
+.ep-progress-bar-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 0%;
+    background: var(--ep-progress-fill, #ff6b00);
+    transition: width 0.3s ease;
+    opacity: 0.35;
+}
+
+.ep-progress-bar-text {
+    position: relative;
+    z-index: 1;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-main, #1a1a1a);
+    flex: 1;
+    min-width: 0;
+    text-shadow: var(--ep-text-shadow, none);
+}
+
+.ep-progress-bar-text.error {
+    color: #d32f2f;
+}
+
+.ep-progress-bar-close {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 2000;
+    width: 24px;
+    height: 24px;
+    margin: 2px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 14px;
+    color: var(--text-light, #888);
+    flex-shrink: 0;
+    border: none;
+    background: none;
+    line-height: 1;
+    padding: 0;
 }
+
+.ep-progress-bar-close:hover {
+    background: var(--hover-bg, rgba(0,0,0,0.08));
+    color: var(--text-main, #1a1a1a);
+}
+
+/* Dark theme overrides */
+@media (prefers-color-scheme: dark) {
+    .ep-progress-bar {
+        background: var(--panel-bg, #1e1e1e);
+        color: var(--text-main, #e0e0e0);
+        border-color: var(--border-color, rgba(255,255,255,0.1));
+    }
+    .ep-progress-bar-text {
+        color: var(--text-main, #e0e0e0);
+        text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+    }
+    .ep-progress-bar-fill-bg {
+        background: rgba(255,107,0,0.06);
+    }
+    .ep-progress-bar-fill {
+        background: #ff8a33;
+    }
+    .ep-progress-bar-close {
+        color: var(--text-light, #999);
+    }
+    .ep-progress-bar-close:hover {
+        background: rgba(255,255,255,0.08);
+        color: var(--text-main, #e0e0e0);
+    }
+}
+
+/* Progress Modal legacy (keep for preview) */
+.ep-modal-overlay {
 
 
 

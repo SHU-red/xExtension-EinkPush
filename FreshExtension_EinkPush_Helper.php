@@ -348,7 +348,9 @@ class EinkPushHelper {
                     if (!empty($url)) {
                         // Check if this is an unresolvable Google News URL before wasting time
                         $isGoogleNews = (bool) preg_match('#^https?://news\.google\.com/rss/articles/#', $url);
+                        error_log('[EinkPush] resolveRedirects START: ' . $url);
                         $resolvedUrl = $this->resolveRedirects($url);
+                        error_log('[EinkPush] resolveRedirects END: ' . $resolvedUrl);
                         $wasResolved = ($resolvedUrl !== $url);
 
                         if ($isGoogleNews && !$wasResolved) {
@@ -361,7 +363,9 @@ class EinkPushHelper {
                             if ($wasResolved) {
                                 error_log('[EinkPush] Resolved redirect: ' . $url . ' → ' . $resolvedUrl);
                             }
+                            error_log('[EinkPush] Readability fetch START: ' . $resolvedUrl);
                             $result = $this->fetchViaReadability($resolvedUrl);
+                            error_log('[EinkPush] Readability fetch END: ok=' . ($result['ok'] ? 'yes' : 'no'));
                             if ($result['ok']) {
                                 $rawContent = $result['html'];
                                 $this->fetchSuccessCount++;
@@ -541,72 +545,65 @@ class EinkPushHelper {
         }
 
         // ── HTTP HEAD with redirect following ──
+        usleep(100000); // 100ms delay to avoid socket exhaustion in host network
+        $t0 = microtime(true);
+        $fd = count(glob('/proc/self/fd/*'));
+        error_log('[EinkPush] resolveRedirects HEAD START fd=' . $fd . ': ' . $url);
+
         $ch = curl_init();
         curl_setopt_array($ch, [
             CURLOPT_URL            => $url,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS      => 10,
-            CURLOPT_TIMEOUT        => 15,
-            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_TIMEOUT        => 3,
+            CURLOPT_CONNECTTIMEOUT => 2,
+            CURLOPT_NOSIGNAL       => true,
             CURLOPT_NOBODY         => true,
             CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
             CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            CURLOPT_FORBID_REUSE   => true,
+            CURLOPT_DNS_CACHE_TIMEOUT => 0,
+            CURLOPT_IPRESOLVE        => CURL_IPRESOLVE_V4,
+            CURLOPT_TCP_KEEPIDLE     => 30,
+            CURLOPT_TCP_KEEPINTVL    => 5,
         ]);
 
-        curl_exec($ch);
+        // Use curl_multi with hard time limit - curl_exec hangs despite NOSIGNAL in Docker
+        $mh = curl_multi_init();
+        curl_multi_add_handle($mh, $ch);
+        $running = null;
+        $loop = 0;
+        while (curl_multi_exec($mh, $running) === CURLM_CALL_MULTI_PERFORM) {
+            if (++$loop > 100) break;
+        }
+
+        $deadline = microtime(true) + 4;
+        while ($running > 0 && microtime(true) < $deadline) {
+            usleep(20000);
+            if (curl_multi_exec($mh, $running) === CURLM_CALL_MULTI_PERFORM) continue;
+            curl_multi_info_read($mh);
+        }
+        if ($running > 0) {
+            error_log('[EinkPush] resolveRedirects HEAD CANCELLED running=' . $running . ' after ' . round((microtime(true) - $t0) * 1000) . 'ms');
+        }
+
         $finalUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $elapsed = round((microtime(true) - $t0) * 1000);
+
+        curl_multi_remove_handle($mh, $ch);
+        curl_multi_close($mh);
         curl_close($ch);
+
+        error_log('[EinkPush] resolveRedirects HEAD DONE: ' . $elapsed . 'ms code=' . $httpCode . ' final=' . $finalUrl);
 
         if ($httpCode >= 200 && $httpCode < 400 && !empty($finalUrl) && $finalUrl !== $url) {
             return $finalUrl;
         }
 
-        // ── HTTP GET — scrape body for meta-refresh / JS redirect ──
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL            => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_MAXREDIRS      => 10,
-            CURLOPT_TIMEOUT        => 15,
-            CURLOPT_CONNECTTIMEOUT => 5,
-            CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
-            CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        ]);
-
-        $body = curl_exec($ch);
-        $finalUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
-        $curlError = curl_error($ch);
-        curl_close($ch);
-
-        if ($body === false) {
-            error_log('[EinkPush] resolveRedirects curl error for ' . $url . ': ' . $curlError);
-            return $url;
-        }
-
-        if (!empty($finalUrl) && $finalUrl !== $url) {
-            $url = $finalUrl;
-        }
-
-        // Meta-refresh redirect
-        if (preg_match('/<meta[^>]+http-equiv\s*=\s*["\']?refresh["\']?[^>]+content\s*=\s*["\']?\d+;\s*url=([^"\'>\s]+)/i', $body, $m)) {
-            $target = html_entity_decode($m[1], ENT_QUOTES, 'UTF-8');
-            if (filter_var($target, FILTER_VALIDATE_URL)) {
-                return $target;
-            }
-        }
-
-        // JS redirect (window.location = "..." or location.href = "..." or location.replace("..."))
-        if (preg_match('/(?:window\.location|location\.(?:href|replace))\s*[=(]\s*["\']([^"\']+)["\']/i', $body, $m)) {
-            $target = $m[1];
-            if (filter_var($target, FILTER_VALIDATE_URL)) {
-                return $target;
-            }
-        }
-
-        return $url;
+        // Skip GET scrape - meta-refresh/JS redirects rare, GET hangs in Docker host network
+        return $finalUrl ?: $url;
     }
 
     /**
@@ -729,71 +726,95 @@ class EinkPushHelper {
      *   ['ok' => false, 'error' => '...', 'debug' => '...'] — endpoint failed (4xx/5xx/curl)
      */
     private function callReadabilityApi(string $articleUrl, string $pattern): array {
-        $ch = curl_init();
-        $baseOpts = [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => 5,
-            CURLOPT_CONNECTTIMEOUT => 3,
-            CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
-        ];
+        // ── file_get_contents with stream context (curl_exec/fsockopen both hang in Docker host network) ──
+        $parsed = parse_url($this->readabilityUrl);
+        if (!$parsed || !isset($parsed['host'])) {
+            return ['ok' => false, 'error' => 'Invalid readability URL', 'debug' => $this->readabilityUrl];
+        }
+
+        $host = $parsed['host'];
+        $port = $parsed['port'] ?? 80;
+        $path = '';
+        $method = 'POST';
+        $body = '';
 
         switch ($pattern) {
             case 'post_parse':
-                $baseOpts[CURLOPT_URL] = $this->readabilityUrl . '/parse';
-                $baseOpts[CURLOPT_POST] = true;
-                $baseOpts[CURLOPT_POSTFIELDS] = json_encode(['url' => $articleUrl]);
-                $baseOpts[CURLOPT_HTTPHEADER] = ['Content-Type: application/json', 'Accept: application/json'];
+                $path = '/parse';
+                $body = json_encode(['url' => $articleUrl]);
                 break;
             case 'get_parse':
-                $baseOpts[CURLOPT_URL] = $this->readabilityUrl . '/parse?url=' . urlencode($articleUrl);
+                $path = '/parse?url=' . urlencode($articleUrl);
+                $method = 'GET';
+                $body = '';
                 break;
             case 'post_api_parse':
-                $baseOpts[CURLOPT_URL] = $this->readabilityUrl . '/api/parse';
-                $baseOpts[CURLOPT_POST] = true;
-                $baseOpts[CURLOPT_POSTFIELDS] = json_encode(['url' => $articleUrl]);
-                $baseOpts[CURLOPT_HTTPHEADER] = ['Content-Type: application/json', 'Accept: application/json'];
+                $path = '/api/parse';
+                $body = json_encode(['url' => $articleUrl]);
                 break;
             case 'get_extract':
-                $baseOpts[CURLOPT_URL] = $this->readabilityUrl . '/extract?url=' . urlencode($articleUrl);
+                $path = '/extract?url=' . urlencode($articleUrl);
+                $method = 'GET';
+                $body = '';
                 break;
             case 'post_root':
-                $baseOpts[CURLOPT_URL] = $this->readabilityUrl . '/';
-                $baseOpts[CURLOPT_POST] = true;
-                $baseOpts[CURLOPT_POSTFIELDS] = json_encode(['url' => $articleUrl]);
-                $baseOpts[CURLOPT_HTTPHEADER] = ['Content-Type: application/json', 'Accept: application/json'];
+                $path = '/';
+                $body = json_encode(['url' => $articleUrl]);
                 break;
             default:
                 return ['ok' => false, 'error' => 'Unknown pattern: ' . $pattern, 'debug' => ''];
         }
 
-        $requestUrl = $baseOpts[CURLOPT_URL];
-        curl_setopt_array($ch, $baseOpts);
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlError = curl_error($ch);
-        $curlErrno = curl_errno($ch);
-        curl_close($ch);
+        $requestUrl = $this->readabilityUrl . $path;
+        error_log('[EinkPush] readability fetch START: ' . $requestUrl . ' (pattern=' . $pattern . ')');
+        $t0 = microtime(true);
+
+        $ctx = stream_context_create([
+            'http' => [
+                'method' => $method,
+                'header' => 'Content-Type: application/json' . "\r\n" . 'Accept: application/json' . "\r\n" . 'Connection: close' . "\r\n",
+                'timeout' => 20,
+                'max_redirects' => 0,
+            ],
+            'socket' => [
+                'tcp_nodelay' => true,
+            ],
+        ]);
+        if ($body !== '') {
+            stream_context_set_option($ctx, 'http', 'content', $body);
+        }
+
+        $responseBody = @file_get_contents($requestUrl, false, $ctx);
+        $httpResponse = $http_response_header ?? [];
+        $t1 = microtime(true);
+        $elapsed = round(($t1 - $t0) * 1000);
+        error_log('[EinkPush] readability fetch END: ' . $elapsed . 'ms bytes=' . ($responseBody === false ? 0 : strlen($responseBody)) . ', url=' . $requestUrl);
+
+        $httpCode = 0;
+        foreach ($httpResponse as $h) {
+            if (preg_match('/HTTP\/\d\.\d\s+(\d+)/', $h, $m)) {
+                $httpCode = (int)$m[1];
+                break;
+            }
+        }
 
         $debugSnippet = 'Pattern: ' . $pattern . ' | URL: ' . $requestUrl
             . ' | HTTP ' . $httpCode
-            . ' | Response: ' . mb_substr((string)$response, 0, 300);
+            . ' | Response: ' . mb_substr((string)$responseBody, 0, 300);
 
-        if ($response === false || $curlErrno !== 0) {
-            return ['ok' => false, 'error' => 'Curl error: ' . $curlError . ' (errno=' . $curlErrno . ')', 'debug' => $debugSnippet];
+        if ($responseBody === false || $httpCode === 0) {
+            return ['ok' => false, 'error' => 'Timeout or connection failed to readability server (' . $elapsed . 'ms)', 'debug' => $debugSnippet];
         }
 
         if ($httpCode < 200 || $httpCode >= 300) {
             return ['ok' => false, 'error' => 'HTTP ' . $httpCode, 'debug' => $debugSnippet];
         }
 
-        // HTTP 200 — endpoint is reachable, now check for content
-        $data = json_decode($response, true);
+        $data = json_decode($responseBody, true);
         if (!is_array($data)) {
             return ['ok' => false, 'reachable' => true, 'error' => 'Response is not valid JSON', 'debug' => $debugSnippet];
         }
 
-        // Try common response field names
         $html = $data['content'] ?? $data['html'] ?? $data['article'] ?? null;
         if (empty($html) || !is_string($html)) {
             $keys = implode(', ', array_keys($data));

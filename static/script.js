@@ -82,64 +82,67 @@
         return sectionFound ? target : null;
     }
 
-    // ── Progress Modal ──
+    // ── Progress Stack (compact, persistent, lower-right) ──
+    let activeJobId = null;
+    let activeJobMode = null;
     let activePushAbort = null;
     let pushPollTimer = null;
+    // concurrent support
+    let activeJobs = {}; // jobId -> { abort, poll, bar }
 
-    function epShowProgressModal(title) {
-        let overlay = document.getElementById('ep-progress-overlay');
-        if (overlay) overlay.remove();
-        overlay = document.createElement('div');
-        overlay.id = 'ep-progress-overlay';
-        overlay.className = 'ep-progress-overlay';
-        const bodyStyle = getComputedStyle(document.body);
-        const bg = bodyStyle.backgroundColor || '#ffffff';
-        const fg = bodyStyle.color || '#333333';
-        const accent = '#e66a19';
-        const muted = '#888';
-        overlay.innerHTML = `
-            <div class="ep-progress-box">
-                <div class="ep-progress-header">
-                    <span id="ep-progress-title">${title || 'Processing...'}</span>
-                    <span class="ep-progress-close">✕</span>
-                </div>
-                <div class="ep-progress-bar-bg">
-                    <div id="ep-progress-bar-fill" class="ep-progress-bar-fill"></div>
-                </div>
-                <div id="ep-progress-status" class="ep-progress-status"></div>
-                <div id="ep-progress-detail" class="ep-progress-detail"></div>
-            </div>`;
-        document.body.appendChild(overlay);
-        const box = overlay.querySelector('.ep-progress-box');
-        box.style.cssText = 'background-color:' + bg + ';color:' + fg + ';border:1px solid ' + muted +
-            ';border-radius:8px;padding:16px;max-width:400px;width:90%;box-shadow:0 4px 24px rgba(0,0,0,0.3);font-family:inherit;';
-        overlay.querySelector('.ep-progress-header').style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;';
-        overlay.querySelector('#ep-progress-title').style.cssText = 'font-weight:bold;font-size:14px;';
-        const closeBtn = overlay.querySelector('.ep-progress-close');
-        closeBtn.style.cssText = 'cursor:pointer;opacity:0.6;';
-        closeBtn.onclick = () => {
-            if (activePushAbort) activePushAbort.abort();
-            if (pushPollTimer) clearInterval(pushPollTimer);
-            overlay.remove();
-        };
-        overlay.querySelector('.ep-progress-bar-bg').style.cssText = 'height:6px;border-radius:3px;overflow:hidden;margin-bottom:10px;background:' + muted + '33;';
-        overlay.querySelector('#ep-progress-bar-fill').style.cssText = 'height:100%;width:0%;background:' + accent + ';border-radius:3px;transition:width 0.3s ease;';
-        overlay.querySelector('#ep-progress-status').style.cssText = 'font-size:13px;margin-bottom:4px;font-weight:500;';
-        overlay.querySelector('#ep-progress-detail').style.cssText = 'font-size:11px;color:' + muted + ';';
-        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
-        return overlay;
+    function getStack() {
+        let s = document.getElementById('ep-progress-stack');
+        if (!s) {
+            s = document.createElement('div');
+            s.id = 'ep-progress-stack';
+            s.className = 'ep-progress-stack';
+            document.body.appendChild(s);
+        }
+        return s;
     }
 
-    function epUpdateProgress(percent, status, detail, isError) {
-        const fill = document.getElementById('ep-progress-bar-fill');
-        const statusEl = document.getElementById('ep-progress-status');
-        const detailEl = document.getElementById('ep-progress-detail');
-        if (fill) fill.style.width = percent + '%';
-        if (statusEl) {
-            statusEl.textContent = status;
-            statusEl.style.color = isError ? '#d32f2f' : '';
+    function epCreateBar(jobId, title) {
+        const stack = getStack();
+        const bar = document.createElement('div');
+        bar.className = 'ep-progress-bar';
+        bar.dataset.jobId = jobId;
+        bar.innerHTML = `
+            <div class="ep-progress-bar-inner">
+                <div class="ep-progress-bar-fill-bg"></div>
+                <div class="ep-progress-bar-fill"></div>
+                <span class="ep-progress-bar-text">${title || 'Starting...'}</span>
+            </div>
+            <button class="ep-progress-bar-close" title="Cancel">✕</button>`;
+        bar.querySelector('.ep-progress-bar-close').onclick = () => {
+            const cjId = jobId;
+            const jobRef = activeJobs[cjId];
+            if (jobRef) {
+                if (jobRef.abort) jobRef.abort.abort();
+                if (jobRef.poll) clearInterval(jobRef.poll);
+                delete activeJobs[cjId];
+            }
+            bar.remove();
+            if (stack.children.length === 0) stack.remove();
+        };
+        stack.appendChild(bar);
+        return bar;
+    }
+
+    function epFindBar(jobId) {
+        const stack = document.getElementById('ep-progress-stack');
+        if (!stack) return null;
+        return stack.querySelector('[data-job-id="' + jobId + '"]') || stack.lastElementChild;
+    }
+
+    function epUpdateBar(bar, percent, text, isError) {
+        if (!bar) return;
+        const fill = bar.querySelector('.ep-progress-bar-fill');
+        const txt = bar.querySelector('.ep-progress-bar-text');
+        if (fill) fill.style.width = Math.min(100, Math.max(0, percent)) + '%';
+        if (txt) {
+            txt.textContent = text || '';
+            txt.classList.toggle('error', !!isError);
         }
-        if (detailEl) detailEl.textContent = detail || '';
     }
 
     function in_array(needle, haystack) {
@@ -147,144 +150,163 @@
     }
 
     function epHandleProgress(data) {
+        const bar = epFindBar(activeJobId);
+        if (!bar) return;
+        epHandleProgressForBar(bar, data);
+    }
+
+    function epHandleProgressForBar(bar, data, srcOverride) {
+        const src = srcOverride || data.source || '';
+        let pct = 0, text = '', isError = false;
         switch(data.step) {
             case 'starting':
-                epUpdateProgress(0, data.message || 'Starting...', '');
+                text = data.message || 'Starting...';
                 break;
             case 'test_connection':
-                epUpdateProgress(0, data.message || 'Testing connection...', '');
+                text = data.message || 'Testing...';
                 break;
             case 'connection_ok':
-                epUpdateProgress(5, data.message || 'Connection OK!', 'Starting EPUB generation...');
+                pct = 5;
+                text = 'Connection OK' + (src ? ' — ' + src : '');
                 break;
             case 'generating':
-                epUpdateProgress(5, 'Generating EPUBs...', (data.source || '') + ' (' + (data.sourceIndex || 0) + '/' + (data.totalSources || 0) + ')');
+                pct = 5;
+                text = 'Generating — ' + src;
                 break;
             case 'collecting':
-                epUpdateProgress(5, 'Collecting...', (data.source || '') + ' - fetching articles');
+                pct = 5;
+                text = 'Collecting — ' + src;
                 break;
             case 'building':
-                epUpdateProgress(10, 'Building EPUB...', (data.source || '') + ' (' + (data.articles || 0) + ' articles)');
+                pct = 10;
+                text = 'Building — ' + src + ' (' + (data.articles || 0) + ' articles)';
                 break;
             case 'source_progress':
-                epUpdateProgress(5, 'Collecting articles...', (data.source || '') + ' (' + (data.totalArticles || 0) + ' articles)');
+                pct = 5;
+                text = 'Collecting — ' + src;
                 break;
             case 'source_empty':
-                epUpdateProgress(0, '', (data.source || '') + ': no articles');
+                text = src + ': no articles';
                 break;
             case 'article':
-                const pct = data.percent || Math.round(((data.articleIndex || 0) / Math.max(1, data.totalInSource || 1)) * 100);
-                epUpdateProgress(pct, 'Processing: ' + (data.source || ''),
-                    'Article ' + (data.processedAllArticles || 0) + '/' + (data.totalAllArticles || 0) + ' (' + pct + '%)');
+                pct = data.percent || 50;
+                text = src + ' — Article ' + (data.processedAllArticles || 0) + '/' + (data.totalAllArticles || 0);
                 break;
             case 'pushing':
-                epUpdateProgress(90, 'Pushing to device...',
-                    (data.source || '') + ' (' + (data.fileIndex || 0) + '/' + (data.totalFiles || 0) + ')');
+                pct = 90;
+                text = 'Pushing — ' + src;
                 break;
             case 'no_content':
-                epUpdateProgress(100, 'No articles', data.message || 'Nothing to push.');
-                setTimeout(() => document.getElementById('ep-progress-overlay')?.remove(), 2000);
+                pct = 100;
+                text = src ? src + ': no articles' : 'No articles';
                 break;
             case 'done':
-                epUpdateProgress(100, data.message || 'Done!', (data.success || 0) + ' EPUB(s) ready');
+                pct = 100;
+                text = (data.message || 'Done!') + (src ? ' — ' + src : '');
                 break;
             case 'done_with_errors':
-                epUpdateProgress(100, data.message || 'Done with errors',
-                    (data.success || 0) + ' ok, ' + (data.failed || 0) + ' failed', true);
+                pct = 100;
+                text = (data.success || 0) + ' ok, ' + (data.failed || 0) + ' failed' + (src ? ' — ' + src : '');
+                isError = true;
                 break;
             case 'error':
-                epUpdateProgress(100, data.message || 'Error', '', true);
-                setTimeout(() => document.getElementById('ep-progress-overlay')?.remove(), 3000);
+                pct = 100;
+                text = (data.message || 'Error') + (src ? ' — ' + src : '');
+                isError = true;
                 break;
         }
+        epUpdateBar(bar, pct, text, isError);
     }
 
     // ── Unified Push (with optional source) ──
     function epStreamPush(source) {
-        if (activePushAbort) activePushAbort.abort();
-        if (pushPollTimer) clearInterval(pushPollTimer);
-        activePushAbort = new AbortController();
-        epShowProgressModal('Pushing to device...');
-        epUpdateProgress(0, 'Starting...', '');
+        const jobId = 'job_' + Date.now();
+        const abort = new AbortController();
+        activeJobs[jobId] = { abort: abort, poll: null, bar: null };
 
         let url = './?c=EinkPush&a=pushRun&' + Date.now();
         if (source) url += '&source=' + encodeURIComponent(source);
 
-        fetch(url, { signal: activePushAbort.signal })
+        fetch(url, { signal: abort.signal })
             .then(r => r.json())
             .then(data => {
                 if (data.status === 'error') {
-                    epUpdateProgress(100, data.message || 'Error', '', true);
-                    setTimeout(() => document.getElementById('ep-progress-overlay')?.remove(), 3000);
-                    activePushAbort = null;
+                    const bar = epCreateBar(jobId, 'Error: ' + (data.message || ''));
+                    epUpdateBar(bar, 100, 'Error: ' + (data.message || ''), true);
+                    setTimeout(() => bar.remove(), 3000);
+                    delete activeJobs[jobId];
                     return;
                 }
-                if (data.job) startPushPoll(data.job, 'push');
+                if (data.job) startPushPoll(data.job, 'push', jobId);
             })
             .catch(err => {
                 if (err.name !== 'AbortError') {
-                    epUpdateProgress(100, 'Error: ' + err.message, '', true);
+                    const bar = epCreateBar(jobId, 'Error: ' + err.message);
+                    epUpdateBar(bar, 100, err.message, true);
+                    setTimeout(() => bar.remove(), 3000);
                 }
-                activePushAbort = null;
+                delete activeJobs[jobId];
             });
     }
 
     // ── Unified Generate (EPUB generation with progress) ──
     function epStreamGenerate(source) {
-        if (activePushAbort) activePushAbort.abort();
-        if (pushPollTimer) clearInterval(pushPollTimer);
-        activePushAbort = new AbortController();
-        epShowProgressModal('Generating EPUB...');
-        epUpdateProgress(0, 'Starting...', '');
+        const jobId = 'job_' + Date.now();
+        const abort = new AbortController();
+        activeJobs[jobId] = { abort: abort, poll: null, bar: null };
 
         let url = './?c=EinkPush&a=generateRun&' + Date.now();
         if (source) url += '&source=' + encodeURIComponent(source);
 
-        fetch(url, { signal: activePushAbort.signal })
+        fetch(url, { signal: abort.signal })
             .then(r => r.json())
             .then(data => {
                 if (data.status === 'error') {
-                    epUpdateProgress(100, data.message || 'Error', '', true);
-                    setTimeout(() => document.getElementById('ep-progress-overlay')?.remove(), 3000);
-                    activePushAbort = null;
+                    const bar = epCreateBar(jobId, 'Error: ' + (data.message || ''));
+                    epUpdateBar(bar, 100, 'Error: ' + (data.message || ''), true);
+                    setTimeout(() => bar.remove(), 3000);
+                    delete activeJobs[jobId];
                     return;
                 }
-                if (data.job) startPushPoll(data.job, 'generate');
+                if (data.job) startPushPoll(data.job, 'generate', jobId);
             })
             .catch(err => {
                 if (err.name !== 'AbortError') {
-                    epUpdateProgress(100, 'Error: ' + err.message, '', true);
+                    const bar = epCreateBar(jobId, 'Error: ' + err.message);
+                    epUpdateBar(bar, 100, err.message, true);
+                    setTimeout(() => bar.remove(), 3000);
                 }
-                activePushAbort = null;
+                delete activeJobs[jobId];
             });
     }
 
-    // ── Polling ──
-    function startPushPoll(jobId, mode) {
+    // ── Polling (per-job, concurrent) ──
+    function startPushPoll(jobId, mode, clientJobId) {
+        var currentSource = null;
+        const bar = epCreateBar(clientJobId, mode === 'push' ? 'Pushing...' : 'Generating EPUB...');
+        const jobRef = activeJobs[clientJobId];
+        if (jobRef) jobRef.bar = bar;
+
         let lastStep = '';
         let lastTime = 0;
         let lastMessage = '';
         let timeout = 600000;
         let timedOut = false;
 
-        pushPollTimer = setInterval(() => {
+        const pollTimer = setInterval(() => {
             if (timedOut) return;
             fetch('./?c=EinkPush&a=pushStatus&job=' + encodeURIComponent(jobId) + '&_=' + Date.now())
                 .then(r => r.json())
                 .then(data => {
                     if (!data || !data.step) return;
+                    if (data.source && !currentSource) currentSource = data.source;
                     if (data.time) {
                         var ts = Math.floor(data.time * 1000);
                         if (lastTime > 0 && ts === lastTime && (Date.now() - lastTime) > timeout) {
                             timedOut = true;
-                            clearInterval(pushPollTimer);
-                            pushPollTimer = null;
-                            epUpdateProgress(100, 'Timeout', 'Worker may have crashed.', true);
-                            setTimeout(() => {
-                                document.getElementById('ep-progress-overlay')?.remove();
-                                window.location.reload();
-                            }, 3000);
-                            activePushAbort = null;
+                            clearInterval(pollTimer);
+                            epUpdateBar(bar, 100, 'Timeout - worker may have crashed', true);
+                            setTimeout(() => bar.remove(), 3000);
                             return;
                         }
                         lastTime = ts;
@@ -292,53 +314,45 @@
                     if (data.step !== lastStep || (data.message && data.message !== lastMessage)) {
                         lastStep = data.step;
                         lastMessage = data.message || '';
-                        epHandleProgress(data);
-                    } else {
-                        const dots = '.'.repeat((Math.floor(Date.now() / 500) % 4));
-                        const statusEl = document.getElementById('ep-progress-status');
-                        if (statusEl && statusEl.textContent) {
-                            statusEl.textContent = statusEl.textContent.replace(/\.+$/, '') + dots;
-                        }
+                        epHandleProgressForBar(bar, data, currentSource);
                     }
                     if (in_array(data.step, ['done', 'done_with_errors', 'no_content'])) {
-                        clearInterval(pushPollTimer);
-                        pushPollTimer = null;
+                        clearInterval(pollTimer);
                         if (mode === 'generate' && (data.step === 'done' || data.step === 'done_with_errors')) {
-                            // Download generated EPUBs via iframe trigger
                             setTimeout(() => {
-                                document.getElementById('ep-progress-overlay')?.remove();
                                 triggerDownloads(jobId, data);
+                                setTimeout(() => bar.remove(), 1000);
                             }, 1000);
-                        } else if (data.step === 'done' || data.step === 'done_with_errors') {
-                            setTimeout(() => {
-                                document.getElementById('ep-progress-overlay')?.remove();
-                                window.location.reload();
-                            }, 1500);
                         } else {
-                            setTimeout(() => document.getElementById('ep-progress-overlay')?.remove(), 2500);
+                            setTimeout(() => window.location.reload(), 1500);
                         }
-                        activePushAbort = null;
+                        if (activeJobs[clientJobId]) delete activeJobs[clientJobId];
                     } else if (data.step === 'error') {
-                        clearInterval(pushPollTimer);
-                        pushPollTimer = null;
-                        setTimeout(() => document.getElementById('ep-progress-overlay')?.remove(), 3000);
-                        activePushAbort = null;
+                        clearInterval(pollTimer);
+                        setTimeout(() => bar.remove(), 3000);
+                        if (activeJobs[clientJobId]) delete activeJobs[clientJobId];
                     }
                 })
                 .catch(() => {});
         }, 400);
+
+        if (jobRef) jobRef.poll = pollTimer;
     }
 
     // After generate completes, trigger browser downloads
     function triggerDownloads(jobId, data) {
         const sources = data.generatedSources || [];
         if (sources.length > 0) {
-            sources.forEach(function(src) {
-                const iframe = document.createElement('iframe');
-                iframe.className = 'ep-hidden';
-                iframe.src = './?c=EinkPush&a=downloadFile&source=' + encodeURIComponent(src) + '&_=' + Date.now();
-                document.body.appendChild(iframe);
-                setTimeout(() => iframe.remove(), 60000);
+            sources.forEach(function(src, i) {
+                // Use <a download> - iframe blocks silent downloads in modern browsers
+                setTimeout(function() {
+                    const a = document.createElement('a');
+                    a.href = './?c=EinkPush&a=downloadFile&source=' + encodeURIComponent(src) + '&_=' + Date.now();
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => a.remove(), 10000);
+                }, i * 500);
             });
         } else {
             window.location.reload();
@@ -824,41 +838,55 @@
             const nextCheck = Math.max(nextPing, baselinePush > 0 ? nextCoold : nextPing);
             let diff = nextCheck - now;
 
-            if (diff <= 0) {
-                el.textContent = '🔔 Due';
-                el.style.color = '#28a745';
-                return;
-            }
-
-            // Poll daemon status for real state
+            // Poll daemon status for real state (always when URL exists)
             if (daemonUrl) {
                 fetch(daemonUrl, { cache: 'no-store' })
                     .then(r => r.json())
                     .then(d => {
                         const n = Math.floor(Date.now() / 1000);
                         if (d.state === 'pushing') {
-                            el.textContent = '⚡ ' + (d.msg || 'Pushing...');
+                            el.textContent = '⚡ Pushing...';
                             el.style.color = '#28a745';
                         } else if (d.state === 'cooldown') {
                             const cd = (d.next || nextCoold) - n;
-                            el.textContent = '⏸️ ' + (d.msg || 'Cooldown') + ': ' + fmtTime(cd);
+                            el.textContent = '⏸️ Cooldown: ' + (cd > 0 ? fmtTime(cd) : '0:00');
                             el.style.color = '#ff9800';
                         } else if (d.state === 'countdown') {
                             const pc = (d.next || nextPing) - n;
-                            el.textContent = '🔔 ' + fmtTime(pc);
+                            el.textContent = '🔔 Next: ' + (pc > 0 ? fmtTime(pc) : '0:00');
                             el.style.color = '#e66a19';
+                        } else if (d.state === 'off') {
+                            el.textContent = '🛑 ' + (d.msg || 'Daemon off');
+                            el.style.color = '#dc3545';
                         } else {
-                            el.textContent = '🔔 ' + fmtTime(diff);
-                            el.style.color = '#e66a19';
+                            // no daemon state — fallback to local calc
+                            if (diff <= 0) {
+                                el.textContent = '🔔 Ready';
+                                el.style.color = '#28a745';
+                            } else {
+                                el.textContent = '🔔 Next: ' + fmtTime(diff);
+                                el.style.color = '#e66a19';
+                            }
                         }
                     })
                     .catch(() => {
-                        el.textContent = '🔔 ' + fmtTime(diff);
-                        el.style.color = '#e66a19';
+                        // daemon unreachable — fallback to local calc
+                        if (diff <= 0) {
+                            el.textContent = '🔔 Ready';
+                            el.style.color = '#28a745';
+                        } else {
+                            el.textContent = '🔔 Next: ' + fmtTime(diff);
+                            el.style.color = '#e66a19';
+                        }
                     });
             } else {
-                el.textContent = '🔔 ' + fmtTime(diff);
-                el.style.color = '#e66a19';
+                if (diff <= 0) {
+                    el.textContent = '🔔 Ready';
+                    el.style.color = '#28a745';
+                } else {
+                    el.textContent = '🔔 Next: ' + fmtTime(diff);
+                    el.style.color = '#e66a19';
+                }
             }
         };
 

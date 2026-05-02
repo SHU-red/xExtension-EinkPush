@@ -177,6 +177,23 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         exit;
     }
 
+    public function listSourcesAction(): void {
+        header('Content-Type: application/json');
+
+        $conf = $this->extension->getConfig();
+        $sources = $conf['sources'] ?? [];
+        $result = [];
+        foreach ($sources as $key => $src) {
+            $result[] = [
+                'key' => $key,
+                'label' => $src['label'] ?? $key,
+                'enabled' => !empty($src['enabled']),
+            ];
+        }
+        echo json_encode(['status' => 'ok', 'sources' => $result]);
+        exit;
+    }
+
     public function daemonStatusAction(): void {
         $sf = '/tmp/einkpush_daemon_status.json';
         if (!file_exists($sf)) {

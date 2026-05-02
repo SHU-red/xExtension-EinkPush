@@ -616,8 +616,8 @@ body.theme-dark .ep-footer {
     display: flex;
     flex-direction: column-reverse;
     gap: 6px;
-    max-width: 420px;
     width: calc(100% - 24px);
+    max-width: 100%;
     pointer-events: none;
 }
 
@@ -632,6 +632,7 @@ body.theme-dark .ep-footer {
     display: flex;
     align-items: stretch;
     animation: ep-slide-in 0.2s ease-out;
+    position: relative;
 }
 
 @keyframes ep-slide-in {
@@ -692,22 +693,29 @@ body.theme-dark .ep-footer {
 
 .ep-progress-bar-dl {
     display: none;
+    position: absolute;
+    top: 50%;
+    right: 36px;
+    transform: translateY(-50%);
+    z-index: 5;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 100%;
+    width: 30px;
+    height: 30px;
     cursor: pointer;
     border: none;
-    font-size: 18px;
-    color: #fff;
+    border-radius: 50%;
+    font-size: 15px;
+    color: var(--text-main, #555);
     flex-shrink: 0;
-    background: #2563eb;
+    background: var(--bg-hover, rgba(128,128,128,0.15));
+    transition: background 0.15s;
 }
 .ep-progress-bar-dl.ep-dl-visible {
     display: flex;
 }
 .ep-progress-bar-dl:hover {
-    background: #1d4ed8;
+    background: var(--bg-hover, rgba(128,128,128,0.3));
 }
 
 .ep-progress-bar-close {

@@ -83,7 +83,64 @@
     }
 
     // ── Progress Stack (compact, persistent, lower-right) ──
-    let activeJobs = {}; // jobId -> { abort, poll, bar, mode }
+    let activeJobs = {}; // clientJobId -> { abort, poll, bar, mode, serverJobId, sourceKey, sourceLabel }
+
+    function epSaveJobs() {
+        try {
+            var snapshot = {};
+            for (var k in activeJobs) {
+                var j = activeJobs[k];
+                if (!j) continue;
+                var barEl = j.bar;
+                snapshot[k] = {
+                    serverJobId: j.serverJobId || '',
+                    mode: j.mode || 'push',
+                    sourceKey: j.sourceKey || '',
+                    sourceLabel: j.sourceLabel || '',
+                    text: barEl ? (barEl.querySelector('.ep-progress-bar-text') || {}).textContent || '' : '',
+                    percent: barEl ? (barEl.querySelector('.ep-progress-bar-fill') || {}).style.width || '0%' : '0%',
+                    isError: barEl ? (barEl.querySelector('.ep-progress-bar-text.error') !== null) : false,
+                    hasDownload: barEl ? (barEl.querySelector('.ep-progress-bar-dl.ep-dl-visible') !== null) : false,
+                    done: false
+                };
+            }
+            localStorage.setItem('ep_active_jobs', JSON.stringify(snapshot));
+        } catch(e) {}
+    }
+
+    function epRestoreJobs() {
+        try {
+            var raw = localStorage.getItem('ep_active_jobs');
+            if (!raw) return;
+            var snapshot = JSON.parse(raw);
+            for (var k in snapshot) {
+                var j = snapshot[k];
+                if (!j.serverJobId) continue;
+                var bar = epCreateBar(k, j.text, j.mode);
+                epUpdateBar(bar, parseInt(j.percent) || 0, j.text, j.isError);
+                var jobRef = {
+                    abort: new AbortController(),
+                    poll: null,
+                    bar: bar,
+                    mode: j.mode,
+                    serverJobId: j.serverJobId,
+                    sourceKey: j.sourceKey,
+                    sourceLabel: j.sourceLabel || j.sourceKey
+                };
+                activeJobs[k] = jobRef;
+
+                // If done, show download and skip polling
+                if (j.hasDownload) {
+                    epShowDownload(bar, j.sourceKey);
+                    continue;
+                }
+                // Resume polling for active jobs
+                startPushPoll(j.serverJobId, j.mode, k, j.sourceLabel || j.sourceKey);
+            }
+        } catch(e) {
+            console.error('[EinkPush] restore jobs error:', e);
+        }
+    }
 
     function getStack() {
         let s = document.getElementById('ep-progress-stack');
@@ -118,6 +175,7 @@
             }
             bar.remove();
             if (stack.children.length === 0) stack.remove();
+            epSaveJobs();
         };
         stack.appendChild(bar);
         return bar;
@@ -228,9 +286,18 @@
 
     // ── Concurrent job spawner (push or generate) ──
     function epSpawnJobs(mode) {
-        // Collect all enabled sources from DOM
-        var sources = [];
+        // Check DOM for source items (settings page)
         var items = document.querySelectorAll('.ep-source-item');
+        if (items.length > 0) {
+            epSpawnJobsFromDom(mode, items);
+            return;
+        }
+        // Not on settings page (e.g. sidebar). Fetch sources from server.
+        epSpawnJobsFromServer(mode);
+    }
+
+    function epSpawnJobsFromDom(mode, items) {
+        var sources = [];
         items.forEach(function(item) {
             var chk = item.querySelector('input[name$="[enabled]"]');
             if (chk && chk.checked) {
@@ -245,6 +312,31 @@
             epUpdateBar(bar, 100, 'No sources enabled', false);
             return;
         }
+        epSpawnJobsExecute(mode, sources);
+    }
+
+    function epSpawnJobsFromServer(mode) {
+        var url = './?c=EinkPush&a=listSources&_=' + Date.now();
+        fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+            if (data.status !== 'ok' || !data.sources || data.sources.length === 0) {
+                var bar = epCreateBar('job_none', 'No sources configured', mode);
+                epUpdateBar(bar, 100, 'No sources configured', false);
+                return;
+            }
+            var enabled = data.sources.filter(function(s) { return s.enabled; });
+            if (enabled.length === 0) {
+                var bar = epCreateBar('job_none', 'No sources enabled', mode);
+                epUpdateBar(bar, 100, 'No sources enabled', false);
+                return;
+            }
+            epSpawnJobsExecute(mode, enabled);
+        }).catch(function(err) {
+            var bar = epCreateBar('job_err', 'Error: ' + err.message, mode);
+            epUpdateBar(bar, 100, 'Error: ' + err.message, true);
+        });
+    }
+
+    function epSpawnJobsExecute(mode, sources) {
 
         sources.forEach(function(src) {
             var jobId = 'job_' + Date.now() + '_' + src.key;
@@ -264,6 +356,7 @@
                     }
                     if (data.job) {
                         startPushPoll(data.job, mode, jobId, src.label);
+                        epSaveJobs();
                     }
                 })
                 .catch(function(err) {
@@ -321,6 +414,12 @@
     function startPushPoll(jobId, mode, clientJobId, sourceLabel) {
         var bar = activeJobs[clientJobId] ? activeJobs[clientJobId].bar : null;
         if (!bar) return;
+        // Store server jobId for persistence
+        if (activeJobs[clientJobId]) {
+            activeJobs[clientJobId].serverJobId = jobId;
+            activeJobs[clientJobId].sourceLabel = sourceLabel;
+            epSaveJobs();
+        }
 
         var lastStep = '';
         var lastTime = 0;
@@ -356,6 +455,7 @@
                             epShowDownload(bar, activeJobs[clientJobId] ? activeJobs[clientJobId].sourceKey : '');
                         }
                         // Bar stays — user clicks X to dismiss
+                        epSaveJobs();
                     } else if (data.step === 'error') {
                         clearInterval(pollTimer);
                         epUpdateBar(bar, 100, data.message || 'Error', true);
@@ -595,6 +695,13 @@
         } catch (err) {}
     }
     document.addEventListener('DOMContentLoaded', restoreTab);
+
+    // ── Persist bars across navigation ──
+    window.addEventListener('beforeunload', epSaveJobs);
+    document.addEventListener('DOMContentLoaded', function() {
+        // Restore bars after short delay to let DOM settle
+        setTimeout(epRestoreJobs, 100);
+    });
 
     // ── Sidebar Injection ──
     function injectSidebarButton() {

@@ -547,7 +547,13 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         $pattern = $epubDir . '*' . preg_quote($label, '/') . '*.epub';
         $files = glob($pattern);
         if (empty($files)) {
-            // Try without label
+            // Try sanitized label (spaces -> underscores)
+            $safeName = str_replace(' ', '_', $label);
+            $pattern = $epubDir . '*' . preg_quote($safeName, '/') . '*.epub';
+            $files = glob($pattern);
+        }
+        if (empty($files)) {
+            // Try source key directly
             $pattern = $epubDir . '*' . preg_quote($sourceKey, '/') . '*.epub';
             $files = glob($pattern);
         }

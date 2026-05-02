@@ -450,6 +450,7 @@ class EinkPushHelper {
         }
 
         if (empty($chapters)) {
+            error_log('[EinkPush] DEBUG buildEpub: chapters empty! entries=' . count($entries) . ' includedCount=' . $includedCount . ' chapterIndex=' . $chapterIndex . ' fetchSuccess=' . $this->fetchSuccessCount . ' fetchFail=' . $this->fetchFailCount);
             return null;
         }
 

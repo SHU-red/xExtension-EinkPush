@@ -689,6 +689,29 @@ body.theme-dark .ep-footer {
     color: #d32f2f;
 }
 
+.ep-progress-bar-dl {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    margin: 2px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 16px;
+    color: var(--ep-primary);
+    flex-shrink: 0;
+    border: none;
+    background: none;
+    text-decoration: none;
+}
+.ep-progress-bar-dl.ep-dl-visible {
+    display: flex;
+}
+.ep-progress-bar-dl:hover {
+    background: var(--hover-bg, rgba(0,0,0,0.08));
+}
+
 .ep-progress-bar-close {
     display: flex;
     align-items: center;

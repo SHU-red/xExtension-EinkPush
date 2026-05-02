@@ -173,6 +173,7 @@
                 if (jobRef.poll) clearInterval(jobRef.poll);
                 delete activeJobs[jobId];
             }
+            if (bar._dismissTimer) clearTimeout(bar._dismissTimer);
             bar.remove();
             if (stack.children.length === 0) stack.remove();
             epSaveJobs();
@@ -209,6 +210,22 @@
                 window.open('./?c=EinkPush&a=downloadFile&source=' + encodeURIComponent(sourceKey), '_blank');
             };
         }
+    }
+
+    function epAutoDismiss(bar, jobId) {
+        // Bars with download button never auto-dismiss
+        if (bar && bar.querySelector('.ep-progress-bar-dl.ep-dl-visible')) return;
+        bar._dismissTimer = setTimeout(function() {
+            if (activeJobs[jobId]) {
+                if (activeJobs[jobId].abort) activeJobs[jobId].abort.abort();
+                if (activeJobs[jobId].poll) clearInterval(activeJobs[jobId].poll);
+                delete activeJobs[jobId];
+            }
+            if (bar && bar.parentNode) bar.remove();
+            var stack = document.getElementById('ep-progress-stack');
+            if (stack && stack.children.length === 0) stack.remove();
+            epSaveJobs();
+        }, 30000);
     }
 
     function in_array(needle, haystack) {
@@ -310,6 +327,7 @@
         if (sources.length === 0) {
             var bar = epCreateBar('job_none', 'No sources enabled', mode);
             epUpdateBar(bar, 100, 'No sources enabled', false);
+            epAutoDismiss(bar, 'job_none');
             return;
         }
         epSpawnJobsExecute(mode, sources);
@@ -321,18 +339,21 @@
             if (data.status !== 'ok' || !data.sources || data.sources.length === 0) {
                 var bar = epCreateBar('job_none', 'No sources configured', mode);
                 epUpdateBar(bar, 100, 'No sources configured', false);
+                epAutoDismiss(bar, 'job_none');
                 return;
             }
             var enabled = data.sources.filter(function(s) { return s.enabled; });
             if (enabled.length === 0) {
                 var bar = epCreateBar('job_none', 'No sources enabled', mode);
                 epUpdateBar(bar, 100, 'No sources enabled', false);
+                epAutoDismiss(bar, 'job_none');
                 return;
             }
             epSpawnJobsExecute(mode, enabled);
         }).catch(function(err) {
             var bar = epCreateBar('job_err', 'Error: ' + err.message, mode);
             epUpdateBar(bar, 100, 'Error: ' + err.message, true);
+            epAutoDismiss(bar, 'job_err');
         });
     }
 
@@ -439,6 +460,7 @@
                             timedOut = true;
                             clearInterval(pollTimer);
                             epUpdateBar(bar, 100, 'Timeout', true);
+                            epAutoDismiss(bar, clientJobId);
                             return;
                         }
                         lastTime = ts;
@@ -448,18 +470,18 @@
                         lastMessage = data.message || '';
                         epHandleProgressForBar(bar, data, sourceLabel || data.source || '');
                     }
-                    // Done states — bar stays, show download icon for generate mode
+                    // Done states — auto-dismiss after 30s unless download button visible
                     if (in_array(data.step, ['done', 'done_with_errors', 'no_content'])) {
                         clearInterval(pollTimer);
                         if (mode === 'generate' && data.step === 'done') {
                             epShowDownload(bar, activeJobs[clientJobId] ? activeJobs[clientJobId].sourceKey : '');
                         }
-                        // Bar stays — user clicks X to dismiss
                         epSaveJobs();
+                        epAutoDismiss(bar, clientJobId);
                     } else if (data.step === 'error') {
                         clearInterval(pollTimer);
                         epUpdateBar(bar, 100, data.message || 'Error', true);
-                        // Bar stays
+                        epAutoDismiss(bar, clientJobId);
                     }
                 })
                 .catch(function() {});

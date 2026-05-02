@@ -616,8 +616,9 @@ body.theme-dark .ep-footer {
     display: flex;
     flex-direction: column-reverse;
     gap: 6px;
+    max-width: 420px;
+    min-width: 260px;
     width: calc(100% - 24px);
-    max-width: 100%;
     pointer-events: none;
 }
 

@@ -13,7 +13,13 @@ $pidFile = '/tmp/einkpush_daemon.pid';
 
 if (file_exists($pidFile)) {
     $oldPid = intval(trim(file_get_contents($pidFile)));
-    if ($oldPid > 0 && posix_kill($oldPid, 0)) {
+    $alive = false;
+    if ($oldPid > 0 && function_exists('posix_kill')) {
+        $alive = posix_kill($oldPid, 0);
+    } elseif ($oldPid > 0) {
+        $alive = file_exists("/proc/$oldPid");
+    }
+    if ($alive) {
         exit(1);
     }
     unlink($pidFile);

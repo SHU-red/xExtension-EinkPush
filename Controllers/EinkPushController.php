@@ -305,7 +305,7 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
             $addTimestamp = !empty($srcCfg['addTimestamp']);
 
             $writeProgress('collecting', ['source' => $label, 'message' => 'Collecting articles...']);
-            $entries = $helper->collectForSource($key, $historyDays, $unreadOnly);
+            $entries = $helper->collectForSource($key, $historyDays, $unreadOnly, $maxArticles);
             if (empty($entries)) {
                 $writeProgress('source_empty', ['source' => $label]);
                 continue;

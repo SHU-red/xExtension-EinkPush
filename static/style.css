@@ -642,7 +642,7 @@ body.theme-dark .ep-footer {
     top: 0;
     bottom: 0;
     width: 100%;
-    background: rgba(255, 0, 0, 0.3);
+    background: rgba(40, 180, 80, 0.35);
     border-radius: 0;
     transition: width 30s linear;
     z-index: 1;

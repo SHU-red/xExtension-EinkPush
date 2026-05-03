@@ -225,6 +225,17 @@
         var timerBar = document.createElement('div');
         timerBar.className = 'ep-progress-bar-timer';
         timerBar.style.width = '100%';
+        // Color based on bar state
+        var txt = bar.querySelector('.ep-progress-bar-text');
+        var isError = txt && txt.classList.contains('error');
+        var isNoArticles = txt && /no.*(articles|sources)/i.test(txt.textContent);
+        if (isNoArticles) {
+            timerBar.style.background = 'rgba(150, 150, 150, 0.4)';
+        } else if (isError) {
+            timerBar.style.background = 'rgba(220, 50, 50, 0.4)';
+        } else {
+            timerBar.style.background = 'rgba(40, 180, 80, 0.35)';
+        }
         var fillBg = inner.querySelector('.ep-progress-bar-fill-bg');
         if (fillBg) {
             inner.insertBefore(timerBar, fillBg.nextSibling);

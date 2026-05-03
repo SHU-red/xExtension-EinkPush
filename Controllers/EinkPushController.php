@@ -186,7 +186,7 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
         foreach ($sources as $key => $src) {
             $result[] = [
                 'key' => $key,
-                'label' => $src['label'] ?? $key,
+                'label' => $this->helper->sourceLabel($key),
                 'enabled' => !empty($src['enabled']),
             ];
         }

@@ -201,6 +201,8 @@ while (true) {
                     $conf->EinkPush_last_push_type = 'auto';
                     $conf->EinkPush_last_push_status = $fail > 0 ? 'partial' : 'success';
                     $conf->save();
+                    // Log auto-push summary
+                    $helper->logPush('Auto Push', $fail === 0, "$ok ok, $fail fail");
                 }
                 $log("Pushed $ok ok $fail fail");
                 $writeStatus('pushing', 0, ($ok > 0 ? $ok . ' pushed' : 'Push failed'));

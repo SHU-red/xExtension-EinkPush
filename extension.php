@@ -367,7 +367,7 @@ class EinkPushExtension extends Minz_Extension {
                     $srcCfg = $sources[$key] ?? [];
                     if (empty($srcCfg['autoPush'])) continue;
 
-                    $sourceName = $key === 'favorites' ? _t('ext.source_favorites') : $key;
+                    $sourceName = $helper->sourceLabel($key);
                     if ($helper->pushToEndpoint($path, $endpoint, (int)$conf->EinkPush_push_retries, 5, $sourceName)) {
                         $success++;
                     } else {

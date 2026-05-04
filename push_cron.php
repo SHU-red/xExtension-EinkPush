@@ -92,7 +92,7 @@ foreach ($pushSources as $key => $srcCfg) {
 
     echo "[{$key}] Generated: " . basename($path) . "\n";
 
-    $sourceName = $key === 'favorites' ? 'Favorites' : $key;
+    $sourceName = $helper->sourceLabel($key);
     if ($helper->pushToEndpoint($path, $endpoint, $retries, $delay, $sourceName)) {
         echo "[{$key}] Pushed successfully.\n";
         $success++;

@@ -68,8 +68,9 @@ $history = $helper->getHistory();
         <button type="button" class="ep-nav-item" data-target="history"><?= _t('ext.nav_history') ?></button>
     </nav>
 
-    <form method="post" action="<?= _url('extension', 'configure', 'e', 'EinkPush') ?>">
+    <form method="post" action="<?= _url('extension', 'configure', 'e', 'EinkPush') ?>" id="ep-config-form">
         <input type="hidden" name="_csrf" value="<?= FreshRSS_Auth::csrfToken() ?>">
+        <input type="hidden" name="ep_tab" id="ep_tab_hidden" value="<?= htmlspecialchars(Minz_Request::param('ep_tab', '', true)) ?>">
 
         <!-- Sources Section -->
         <div id="sources" class="ep-section active">
@@ -154,7 +155,7 @@ $history = $helper->getHistory();
                                     </span>
                                 </div>
                             <?php else: ?>
-                                <pre class="ep-device-info-raw" style="padding:10px; background:#f5f5f5; border-radius:4px;"><?= htmlspecialchars($cfg['device_info']) ?></pre>
+                                <div class="ep-inactive-help">Device info not available (last test may have failed)</div>
                             <?php endif; ?>
                         <?php else: ?>
                             <div id="device-status-placeholder" class="ep-inactive-help">

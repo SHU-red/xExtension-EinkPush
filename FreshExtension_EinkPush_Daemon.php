@@ -113,7 +113,16 @@ while (true) {
     $lastPing = (int)($conf->EinkPush_last_ping ?? 0);
     $now = time();
 
+    // last_ping=0 means "just re-enabled, ping now"
+    if ($lastPing === 0) {
+        $lastPing = $now - $pingInt; // force nextPing to be due immediately
+    }
+
     $cooldownOk = ($now - $lastPush) >= $cooldown;
+    // last_push=0 means "just re-enabled, skip cooldown"
+    if (!$cooldownOk && $lastPush === 0) {
+        $cooldownOk = true;
+    }
     if (!$cooldownOk) {
         $rem = $cooldown - ($now - $lastPush);
         $writeStatus('cooldown', $lastPush + $cooldown, 'Push cooldown');
@@ -131,9 +140,11 @@ while (true) {
         continue;
     }
 
-    $writeStatus('pushing', 0, 'Checking device...');
     $conf->EinkPush_last_ping = $now;
     $conf->save();
+
+    $writeStatus('pinging', 0, 'Pinging device...');
+    $log('Pinging device...');
 
     $ud = USERS_PATH . '/' . $user . '/EinkPush/';
     if (!is_dir($ud)) mkdir($ud, 0770, true);
@@ -153,10 +164,12 @@ while (true) {
         $conf->save();
         $log('Device online');
 
+        $writeStatus('generating', 0, 'Generating EPUBs...');
         $sources = $conf->EinkPush_sources ?? [];
         $paths = $helper->generateAll($sources);
 
         if (!empty($paths)) {
+            $writeStatus('pushing', 0, 'Pushing to device...');
             $ok = 0; $fail = 0;
             $ret = max(0, (int)($conf->EinkPush_push_retries ?? 3));
 
@@ -176,11 +189,15 @@ while (true) {
             $conf->EinkPush_last_push_status = $fail > 0 ? 'partial' : 'success';
             $conf->save();
             $log("Pushed $ok ok $fail fail");
+            $writeStatus('pushing', 0, ($ok > 0 ? $ok . ' pushed' : 'Push failed'));
+        } else {
+            $writeStatus('generating', 0, 'No articles');
         }
     } else {
         $conf->EinkPush_last_ping_status = 'offline';
         $conf->save();
         $log('Device offline');
+        $writeStatus('pinging', 0, 'Device offline');
     }
 }
 

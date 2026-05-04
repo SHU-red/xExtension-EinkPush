@@ -50,23 +50,12 @@ class EinkPushExtension extends Minz_Extension {
     }
 
     private function startDaemon() {
-        $lockFile = '/tmp/einkpush_daemon.lock';
-        // Atomic lock file to prevent race
-        $fp = @flock(fopen($lockFile, 'w'), LOCK_EX | LOCK_NB);
-        if ($fp) {
-            if ($this->daemonRunning()) {
-                flock($fp, LOCK_UN);
-                fclose($fp);
-                return;
-            }
-            $daemonFile = $this->getPath() . '/FreshExtension_EinkPush_Daemon.php';
-            $phpBin = PHP_BINARY ?: '/usr/bin/php';
-            $cmd = '/bin/sh -c "nohup ' . escapeshellarg($phpBin) . ' ' . escapeshellarg($daemonFile) . ' > /dev/null 2>&1 &"';
-            exec($cmd, $out, $ret);
-            error_log('[EinkPush] Daemon start: ret=' . $ret);
-            flock($fp, LOCK_UN);
-            fclose($fp);
-        }
+        if ($this->daemonRunning()) return;
+        $daemonFile = $this->getPath() . '/FreshExtension_EinkPush_Daemon.php';
+        $phpBin = PHP_BINARY ?: '/usr/bin/php';
+        $cmd = '/bin/sh -c "nohup ' . escapeshellarg($phpBin) . ' ' . escapeshellarg($daemonFile) . ' > /dev/null 2>&1 &"';
+        exec($cmd, $out, $ret);
+        error_log('[EinkPush] Daemon start: ret=' . $ret);
     }
 
     private function ensureDaemon() {
@@ -77,13 +66,15 @@ class EinkPushExtension extends Minz_Extension {
     }
 
     private function manageDaemon(bool $start) {
-        if ($start) {
-            // Kill old daemon first
-            $this->stopDaemon();
-            sleep(1); // let PID clear
-            $this->startDaemon();
-        } else {
-            $this->stopDaemon();
+        try {
+            if ($start) {
+                $this->stopDaemon();
+                $this->startDaemon();
+            } else {
+                $this->stopDaemon();
+            }
+        } catch (Throwable $e) {
+            error_log('[EinkPush] manageDaemon error: ' . $e->getMessage());
         }
     }
 
@@ -100,9 +91,7 @@ class EinkPushExtension extends Minz_Extension {
             }
             @unlink($pidFile);
         }
-        @unlink('/tmp/einkpush_daemon_status.json');
         @unlink('/tmp/einkpush_daemon.lock');
-        error_log('[EinkPush] Daemon stopped');
     }
 
     public function handleConfigureAction() {
@@ -133,9 +122,6 @@ class EinkPushExtension extends Minz_Extension {
                 $conf->EinkPush_last_ping = 0;
                 $conf->EinkPush_last_push = 0;
                 $conf->save();
-                // Clear stale status file so daemon writes fresh state
-                @unlink('/tmp/einkpush_daemon_status.json');
-                @unlink('/tmp/einkpush_daemon.pid');
             }
 
             error_log('[EinkPush] Saving showSidebarButton: ' . $conf->EinkPush_showSidebarButton);

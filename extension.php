@@ -42,61 +42,67 @@ class EinkPushExtension extends Minz_Extension {
         $pidFile = '/tmp/einkpush_daemon.pid';
         if (!file_exists($pidFile)) return false;
         $pid = intval(trim(file_get_contents($pidFile)));
-        if ($pid > 0 && function_exists('posix_kill')) {
+        if ($pid <= 0) return false;
+        if (function_exists('posix_kill')) {
             return posix_kill($pid, 0);
         }
-        return false;
+        return file_exists("/proc/$pid");
+    }
+
+    private function startDaemon() {
+        $lockFile = '/tmp/einkpush_daemon.lock';
+        // Atomic lock file to prevent race
+        $fp = @flock(fopen($lockFile, 'w'), LOCK_EX | LOCK_NB);
+        if ($fp) {
+            if ($this->daemonRunning()) {
+                flock($fp, LOCK_UN);
+                fclose($fp);
+                return;
+            }
+            $daemonFile = $this->getPath() . '/FreshExtension_EinkPush_Daemon.php';
+            $phpBin = PHP_BINARY ?: '/usr/bin/php';
+            $cmd = '/bin/sh -c "nohup ' . escapeshellarg($phpBin) . ' ' . escapeshellarg($daemonFile) . ' > /dev/null 2>&1 &"';
+            exec($cmd, $out, $ret);
+            error_log('[EinkPush] Daemon start: ret=' . $ret);
+            flock($fp, LOCK_UN);
+            fclose($fp);
+        }
     }
 
     private function ensureDaemon() {
         $conf = FreshRSS_Context::$user_conf;
         if ((int)($conf->EinkPush_auto_push_enabled) <= 0) return;
         if ($this->daemonRunning()) return;
-
-        $daemonFile = $this->getPath() . '/FreshExtension_EinkPush_Daemon.php';
-        $phpBin = PHP_BINARY ?: '/usr/bin/php';
-        $cmd = '/bin/sh -c "nohup ' . escapeshellarg($phpBin) . ' ' . escapeshellarg($daemonFile) . ' > /dev/null 2>&1 &"';
-        exec($cmd, $out, $ret);
-        error_log('[EinkPush] Daemon auto-start: ret=' . $ret);
+        $this->startDaemon();
     }
 
     private function manageDaemon(bool $start) {
-        $daemonFile = $this->getPath() . '/FreshExtension_EinkPush_Daemon.php';
-        $phpBin = PHP_BINARY ?: '/usr/bin/php';
-
         if ($start) {
-            // Always clean stale PID first
-            $pidFile = '/tmp/einkpush_daemon.pid';
-            if (file_exists($pidFile)) {
-                $pid = intval(trim(file_get_contents($pidFile)));
-                if ($pid > 0) {
-                    if (function_exists('posix_kill') && posix_kill($pid, 0)) {
-                        posix_kill($pid, SIGTERM);
-                    } elseif (file_exists("/proc/$pid")) {
-                        exec("kill $pid 2>/dev/null");
-                    }
-                }
-                @unlink($pidFile);
-            }
-            $cmd = '/bin/sh -c "nohup ' . escapeshellarg($phpBin) . ' ' . escapeshellarg($daemonFile) . ' > /dev/null 2>&1 &"';
-            exec($cmd, $out, $ret);
-            error_log('[EinkPush] Daemon start: ret=' . $ret);
+            // Kill old daemon first
+            $this->stopDaemon();
+            sleep(1); // let PID clear
+            $this->startDaemon();
         } else {
-            $pidFile = '/tmp/einkpush_daemon.pid';
-            if (file_exists($pidFile)) {
-                $pid = intval(trim(file_get_contents($pidFile)));
-                if ($pid > 0) {
-                    if (function_exists('posix_kill')) {
-                        posix_kill($pid, SIGTERM);
-                    } else {
-                        exec("kill $pid 2>/dev/null");
-                    }
-                }
-                @unlink($pidFile);
-            }
-            @unlink('/tmp/einkpush_daemon_status.json');
-            error_log('[EinkPush] Daemon stopped');
+            $this->stopDaemon();
         }
+    }
+
+    private function stopDaemon() {
+        $pidFile = '/tmp/einkpush_daemon.pid';
+        if (file_exists($pidFile)) {
+            $pid = intval(trim(file_get_contents($pidFile)));
+            if ($pid > 0) {
+                if (function_exists('posix_kill') && posix_kill($pid, 0)) {
+                    posix_kill($pid, SIGTERM);
+                } elseif (file_exists("/proc/$pid")) {
+                    exec("kill $pid 2>/dev/null");
+                }
+            }
+            @unlink($pidFile);
+        }
+        @unlink('/tmp/einkpush_daemon_status.json');
+        @unlink('/tmp/einkpush_daemon.lock');
+        error_log('[EinkPush] Daemon stopped');
     }
 
     public function handleConfigureAction() {

@@ -187,7 +187,7 @@ while (true) {
                 $ret = max(0, (int)($conf->EinkPush_push_retries ?? 3));
 
                 foreach ($paths as $k => $p) {
-                    $nm = $k === 'favorites' ? 'Favorites' : ($k === 'main' ? 'Main stream' : $k);
+                    $nm = $helper->sourceLabel($k);
                     $log("Pushing: $nm");
                     if ($helper->pushToEndpoint($p, $endpoint, $ret, 5, $nm)) {
                         $ok++;

@@ -1030,8 +1030,14 @@
                     .then(r => r.json())
                     .then(d => {
                         const n = Math.floor(Date.now() / 1000);
-                        if (d.state === 'pushing') {
-                            el.textContent = '⚡ Pushing...';
+                        if (d.state === 'pinging') {
+                            el.textContent = '📡 Pinging... ' + (d.msg || '');
+                            el.style.color = '#2196F3';
+                        } else if (d.state === 'generating') {
+                            el.textContent = '📦 Generating... ' + (d.msg || '');
+                            el.style.color = '#FF9800';
+                        } else if (d.state === 'pushing') {
+                            el.textContent = '⚡ Pushing... ' + (d.msg || '');
                             el.style.color = '#28a745';
                         } else if (d.state === 'cooldown') {
                             const cd = (d.next || nextCoold) - n;

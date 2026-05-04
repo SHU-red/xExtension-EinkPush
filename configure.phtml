@@ -155,7 +155,7 @@ $history = $helper->getHistory();
                                     </span>
                                 </div>
                             <?php else: ?>
-                                <pre class="ep-device-info-raw" style="padding:10px; background:#f5f5f5; border-radius:4px;"><?= htmlspecialchars($cfg['device_info']) ?></pre>
+                                <div class="ep-inactive-help">Device info not available (last test may have failed)</div>
                             <?php endif; ?>
                         <?php else: ?>
                             <div id="device-status-placeholder" class="ep-inactive-help">

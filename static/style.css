@@ -148,9 +148,17 @@
     border-radius: 999px;
     font-size: 12px !important;
     font-weight: 500;
-    color: var(--ep-text, #1e1e1f) !important;
+    color: #333 !important;
     white-space: nowrap;
     line-height: 1.4;
+}
+
+@media (prefers-color-scheme: dark) {
+    .ep-badge {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+        color: #f0f0f0 !important;
+    }
 }
 
 /* Inline test button — same height as input */

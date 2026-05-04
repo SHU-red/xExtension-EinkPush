@@ -187,9 +187,7 @@ while (true) {
                 $ret = max(0, (int)($conf->EinkPush_push_retries ?? 3));
 
                 foreach ($paths as $k => $p) {
-                    $sc = $sources[$k] ?? [];
-                    if (empty($sc['autoPush'])) continue;
-                    $nm = $k === 'favorites' ? 'Favorites' : $k;
+                    $nm = $k === 'favorites' ? 'Favorites' : ($k === 'main' ? 'Main stream' : $k);
                     $log("Pushing: $nm");
                     if ($helper->pushToEndpoint($p, $endpoint, $ret, 5, $nm)) {
                         $ok++;
@@ -198,10 +196,12 @@ while (true) {
                     }
                 }
 
-                $conf->EinkPush_last_push = time();
-                $conf->EinkPush_last_push_type = 'auto';
-                $conf->EinkPush_last_push_status = $fail > 0 ? 'partial' : 'success';
-                $conf->save();
+                if ($ok > 0 || $fail > 0) {
+                    $conf->EinkPush_last_push = time();
+                    $conf->EinkPush_last_push_type = 'auto';
+                    $conf->EinkPush_last_push_status = $fail > 0 ? 'partial' : 'success';
+                    $conf->save();
+                }
                 $log("Pushed $ok ok $fail fail");
                 $writeStatus('pushing', 0, ($ok > 0 ? $ok . ' pushed' : 'Push failed'));
             } else {

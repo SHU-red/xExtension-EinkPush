@@ -748,6 +748,24 @@
     }
     document.addEventListener('DOMContentLoaded', restoreTab);
 
+    // ── Persist tab across form submit ──
+    (function() {
+        var form = document.getElementById('ep-config-form');
+        var hidden = document.getElementById('ep_tab_hidden');
+        if (form && hidden) {
+            form.addEventListener('submit', function() {
+                var active = document.querySelector('.ep-nav-item.active');
+                if (active) hidden.value = active.getAttribute('data-target') || '';
+            });
+        }
+        // Restore from POST data if available
+        if (hidden && hidden.value) {
+            var savedTab = hidden.value;
+            var tabBtn = document.querySelector('.ep-nav-item[data-target="' + savedTab + '"]');
+            if (tabBtn) activateTab(tabBtn);
+        }
+    })();
+
     // ── Persist bars across navigation ──
     window.addEventListener('beforeunload', epSaveJobs);
     document.addEventListener('DOMContentLoaded', function() {

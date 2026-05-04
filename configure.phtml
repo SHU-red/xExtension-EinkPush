@@ -68,8 +68,9 @@ $history = $helper->getHistory();
         <button type="button" class="ep-nav-item" data-target="history"><?= _t('ext.nav_history') ?></button>
     </nav>
 
-    <form method="post" action="<?= _url('extension', 'configure', 'e', 'EinkPush') ?>">
+    <form method="post" action="<?= _url('extension', 'configure', 'e', 'EinkPush') ?>" id="ep-config-form">
         <input type="hidden" name="_csrf" value="<?= FreshRSS_Auth::csrfToken() ?>">
+        <input type="hidden" name="ep_tab" id="ep_tab_hidden" value="<?= htmlspecialchars(Minz_Request::param('ep_tab', '', true)) ?>">
 
         <!-- Sources Section -->
         <div id="sources" class="ep-section active">

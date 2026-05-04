@@ -100,9 +100,10 @@ class EinkPushHelper {
      * POST an EPUB file to a remote endpoint with retries.
      */
     public function pushToEndpoint(string $filePath, string $endpoint, int $retries = 3, int $retryDelay = 10, string $sourceName = 'Unknown'): bool {
+        $resolvedName = $sourceName; // already resolved by caller, use as-is
         $success = false;
         if (!file_exists($filePath) || !function_exists('curl_init')) {
-            $this->logPush($sourceName, false, 'File missing or cURL disabled');
+            $this->logPush($resolvedName, false, 'File missing or cURL disabled');
             return false;
         }
         $parsed = parse_url($endpoint);
@@ -981,7 +982,8 @@ CSS;
     }
 
     private function logPush(string $source, bool $success, string $message): void {
-        $this->addLogEntry($source, $success, $message);
+        $resolved = $this->sourceLabel($source);
+        $this->addLogEntry($resolved, $success, $message);
     }
 
     private function logInfo(string $message): void {

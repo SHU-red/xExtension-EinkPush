@@ -86,14 +86,24 @@ if ($dh = opendir($ud)) {
 if (!$user) exit(1);
 
 $log('User: ' . $user);
+FreshRSS_Context::initSystem();
 FreshRSS_Context::initUser($user);
 $conf = FreshRSS_Context::$user_conf;
 $pingIntervalMin = (int)($conf->EinkPush_ping_interval ?? 5);
 $cooldownH = (int)($conf->EinkPush_push_cooldown ?? 20);
 require_once __DIR__ . '/FreshExtension_EinkPush_Helper.php';
 
+// Lock file to prevent multiple daemon instances
+$lockFile = '/tmp/einkpush_daemon.lock';
+$lockFP = fopen($lockFile, 'c');
+if (!$lockFP || !flock($lockFP, LOCK_EX | LOCK_NB)) {
+    $log('Another daemon already running, exiting');
+    exit(0);
+}
+
 while (true) {
     // Reload config each cycle
+    FreshRSS_Context::initSystem();
     FreshRSS_Context::initUser($user);
     $conf = FreshRSS_Context::$user_conf;
 

@@ -65,9 +65,18 @@ class EinkPushExtension extends Minz_Extension {
         $phpBin = PHP_BINARY ?: '/usr/bin/php';
 
         if ($start) {
-            if ($this->daemonRunning()) {
-                error_log('[EinkPush] Daemon already running');
-                return;
+            // Always clean stale PID first
+            $pidFile = '/tmp/einkpush_daemon.pid';
+            if (file_exists($pidFile)) {
+                $pid = intval(trim(file_get_contents($pidFile)));
+                if ($pid > 0) {
+                    if (function_exists('posix_kill') && posix_kill($pid, 0)) {
+                        posix_kill($pid, SIGTERM);
+                    } elseif (file_exists("/proc/$pid")) {
+                        exec("kill $pid 2>/dev/null");
+                    }
+                }
+                @unlink($pidFile);
             }
             $cmd = '/bin/sh -c "nohup ' . escapeshellarg($phpBin) . ' ' . escapeshellarg($daemonFile) . ' > /dev/null 2>&1 &"';
             exec($cmd, $out, $ret);
@@ -76,11 +85,16 @@ class EinkPushExtension extends Minz_Extension {
             $pidFile = '/tmp/einkpush_daemon.pid';
             if (file_exists($pidFile)) {
                 $pid = intval(trim(file_get_contents($pidFile)));
-                if ($pid > 0 && function_exists('posix_kill')) {
-                    posix_kill($pid, SIGTERM);
+                if ($pid > 0) {
+                    if (function_exists('posix_kill')) {
+                        posix_kill($pid, SIGTERM);
+                    } else {
+                        exec("kill $pid 2>/dev/null");
+                    }
                 }
                 @unlink($pidFile);
             }
+            @unlink('/tmp/einkpush_daemon_status.json');
             error_log('[EinkPush] Daemon stopped');
         }
     }
@@ -107,6 +121,15 @@ class EinkPushExtension extends Minz_Extension {
             // Start/stop daemon on change
             if ($autoNowOn !== $autoWasOn) {
                 $this->manageDaemon($autoNowOn);
+            }
+            // If auto-push re-enabled, reset timers so daemon starts immediately
+            if ($autoNowOn && !$autoWasOn) {
+                $conf->EinkPush_last_ping = 0;
+                $conf->EinkPush_last_push = 0;
+                $conf->save();
+                // Clear stale status file so daemon writes fresh state
+                @unlink('/tmp/einkpush_daemon_status.json');
+                @unlink('/tmp/einkpush_daemon.pid');
             }
 
             error_log('[EinkPush] Saving showSidebarButton: ' . $conf->EinkPush_showSidebarButton);

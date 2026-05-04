@@ -113,7 +113,16 @@ while (true) {
     $lastPing = (int)($conf->EinkPush_last_ping ?? 0);
     $now = time();
 
+    // last_ping=0 means "just re-enabled, ping now"
+    if ($lastPing === 0) {
+        $lastPing = $now - $pingInt; // force nextPing to be due immediately
+    }
+
     $cooldownOk = ($now - $lastPush) >= $cooldown;
+    // last_push=0 means "just re-enabled, skip cooldown"
+    if (!$cooldownOk && $lastPush === 0) {
+        $cooldownOk = true;
+    }
     if (!$cooldownOk) {
         $rem = $cooldown - ($now - $lastPush);
         $writeStatus('cooldown', $lastPush + $cooldown, 'Push cooldown');

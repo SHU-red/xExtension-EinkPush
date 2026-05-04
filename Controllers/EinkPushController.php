@@ -197,7 +197,13 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
     public function daemonStatusAction(): void {
         $sf = '/tmp/einkpush_daemon_status.json';
         if (!file_exists($sf)) {
-            echo json_encode(['state' => 'off', 'next' => 0, 'msg' => 'Daemon not running', 'time' => time()]);
+            // Check if auto-push is enabled but daemon just started
+            $conf = $this->extension->getConfig();
+            if (!empty($conf['auto_push_enabled'])) {
+                echo json_encode(['state' => 'countdown', 'next' => time(), 'msg' => 'Starting...', 'time' => time()]);
+            } else {
+                echo json_encode(['state' => 'off', 'next' => 0, 'msg' => 'Auto-push disabled', 'time' => time()]);
+            }
             exit;
         }
         echo file_get_contents($sf);

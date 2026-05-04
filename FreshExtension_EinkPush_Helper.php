@@ -947,10 +947,10 @@ CSS;
 
     public function sourceLabel(string $key): string {
         if ($key === 'favorites') {
-            return function_exists('_t') ? _t('ext.source_favorites') : 'Favorites';
+            return 'Favorites';
         }
         if ($key === 'main') {
-            return function_exists('_t') ? _t('ext.source_main_stream') : 'Main stream';
+            return 'Main stream';
         }
         if (strpos($key, 'cat_') === 0) {
             $catId = (int) substr($key, 4);

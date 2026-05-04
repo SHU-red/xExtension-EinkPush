@@ -425,7 +425,7 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
 
             $success = 0; $failed = 0;
             foreach ($paths as $sourceKey => $path) {
-                $sourceName = $sourceKey === 'favorites' ? _t('ext.source_favorites') : $sourceKey;
+                $sourceName = $this->helper->sourceLabel($sourceKey);
                 if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], 5, $sourceName)) $success++;
                 else $failed++;
             }
@@ -473,7 +473,7 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
                 Minz_Request::good(_t('ext.msg_no_articles'), ['c' => 'extension', 'a' => 'configure', 'params' => ['e' => 'EinkPush']]);
             }
 
-            $sourceName = $sourceKey === 'favorites' ? _t('ext.source_favorites') : $sourceKey;
+            $sourceName = $this->helper->sourceLabel($sourceKey);
             if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], 5, $sourceName)) {
                 $uconf = FreshRSS_Context::$user_conf;
                 if ($uconf) {
@@ -708,7 +708,7 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
                 }
                 $success = 0; $failed = 0;
                 foreach ($paths as $sk => $path) {
-                    $sourceName = $sk === 'favorites' ? _t('ext.source_favorites') : $sk;
+                    $sourceName = $this->helper->sourceLabel($sk);
                     if ($this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], 5, $sourceName)) $success++;
                     else $failed++;
                 }
@@ -736,7 +736,7 @@ class FreshExtension_EinkPush_Controller extends Minz_ActionController {
                     echo json_encode(['status' => 'ok', 'message' => 'No articles found']);
                     exit;
                 }
-                $sourceName = $sourceKey === 'favorites' ? _t('ext.source_favorites') : $sourceKey;
+                $sourceName = $this->helper->sourceLabel($sourceKey);
                 $res = $this->helper->pushToEndpoint($path, $endpoint, $conf['push_retries'], 5, $sourceName);
                 if ($res) {
                     $uconf = FreshRSS_Context::$user_conf;

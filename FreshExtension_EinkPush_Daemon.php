@@ -169,39 +169,48 @@ while (true) {
 
     $status = $helper->checkDeviceStatus($endpoint);
     if ($status !== false) {
-        $conf->EinkPush_last_ping_status = 'online';
-        $conf->EinkPush_device_info = $status;
-        $conf->save();
-        $log('Device online');
-
-        $writeStatus('generating', 0, 'Generating EPUBs...');
-        $sources = $conf->EinkPush_sources ?? [];
-        $paths = $helper->generateAll($sources);
-
-        if (!empty($paths)) {
-            $writeStatus('pushing', 0, 'Pushing to device...');
-            $ok = 0; $fail = 0;
-            $ret = max(0, (int)($conf->EinkPush_push_retries ?? 3));
-
-            foreach ($paths as $k => $p) {
-                $sc = $sources[$k] ?? [];
-                if (empty($sc['autoPush'])) continue;
-                $nm = $k === 'favorites' ? 'Favorites' : $k;
-                if ($helper->pushToEndpoint($p, $endpoint, $ret, 5, $nm)) {
-                    $ok++;
-                } else {
-                    $fail++;
-                }
-            }
-
-            $conf->EinkPush_last_push = time();
-            $conf->EinkPush_last_push_type = 'auto';
-            $conf->EinkPush_last_push_status = $fail > 0 ? 'partial' : 'success';
+        try {
+            $conf->EinkPush_last_ping_status = 'online';
+            $conf->EinkPush_device_info = is_string($status) ? $status : json_encode($status);
             $conf->save();
-            $log("Pushed $ok ok $fail fail");
-            $writeStatus('pushing', 0, ($ok > 0 ? $ok . ' pushed' : 'Push failed'));
-        } else {
-            $writeStatus('generating', 0, 'No articles');
+            $log('Device online');
+
+            $writeStatus('generating', 0, 'Generating EPUBs...');
+            $sources = $conf->EinkPush_sources ?? [];
+            $log('Sources: ' . count($sources));
+            $paths = $helper->generateAll($sources);
+            $log('Generated: ' . count($paths) . ' EPUBs');
+
+            if (!empty($paths)) {
+                $writeStatus('pushing', 0, 'Pushing to device...');
+                $ok = 0; $fail = 0;
+                $ret = max(0, (int)($conf->EinkPush_push_retries ?? 3));
+
+                foreach ($paths as $k => $p) {
+                    $sc = $sources[$k] ?? [];
+                    if (empty($sc['autoPush'])) continue;
+                    $nm = $k === 'favorites' ? 'Favorites' : $k;
+                    $log("Pushing: $nm");
+                    if ($helper->pushToEndpoint($p, $endpoint, $ret, 5, $nm)) {
+                        $ok++;
+                    } else {
+                        $fail++;
+                    }
+                }
+
+                $conf->EinkPush_last_push = time();
+                $conf->EinkPush_last_push_type = 'auto';
+                $conf->EinkPush_last_push_status = $fail > 0 ? 'partial' : 'success';
+                $conf->save();
+                $log("Pushed $ok ok $fail fail");
+                $writeStatus('pushing', 0, ($ok > 0 ? $ok . ' pushed' : 'Push failed'));
+            } else {
+                $writeStatus('generating', 0, 'No articles');
+                $log('No articles to push');
+            }
+        } catch (Throwable $e) {
+            $log('ERROR: ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine());
+            $writeStatus('error', 0, 'Error: ' . substr($e->getMessage(), 0, 50));
         }
     } else {
         $conf->EinkPush_last_ping_status = 'offline';

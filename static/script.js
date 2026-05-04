@@ -787,22 +787,33 @@
         }
         if (document.getElementById('ep-sidebar-btn-main')) return;
 
-        // Check if on settings page
+        // Only show on main reading page (sidebar with subscriptions)
         const href = window.location.href;
-        const isOnSettingsPage =
-            document.querySelector('.setting-nav') ||
-            document.querySelector('#settings-menu') ||
-            document.querySelector('#extensions-container') ||
-            document.querySelector('.extensions-list') ||
-            document.querySelector('input[name="title_feed"]') ||
-            document.querySelector('fieldset[data-formname="feed"]');
         const isSettingsUrl =
             href.includes('c=extension') ||
             href.includes('c=pref') ||
             href.includes('c=subscription') ||
+            href.includes('c=config') ||
+            href.includes('c=bookmark') ||
+            href.includes('c=stat') ||
+            href.includes('p=login') ||
+            href.includes('p=install') ||
+            href.includes('p=auth') ||
             href.includes('p=login');
+        const isSettingsDOM =
+            document.querySelector('.setting-nav') ||
+            document.querySelector('#settings-menu') ||
+            document.querySelector('#extensions-container') ||
+            document.querySelector('.extensions-list') ||
+            document.querySelector('.config-panel') ||
+            document.querySelector('#conf-panel') ||
+            document.querySelector('.stat-panel');
+        const hasMainSidebar =
+            document.querySelector('.aside-subscriptions') ||
+            document.querySelector('nav.aside') ||
+            document.querySelector('.aside-left');
 
-        if (isOnSettingsPage || isSettingsUrl) return;
+        if (isSettingsUrl || isSettingsDOM || !hasMainSidebar) return;
 
         function createSidebarContent() {
             // Read width/font from native elements
